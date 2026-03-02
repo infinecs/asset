@@ -1,0 +1,206 @@
+@extends('layouts.app')
+
+@section('title', $asset->name . ' - IT Asset Management')
+@section('page-title', 'Asset Details')
+
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1">{{ $asset->name }}</h5>
+        <code class="text-muted">{{ $asset->asset_tag }}</code>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ route('tickets.create', ['asset_id' => $asset->id]) }}" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-ticket-detailed me-1"></i>Request Ticket
+        </a>
+        @if(auth()->user()->isStaff())
+        <a href="{{ route('assets.edit', $asset) }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        @endif
+        <a href="{{ route('assets.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Asset Details -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-semibold">Asset Information</h6>
+                <span class="badge bg-{{ $asset->status_badge }} px-3 py-2">
+                    <span class="status-dot {{ $asset->status }} me-1"></span>{{ $asset->status_label }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Asset Tag</label>
+                        <div class="fw-semibold"><code>{{ $asset->asset_tag }}</code></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Serial Number</label>
+                        <div class="fw-semibold">{{ $asset->serial_number ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Brand</label>
+                        <div class="fw-semibold">{{ $asset->brand ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Model</label>
+                        <div class="fw-semibold">{{ $asset->model ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Category</label>
+                        <div class="fw-semibold">{{ $asset->category?->name ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Location</label>
+                        <div class="fw-semibold">{{ $asset->location?->name ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Assigned To</label>
+                        <div class="fw-semibold">{{ $asset->assignedUser?->name ?? 'Unassigned' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Last Seen</label>
+                        <div class="fw-semibold">{{ $asset->last_seen_at ? $asset->last_seen_at->format('d M Y H:i') : 'Never' }}</div>
+                    </div>
+                    @if($asset->notes)
+                    <div class="col-12">
+                        <label class="text-muted small">Notes</label>
+                        <div>{{ $asset->notes }}</div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase Info -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-semibold">Purchase Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="text-muted small">Purchase Date</label>
+                        <div class="fw-semibold">{{ $asset->purchase_date ? $asset->purchase_date->format('d M Y') : '-' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small">Purchase Cost</label>
+                        <div class="fw-semibold">{{ $asset->purchase_cost ? '$' . number_format($asset->purchase_cost, 2) : '-' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small">Warranty Expiry</label>
+                        <div class="fw-semibold">
+                            @if($asset->warranty_expiry)
+                                @if($asset->isWarrantyExpired())
+                                    <span class="text-danger"><i class="bi bi-x-circle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }} (Expired)</span>
+                                @elseif($asset->isWarrantyExpiringSoon())
+                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }} (Expiring soon)</span>
+                                @else
+                                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }}</span>
+                                @endif
+                            @else
+                                -
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Tickets -->
+        @if($asset->requestTickets->count() > 0)
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-semibold">Related Tickets</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>Ticket #</th><th>Subject</th><th>Status</th><th>Date</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach($asset->requestTickets as $ticket)
+                            <tr>
+                                <td><code>{{ $ticket->ticket_number }}</code></td>
+                                <td>{{ Str::limit($ticket->subject, 40) }}</td>
+                                <td><span class="badge bg-{{ $ticket->status_badge }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></td>
+                                <td class="text-muted small">{{ $ticket->created_at->format('d M Y') }}</td>
+                                <td><a href="{{ route('tickets.show', $ticket) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Status Update -->
+        @if(auth()->user()->isStaff())
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-semibold">Update Status</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ route('assets.update-status', $asset) }}">
+                    @csrf
+                    @method('PATCH')
+                    <div class="mb-3">
+                        <select name="status" class="form-select">
+                            @foreach(['available', 'in_use', 'under_maintenance', 'retired', 'lost'] as $s)
+                            <option value="{{ $s }}" {{ $asset->status == $s ? 'selected' : '' }}>
+                                {{ ucwords(str_replace('_', ' ', $s)) }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Update notes..."></textarea>
+                    </div>
+                    <button class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-repeat me-1"></i>Update Status
+                    </button>
+                </form>
+            </div>
+        </div>
+        @endif
+
+        <!-- History -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-semibold">Activity History</h6>
+            </div>
+            <div class="card-body p-0">
+                @forelse($asset->histories->take(10) as $history)
+                <div class="d-flex gap-2 p-3 border-bottom">
+                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                        <i class="bi bi-{{ $history->action == 'created' ? 'plus' : ($history->action == 'status_changed' ? 'arrow-repeat' : 'pencil') }} small text-muted"></i>
+                    </div>
+                    <div>
+                        <div class="small fw-semibold">{{ ucwords(str_replace('_', ' ', $history->action)) }}</div>
+                        <div class="text-muted" style="font-size:.75rem;">
+                            {{ $history->user?->name ?? 'System' }} · {{ $history->created_at->diffForHumans() }}
+                        </div>
+                        @if($history->notes)
+                        <div class="text-muted small">{{ $history->notes }}</div>
+                        @endif
+                    </div>
+                </div>
+                @empty
+                <div class="p-3 text-center text-muted small">No history</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

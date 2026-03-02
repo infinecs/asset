@@ -1,0 +1,39 @@
+@extends('layouts.app')
+@section('title', 'Locations')
+@section('page-title', 'Locations')
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0">Locations</h5>
+    <a href="{{ route('locations.create') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Add Location</a>
+</div>
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>Name</th><th>Building</th><th>Floor / Room</th><th>Assets</th><th class="text-end">Actions</th></tr>
+            </thead>
+            <tbody>
+                @forelse($locations as $loc)
+                <tr>
+                    <td class="fw-semibold">{{ $loc->name }}</td>
+                    <td>{{ $loc->building ?? '-' }}</td>
+                    <td>{{ implode(' / ', array_filter([$loc->floor, $loc->room])) ?: '-' }}</td>
+                    <td><span class="badge bg-primary">{{ $loc->assets_count }}</span></td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ route('locations.edit', $loc) }}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                            <form method="POST" action="{{ route('locations.destroy', $loc) }}" onsubmit="return confirm('Delete this location?')">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr><td colspan="5" class="text-center py-4 text-muted">No locations yet. <a href="{{ route('locations.create') }}">Add one</a></td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+@endsection
