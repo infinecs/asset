@@ -26,6 +26,18 @@
                             <label class="form-label fw-semibold">Room</label>
                             <input type="text" name="room" class="form-control" value="{{ old('room') }}" placeholder="e.g. 301">
                         </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Postcode</label>
+                            <input type="text" name="postcode" class="form-control" value="{{ old('postcode') }}" placeholder="e.g. 43000">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">City</label>
+                            <input type="text" name="city" class="form-control" value="{{ old('city') }}" placeholder="e.g. Kajang">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">State</label>
+                            <input type="text" name="state" class="form-control" value="{{ old('state') }}" placeholder="e.g. Selangor">
+                        </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Description</label>
                             <textarea name="description" class="form-control" rows="2">{{ old('description') }}</textarea>

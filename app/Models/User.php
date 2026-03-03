@@ -42,6 +42,21 @@ class User extends Authenticatable
         return $this->hasMany(RequestTicket::class, 'assigned_to');
     }
 
+    public function leases(): HasMany
+    {
+        return $this->hasMany(Lease::class, 'lessee_id');
+    }
+
+    public function issuedLeases(): HasMany
+    {
+        return $this->hasMany(Lease::class, 'issued_by');
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
@@ -49,6 +64,6 @@ class User extends Authenticatable
 
     public function isStaff(): bool
     {
-        return in_array($this->role, ['admin', 'staff']);
+        return $this->role === 'admin';
     }
 }

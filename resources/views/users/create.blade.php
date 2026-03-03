@@ -32,14 +32,18 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
                             <select name="role" class="form-select" required>
-                                <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User</option>
                                 <option value="staff" {{ old('role') == 'staff' ? 'selected' : '' }}>Staff</option>
                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Department</label>
-                            <input type="text" name="department" class="form-control" value="{{ old('department') }}" placeholder="e.g. IT, Finance">
+                            <select name="department" class="form-select">
+                                <option value="">Select Department</option>
+                                @foreach($departments as $department)
+                                <option value="{{ $department->name }}" {{ old('department') == $department->name ? 'selected' : '' }}>{{ $department->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Phone</label>

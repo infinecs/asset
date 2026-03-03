@@ -46,7 +46,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="text-muted small">Brand</label>
-                        <div class="fw-semibold">{{ $asset->brand ?? '-' }}</div>
+                        <div class="fw-semibold">{{ $asset->brand_label }}</div>
                     </div>
                     <div class="col-md-6">
                         <label class="text-muted small">Model</label>
@@ -181,18 +181,18 @@
                 <h6 class="mb-0 fw-semibold">Activity History</h6>
             </div>
             <div class="card-body p-0">
-                @forelse($asset->histories->take(10) as $history)
+                @forelse($activityTimeline as $activity)
                 <div class="d-flex gap-2 p-3 border-bottom">
                     <div class="bg-light rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
-                        <i class="bi bi-{{ $history->action == 'created' ? 'plus' : ($history->action == 'status_changed' ? 'arrow-repeat' : 'pencil') }} small text-muted"></i>
+                        <i class="bi bi-{{ $activity->icon }} small text-muted"></i>
                     </div>
                     <div>
-                        <div class="small fw-semibold">{{ ucwords(str_replace('_', ' ', $history->action)) }}</div>
+                        <div class="small fw-semibold">{{ $activity->title }}</div>
                         <div class="text-muted" style="font-size:.75rem;">
-                            {{ $history->user?->name ?? 'System' }} · {{ $history->created_at->diffForHumans() }}
+                            {{ $activity->by }} · {{ $activity->at->diffForHumans() }}
                         </div>
-                        @if($history->notes)
-                        <div class="text-muted small">{{ $history->notes }}</div>
+                        @if($activity->notes)
+                        <div class="text-muted small">{{ $activity->notes }}</div>
                         @endif
                     </div>
                 </div>

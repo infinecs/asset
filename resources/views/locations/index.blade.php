@@ -6,18 +6,41 @@
     <h5 class="mb-0">Locations</h5>
     <a href="{{ route('locations.create') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Add Location</a>
 </div>
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm" data-bulk-container>
+    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small"><span data-bulk-count>0</span> selected</span>
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ route('locations.bulk-destroy') }}" data-bulk-form onsubmit="return confirm('Delete selected locations?')">
+                @csrf
+                @method('DELETE')
+                <span data-bulk-inputs></span>
+                <button type="submit" class="btn btn-outline-danger btn-sm" data-bulk-delete-selected>
+                    <i class="bi bi-trash me-1"></i>Delete Selected
+                </button>
+            </form>
+            <form method="POST" action="{{ route('locations.destroy-all') }}" onsubmit="return confirm('Delete all locations? This cannot be undone.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash3 me-1"></i>Delete All
+                </button>
+            </form>
+        </div>
+    </div>
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead class="table-light">
-                <tr><th>Name</th><th>Building</th><th>Floor / Room</th><th>Assets</th><th class="text-end">Actions</th></tr>
+                <tr><th style="width: 40px;"><input type="checkbox" class="form-check-input" data-bulk-select-all></th><th>Name</th><th>Building</th><th>Floor / Room</th><th>City / Postcode</th><th>State</th><th>Assets</th><th class="text-end">Actions</th></tr>
             </thead>
             <tbody>
                 @forelse($locations as $loc)
                 <tr>
+                    <td><input type="checkbox" class="form-check-input" data-bulk-row value="{{ $loc->id }}"></td>
                     <td class="fw-semibold">{{ $loc->name }}</td>
                     <td>{{ $loc->building ?? '-' }}</td>
                     <td>{{ implode(' / ', array_filter([$loc->floor, $loc->room])) ?: '-' }}</td>
+                    <td>{{ implode(' / ', array_filter([$loc->city, $loc->postcode])) ?: '-' }}</td>
+                    <td>{{ $loc->state ?? '-' }}</td>
                     <td><span class="badge bg-primary">{{ $loc->assets_count }}</span></td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
@@ -30,7 +53,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="text-center py-4 text-muted">No locations yet. <a href="{{ route('locations.create') }}">Add one</a></td></tr>
+                <tr><td colspan="8" class="text-center py-4 text-muted">No locations yet. <a href="{{ route('locations.create') }}">Add one</a></td></tr>
                 @endforelse
             </tbody>
         </table>

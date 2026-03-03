@@ -29,6 +29,18 @@
                             <label class="form-label fw-semibold">Room</label>
                             <input type="text" name="room" class="form-control" value="{{ old('room', $location->room) }}">
                         </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Postcode</label>
+                            <input type="text" name="postcode" class="form-control" value="{{ old('postcode', $location->postcode) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">City</label>
+                            <input type="text" name="city" class="form-control" value="{{ old('city', $location->city) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">State</label>
+                            <input type="text" name="state" class="form-control" value="{{ old('state', $location->state) }}">
+                        </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Description</label>
                             <textarea name="description" class="form-control" rows="2">{{ old('description', $location->description) }}</textarea>

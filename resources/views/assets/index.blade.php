@@ -9,11 +9,13 @@
         <h5 class="mb-1">All Assets</h5>
         <p class="text-muted small mb-0">Manage and track all IT assets</p>
     </div>
-    @if(auth()->user()->isStaff())
-    <a href="{{ route('assets.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-circle me-2"></i>Add Asset
-    </a>
-    @endif
+    <div class="d-flex gap-2">
+        @if(auth()->user()->isStaff())
+        <a href="{{ route('assets.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Add Asset
+        </a>
+        @endif
+    </div>
 </div>
 
 <!-- Filters -->
@@ -61,12 +63,39 @@
 </div>
 
 <!-- Assets Table -->
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm" data-bulk-container>
+    @if(auth()->user()->isStaff())
+    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small"><span data-bulk-count>0</span> selected</span>
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ route('assets.bulk-destroy') }}" data-bulk-form onsubmit="return confirm('Delete selected assets?')">
+                @csrf
+                @method('DELETE')
+                <span data-bulk-inputs></span>
+                <button type="submit" class="btn btn-outline-danger btn-sm" data-bulk-delete-selected>
+                    <i class="bi bi-trash me-1"></i>Delete Selected
+                </button>
+            </form>
+            <form method="POST" action="{{ route('assets.destroy-all') }}" onsubmit="return confirm('Delete all assets? This cannot be undone.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash3 me-1"></i>Delete All
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
+                        @if(auth()->user()->isStaff())
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input" data-bulk-select-all>
+                        </th>
+                        @endif
                         <th>Asset Tag</th>
                         <th>Name</th>
                         <th>Category</th>
@@ -80,11 +109,16 @@
                 <tbody>
                     @forelse($assets as $asset)
                     <tr>
+                        @if(auth()->user()->isStaff())
+                        <td>
+                            <input type="checkbox" class="form-check-input" data-bulk-row value="{{ $asset->id }}">
+                        </td>
+                        @endif
                         <td><code class="text-primary">{{ $asset->asset_tag }}</code></td>
                         <td>
                             <div class="fw-semibold">{{ $asset->name }}</div>
-                            @if($asset->brand || $asset->model)
-                            <div class="text-muted small">{{ implode(' ', array_filter([$asset->brand, $asset->model])) }}</div>
+                            @if($asset->brand_label !== '-' || $asset->model)
+                            <div class="text-muted small">{{ implode(' ', array_filter([$asset->brand_label !== '-' ? $asset->brand_label : null, $asset->model])) }}</div>
                             @endif
                         </td>
                         <td>{{ $asset->category?->name ?? '-' }}</td>
@@ -114,7 +148,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
+                        <td colspan="{{ auth()->user()->isStaff() ? 9 : 8 }}" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                             No assets found. 
                             @if(auth()->user()->isStaff())

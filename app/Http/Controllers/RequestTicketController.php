@@ -45,9 +45,18 @@ class RequestTicketController extends Controller
 
     public function create(Request $request)
     {
-        $assets = Asset::orderBy('name')->get();
+        $assets = Asset::when(!auth()->user()->isAdmin(), function ($query) {
+                $query->where('status', 'available');
+            })
+            ->orderBy('name')
+            ->get();
         $categories = Category::orderBy('name')->get();
         $selectedAsset = $request->filled('asset_id') ? Asset::find($request->asset_id) : null;
+
+        if ($selectedAsset && !auth()->user()->isAdmin() && $selectedAsset->status !== 'available') {
+            $selectedAsset = null;
+        }
+
         return view('tickets.create', compact('assets', 'categories', 'selectedAsset'));
     }
 
@@ -126,6 +135,33 @@ class RequestTicketController extends Controller
         }
         $ticket->delete();
         return redirect()->route('tickets.index')->with('success', 'Ticket deleted.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:request_tickets,id',
+        ]);
+
+        $deleted = RequestTicket::whereIn('id', $validated['ids'])->delete();
+
+        return redirect()->back()->with('success', $deleted . ' ticket(s) deleted successfully.');
+    }
+
+    public function destroyAll()
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $deleted = RequestTicket::query()->delete();
+
+        return redirect()->back()->with('success', $deleted . ' ticket(s) deleted successfully.');
     }
 
     public function updateStatus(Request $request, RequestTicket $ticket)

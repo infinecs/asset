@@ -10,7 +10,7 @@ class Asset extends Model
 {
     protected $fillable = [
         'asset_tag', 'name', 'brand', 'model', 'serial_number',
-        'category_id', 'location_id', 'assigned_to', 'status',
+        'brand_id', 'category_id', 'location_id', 'assigned_to', 'status',
         'purchase_date', 'purchase_cost', 'warranty_expiry',
         'notes', 'last_seen_at',
     ];
@@ -25,6 +25,11 @@ class Asset extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     public function location(): BelongsTo
@@ -45,6 +50,11 @@ class Asset extends Model
     public function requestTickets(): HasMany
     {
         return $this->hasMany(RequestTicket::class);
+    }
+
+    public function leases(): HasMany
+    {
+        return $this->hasMany(Lease::class)->latest();
     }
 
     public function getStatusBadgeAttribute(): string
@@ -69,6 +79,11 @@ class Asset extends Model
             'lost' => 'Lost',
             default => 'Unknown',
         };
+    }
+
+    public function getBrandLabelAttribute(): string
+    {
+        return $this->brand?->name ?? $this->brand ?? '-';
     }
 
     public function isWarrantyExpiringSoon(): bool

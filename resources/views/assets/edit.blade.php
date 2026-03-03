@@ -39,7 +39,12 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Brand</label>
-                            <input type="text" name="brand" class="form-control" value="{{ old('brand', $asset->brand) }}">
+                            <select name="brand_id" class="form-select">
+                                <option value="">Select Brand</option>
+                                @foreach($brands as $brand)
+                                <option value="{{ $brand->id }}" {{ old('brand_id', $asset->brand_id) == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Model</label>

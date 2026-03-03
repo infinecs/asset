@@ -6,7 +6,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h5 class="mb-1">{{ auth()->user()->isStaff() ? 'All Tickets' : 'My Tickets' }}</h5>
+        <h5 class="mb-1">{{ auth()->user()->isAdmin() ? 'All Tickets' : 'Request Tickets' }}</h5>
         <p class="text-muted small mb-0">Track and manage asset request tickets</p>
     </div>
     <a href="{{ route('tickets.create') }}" class="btn btn-primary">
@@ -62,12 +62,39 @@
 </div>
 
 <!-- Tickets Table -->
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm" data-bulk-container>
+    @if(auth()->user()->isAdmin())
+    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small"><span data-bulk-count>0</span> selected</span>
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ route('tickets.bulk-destroy') }}" data-bulk-form onsubmit="return confirm('Delete selected tickets?')">
+                @csrf
+                @method('DELETE')
+                <span data-bulk-inputs></span>
+                <button type="submit" class="btn btn-outline-danger btn-sm" data-bulk-delete-selected>
+                    <i class="bi bi-trash me-1"></i>Delete Selected
+                </button>
+            </form>
+            <form method="POST" action="{{ route('tickets.destroy-all') }}" onsubmit="return confirm('Delete all tickets? This cannot be undone.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash3 me-1"></i>Delete All
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
+                        @if(auth()->user()->isAdmin())
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input" data-bulk-select-all>
+                        </th>
+                        @endif
                         <th>Ticket #</th>
                         <th>Subject</th>
                         <th>Type</th>
@@ -84,6 +111,11 @@
                 <tbody>
                     @forelse($tickets as $ticket)
                     <tr>
+                        @if(auth()->user()->isAdmin())
+                        <td>
+                            <input type="checkbox" class="form-check-input" data-bulk-row value="{{ $ticket->id }}">
+                        </td>
+                        @endif
                         <td><code class="text-primary">{{ $ticket->ticket_number }}</code></td>
                         <td>
                             <div class="fw-semibold">{{ Str::limit($ticket->subject, 45) }}</div>
@@ -107,7 +139,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="text-center py-5 text-muted">
+                        <td colspan="{{ auth()->user()->isAdmin() ? 10 : (auth()->user()->isStaff() ? 9 : 7) }}" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                             No tickets found.
                             <a href="{{ route('tickets.create') }}">Create your first request</a>

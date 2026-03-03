@@ -68,6 +68,37 @@
     </div>
 </div>
 
+@if(auth()->user()->isAdmin() && $pendingTaskAlert && $pendingTaskAlert['count'] > 0)
+<div class="card border-0 shadow-sm border-start border-warning border-3 mb-4">
+    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-semibold text-warning">
+            <i class="bi bi-bell-fill me-2"></i>
+            Pending Tasks Alert · Work Week {{ $pendingTaskAlert['weekNumber'] }} ({{ $pendingTaskAlert['weekYear'] }})
+        </h6>
+        <a href="{{ route('tasks.index', ['date' => now('Asia/Kuala_Lumpur')->toDateString()]) }}" class="btn btn-sm btn-outline-warning">Open Tasks</a>
+    </div>
+    <div class="card-body">
+        <div class="small text-muted mb-3">
+            You have <span class="fw-semibold text-warning">{{ $pendingTaskAlert['count'] }} pending</span> tasks for {{ $pendingTaskAlert['weekStart']->format('d-m-Y') }} - {{ $pendingTaskAlert['weekEnd']->format('d-m-Y') }}.
+        </div>
+        <div class="list-group list-group-flush">
+            @foreach($pendingTaskAlert['tasks'] as $task)
+            <div class="list-group-item px-0 d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="fw-semibold small">{{ $task->title }}</div>
+                    <div class="text-muted" style="font-size:.75rem;">{{ $task->category }} · {{ \Illuminate\Support\Carbon::parse((string) $task->task_date)->format('d-m-Y') }}</div>
+                </div>
+                <span class="badge bg-warning">Pending</span>
+            </div>
+            @endforeach
+        </div>
+        @if($pendingTaskAlert['count'] > $pendingTaskAlert['tasks']->count())
+        <div class="small mt-2 text-muted">+{{ $pendingTaskAlert['count'] - $pendingTaskAlert['tasks']->count() }} more pending tasks</div>
+        @endif
+    </div>
+</div>
+@endif
+
 <div class="row g-4">
     <!-- Recent Tickets -->
     <div class="col-lg-6">
@@ -209,10 +240,12 @@
                         </a>
                     </div>
                     <div class="col-6">
+                        @if(auth()->user()->isAdmin())
                         <a href="{{ route('assets.live') }}" class="btn btn-outline-success w-100 py-3 d-flex flex-column align-items-center gap-1">
                             <i class="bi bi-activity fs-4"></i>
                             <span class="small">Live Tracker</span>
                         </a>
+                        @endif
                     </div>
                     @if(auth()->user()->isStaff())
                     <div class="col-6">

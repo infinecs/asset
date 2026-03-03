@@ -46,19 +46,44 @@
 </div>
 
 <!-- Live Asset Grid -->
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm" data-bulk-container>
     <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-semibold">
             <span class="bg-success rounded-circle d-inline-block me-2" style="width:8px;height:8px;"></span>
             Live Status
         </h6>
-        <span class="text-muted small">{{ $assets->total() }} total assets</span>
+        <div class="d-flex align-items-center gap-2">
+            @if(auth()->user()->isStaff())
+            <span class="text-muted small"><span data-bulk-count>0</span> selected</span>
+            <form method="POST" action="{{ route('assets.bulk-destroy') }}" data-bulk-form onsubmit="return confirm('Delete selected assets?')">
+                @csrf
+                @method('DELETE')
+                <span data-bulk-inputs></span>
+                <button type="submit" class="btn btn-outline-danger btn-sm" data-bulk-delete-selected>
+                    <i class="bi bi-trash me-1"></i>Delete Selected
+                </button>
+            </form>
+            <form method="POST" action="{{ route('assets.destroy-all') }}" onsubmit="return confirm('Delete all assets? This cannot be undone.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash3 me-1"></i>Delete All
+                </button>
+            </form>
+            @endif
+            <span class="text-muted small">{{ $assets->total() }} total assets</span>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
+                        @if(auth()->user()->isStaff())
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input" data-bulk-select-all>
+                        </th>
+                        @endif
                         <th>Asset</th>
                         <th>Category</th>
                         <th>Location</th>
@@ -73,6 +98,11 @@
                 <tbody>
                     @forelse($assets as $asset)
                     <tr data-asset-id="{{ $asset->id }}">
+                        @if(auth()->user()->isStaff())
+                        <td>
+                            <input type="checkbox" class="form-check-input" data-bulk-row value="{{ $asset->id }}">
+                        </td>
+                        @endif
                         <td>
                             <div class="fw-semibold">{{ $asset->name }}</div>
                             <code class="text-muted small">{{ $asset->asset_tag }}</code>
@@ -127,7 +157,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
+                        <td colspan="{{ auth()->user()->isStaff() ? 8 : 6 }}" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-1 d-block mb-2"></i>No assets to track
                         </td>
                     </tr>
