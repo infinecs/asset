@@ -21,7 +21,7 @@ A Laravel-based IT Asset Management System that allows IT departments to track, 
 
 - PHP 8.2+
 - Composer
-- SQLite (default) or MySQL/PostgreSQL
+- MySQL (the mysql file can be found in Infinecs GDrive My Drive > Infinecs > Backup > Asset-System > DB)
 
 ## Installation
 
