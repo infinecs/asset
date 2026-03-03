@@ -56,7 +56,6 @@ Visit `http://localhost:8000` and log in with the demo credentials.
 |-------|-------------------------|-----------|
 | Admin | admin@itasset.local     | password  |
 | Staff | staff@itasset.local     | password  |
-| User  | alice@itasset.local     | password  |
 
 ## Role Permissions
 
