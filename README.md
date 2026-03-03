@@ -38,9 +38,8 @@ cp .env.example .env
 php artisan key:generate
 
 # 4. Configure database in .env (default uses SQLite)
-# For SQLite:
-touch database/database.sqlite
-# For MySQL: set DB_CONNECTION=mysql and fill DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+
+# set DB_CONNECTION=mysql and fill DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 
 # 5. Run migrations and seed demo data
 php artisan migrate --seed
