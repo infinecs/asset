@@ -21,7 +21,7 @@ A Laravel-based IT Asset Management System that allows IT departments to track, 
 
 - PHP 8.2+
 - Composer
-- SQLite (default) or MySQL/PostgreSQL
+- MySQL (the mysql file can be found in Infinecs GDrive My Drive > Infinecs > Backup > Asset-System > DB)
 
 ## Installation
 
@@ -38,9 +38,8 @@ cp .env.example .env
 php artisan key:generate
 
 # 4. Configure database in .env (default uses SQLite)
-# For SQLite:
-touch database/database.sqlite
-# For MySQL: set DB_CONNECTION=mysql and fill DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+
+# set DB_CONNECTION=mysql and fill DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 
 # 5. Run migrations and seed demo data
 php artisan migrate --seed
@@ -57,7 +56,6 @@ Visit `http://localhost:8000` and log in with the demo credentials.
 |-------|-------------------------|-----------|
 | Admin | admin@itasset.local     | password  |
 | Staff | staff@itasset.local     | password  |
-| User  | alice@itasset.local     | password  |
 
 ## Role Permissions
 
