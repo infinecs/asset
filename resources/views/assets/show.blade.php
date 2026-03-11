@@ -91,7 +91,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="text-muted small">Purchase Cost</label>
-                        <div class="fw-semibold">{{ $asset->purchase_cost ? '$' . number_format($asset->purchase_cost, 2) : '-' }}</div>
+                        <div class="fw-semibold">{{ $asset->purchase_cost ? 'MYR ' . number_format($asset->purchase_cost, 2) : '-' }}</div>
                     </div>
                     <div class="col-md-4">
                         <label class="text-muted small">Warranty Expiry</label>
@@ -145,6 +145,19 @@
 
     <!-- Sidebar -->
     <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-semibold">Asset Photo</h6>
+            </div>
+            <div class="card-body text-center">
+                @if($asset->photo_path)
+                <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->name }}" class="img-fluid rounded border" style="max-height: 240px; object-fit: cover; width: 100%;">
+                @else
+                <div class="text-muted small py-4">No photo uploaded.</div>
+                @endif
+            </div>
+        </div>
+
         <!-- Quick Status Update -->
         @if(auth()->user()->isStaff())
         <div class="card border-0 shadow-sm mb-4">

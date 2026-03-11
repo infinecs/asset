@@ -30,14 +30,23 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h5 class="mb-1">Daily Task Planner</h5>
-        <p class="text-muted small mb-0">Showcase and manage your day-to-day task execution (Work Week)</p>
+        <p class="text-muted small mb-0">Showcase and manage your day-to-day task execution (Work Week) · Viewing: {{ $selectedUser->name ?? 'User' }}</p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('tasks.index', ['date' => $weekStart->copy()->subWeek()->toDateString()]) }}" class="btn btn-outline-secondary btn-sm">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <form method="GET" action="{{ route('tasks.index') }}" class="d-flex align-items-center gap-2">
+            <input type="hidden" name="date" value="{{ $selectedDate }}">
+            <label class="small text-muted mb-0">User</label>
+            <select name="user_id" class="form-select form-select-sm" onchange="this.form.submit()" style="width: 220px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                @foreach($viewableUsers as $viewUser)
+                <option value="{{ $viewUser->id }}" {{ (int) $selectedUserId === (int) $viewUser->id ? 'selected' : '' }}>{{ \Illuminate\Support\Str::limit($viewUser->name, 28) }}</option>
+                @endforeach
+            </select>
+        </form>
+        <a href="{{ route('tasks.index', ['date' => $weekStart->copy()->subWeek()->toDateString(), 'user_id' => $selectedUserId]) }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-chevron-left"></i>
         </a>
         <button class="btn btn-light btn-sm border" disabled>Work Week {{ $workWeekNumber }} ({{ $workWeekYear }}) · {{ $weekStart->format('d-m-Y') }} - {{ $weekEnd->format('d-m-Y') }}</button>
-        <a href="{{ route('tasks.index', ['date' => $weekStart->copy()->addWeek()->toDateString()]) }}" class="btn btn-outline-secondary btn-sm">
+        <a href="{{ route('tasks.index', ['date' => $weekStart->copy()->addWeek()->toDateString(), 'user_id' => $selectedUserId]) }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-chevron-right"></i>
         </a>
     </div>
@@ -70,7 +79,7 @@
                                         $isSelected = $dateKey === $selectedDate;
                                     @endphp
                                     <td class="p-2 {{ $isSelected ? 'border-primary border-2' : '' }}" style="height:110px; min-width: 120px;">
-                                        <a href="{{ route('tasks.index', ['date' => $dateKey]) }}" class="text-decoration-none d-block h-100">
+                                        <a href="{{ route('tasks.index', ['date' => $dateKey, 'user_id' => $selectedUserId]) }}" class="text-decoration-none d-block h-100">
                                             <div class="d-flex justify-content-between align-items-start mb-1">
                                                 <span class="fw-semibold text-dark">{{ $day->format('D') }} {{ $day->day }}</span>
                                                 @if($dayTasks->count() > 0)
@@ -186,6 +195,7 @@
             <div class="card-body">
                 <form method="POST" action="{{ route('tasks.store') }}">
                     @csrf
+                    <input type="hidden" name="user_id" value="{{ $selectedUserId }}">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Task Date</label>
                         <input type="date" name="task_date" class="form-control" value="{{ old('task_date', $selectedDate) }}" required>
@@ -228,7 +238,7 @@
                 <h5 class="modal-title" id="fullCardModalLabel">Full Task Card · Work Week {{ $workWeekNumber }} ({{ $workWeekYear }})</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                 @php($printedCategories = collect())
 
                 @foreach($categoryOrder as $category)

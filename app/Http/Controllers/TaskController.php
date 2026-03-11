@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -14,6 +15,17 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $this->authorizeAdmin();
+
+        $viewableUsers = User::orderBy('name')->get(['id', 'name']);
+        $selectedUserId = $request->filled('user_id')
+            ? (int) $request->user_id
+            : (int) auth()->id();
+
+        if (!$viewableUsers->contains('id', $selectedUserId)) {
+            $selectedUserId = (int) auth()->id();
+        }
+
+        $selectedUser = $viewableUsers->firstWhere('id', $selectedUserId) ?? auth()->user();
 
         $selectedDateObj = $request->filled('date')
             ? Carbon::parse($request->date, self::APP_TIMEZONE)
@@ -29,14 +41,14 @@ class TaskController extends Controller
         $workWeekNumber = $weekStart->copy()->locale('ms_MY')->isoWeek;
         $workWeekYear = $weekStart->copy()->locale('ms_MY')->isoWeekYear;
 
-        $tasks = Task::where('user_id', auth()->id())
+        $tasks = Task::where('user_id', $selectedUserId)
             ->whereBetween('task_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
             ->orderBy('task_date')
             ->orderBy('is_completed')
             ->orderBy('created_at')
             ->get();
 
-        $titleSourceTasks = Task::where('user_id', auth()->id())
+        $titleSourceTasks = Task::where('user_id', $selectedUserId)
             ->orderBy('title')
             ->get(['category', 'title']);
 
@@ -78,6 +90,9 @@ class TaskController extends Controller
             'weekEnd' => $weekEnd,
             'workWeekNumber' => $workWeekNumber,
             'workWeekYear' => $workWeekYear,
+            'selectedUserId' => $selectedUserId,
+            'selectedUser' => $selectedUser,
+            'viewableUsers' => $viewableUsers,
             'selectedDate' => $selectedDate,
             'tasksByDate' => $tasksByDate,
             'selectedTasks' => $selectedTasks,
@@ -91,6 +106,7 @@ class TaskController extends Controller
         $this->authorizeAdmin();
 
         $validated = $request->validate([
+            'user_id' => 'nullable|exists:users,id',
             'task_date' => 'required|date',
             'category' => 'required|in:IT,Website,Graphics Designs,Server',
             'title_select' => 'nullable|string|max:255|required_without:title_new',
@@ -98,12 +114,13 @@ class TaskController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        $targetUserId = $validated['user_id'] ?? auth()->id();
         $title = filled($validated['title_new'] ?? null)
             ? trim((string) $validated['title_new'])
             : trim((string) ($validated['title_select'] ?? ''));
 
         Task::create([
-            'user_id' => auth()->id(),
+            'user_id' => $targetUserId,
             'task_date' => $validated['task_date'],
             'category' => $validated['category'],
             'title' => $title,
@@ -112,6 +129,7 @@ class TaskController extends Controller
 
         return redirect()->route('tasks.index', [
             'date' => $validated['task_date'],
+            'user_id' => $targetUserId,
         ])->with('success', 'Task added successfully.');
     }
 
@@ -125,6 +143,7 @@ class TaskController extends Controller
 
         return redirect()->route('tasks.index', [
             'date' => Carbon::parse((string) $task->task_date, self::APP_TIMEZONE)->toDateString(),
+            'user_id' => $task->user_id,
         ])->with('success', 'Task status updated.');
     }
 
@@ -153,6 +172,7 @@ class TaskController extends Controller
 
         return redirect()->route('tasks.index', [
             'date' => $validated['task_date'],
+            'user_id' => $task->user_id,
         ])->with('success', 'Task updated successfully.');
     }
 
@@ -165,6 +185,7 @@ class TaskController extends Controller
 
         return redirect()->route('tasks.index', [
             'date' => $date,
+            'user_id' => $task->user_id,
         ])->with('success', 'Task deleted.');
     }
 
@@ -178,9 +199,5 @@ class TaskController extends Controller
     private function authorizeTask(Task $task): void
     {
         $this->authorizeAdmin();
-
-        if ($task->user_id !== auth()->id()) {
-            abort(403);
-        }
     }
 }

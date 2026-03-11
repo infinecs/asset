@@ -42,12 +42,37 @@ class UserController extends Controller
         return redirect()->route('settings.edit')->with('success', 'Settings updated successfully.');
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $this->authorizeAdmin();
 
-        $users = User::withCount(['assets', 'requestTickets'])->orderBy('name')->get();
-        return view('users.index', compact('users'));
+        $query = User::withCount(['assets', 'requestTickets']);
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%')
+                    ->orWhere('phone', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+
+        if ($request->filled('department')) {
+            $query->where('department', $request->department);
+        }
+
+        $users = $query->orderBy('name')->paginate(15)->withQueryString();
+
+        $departments = Department::orderBy('name')->pluck('name')
+            ->merge(User::whereNotNull('department')->where('department', '!=', '')->pluck('department'))
+            ->unique()
+            ->values();
+
+        return view('users.index', compact('users', 'departments'));
     }
 
     public function create()

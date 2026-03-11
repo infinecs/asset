@@ -96,6 +96,7 @@
                             <input type="checkbox" class="form-check-input" data-bulk-select-all>
                         </th>
                         @endif
+                        <th>Photo</th>
                         <th>Asset Tag</th>
                         <th>Name</th>
                         <th>Category</th>
@@ -114,6 +115,13 @@
                             <input type="checkbox" class="form-check-input" data-bulk-row value="{{ $asset->id }}">
                         </td>
                         @endif
+                        <td>
+                            @if($asset->photo_path)
+                            <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->name }}" class="rounded border" style="width: 44px; height: 44px; object-fit: cover;">
+                            @else
+                            <span class="text-muted small">-</span>
+                            @endif
+                        </td>
                         <td><code class="text-primary">{{ $asset->asset_tag }}</code></td>
                         <td>
                             <div class="fw-semibold">{{ $asset->name }}</div>
@@ -148,7 +156,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ auth()->user()->isStaff() ? 9 : 8 }}" class="text-center py-5 text-muted">
+                        <td colspan="{{ auth()->user()->isStaff() ? 10 : 9 }}" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                             No assets found. 
                             @if(auth()->user()->isStaff())

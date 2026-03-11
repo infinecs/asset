@@ -11,7 +11,7 @@
                 <h5 class="fw-semibold mb-0">New Asset</h5>
             </div>
             <div class="card-body p-4">
-                <form method="POST" action="{{ route('assets.store') }}">
+                <form method="POST" action="{{ route('assets.store') }}" enctype="multipart/form-data">
                     @csrf
                     <div class="row g-3">
                         <div class="col-md-8">
@@ -65,15 +65,6 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Assigned To</label>
-                            <select name="assigned_to" class="form-select">
-                                <option value="">Unassigned</option>
-                                @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
 
                         <div class="col-12"><hr class="my-1"><p class="text-muted small mb-0">Purchase Information</p></div>
 
@@ -84,13 +75,18 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Purchase Cost</label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">MYR</span>
                                 <input type="number" name="purchase_cost" class="form-control" value="{{ old('purchase_cost') }}" step="0.01" min="0">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Warranty Expiry</label>
                             <input type="date" name="warranty_expiry" class="form-control" value="{{ old('warranty_expiry') }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Asset Photo</label>
+                            <input type="file" name="photo" class="form-control @error('photo') is-invalid @enderror" accept="image/*">
+                            @error('photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Notes</label>

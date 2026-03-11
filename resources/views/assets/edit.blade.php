@@ -17,7 +17,7 @@
                 </a>
             </div>
             <div class="card-body p-4">
-                <form method="POST" action="{{ route('assets.update', $asset) }}">
+                <form method="POST" action="{{ route('assets.update', $asset) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <div class="row g-3">
@@ -72,15 +72,6 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Assigned To</label>
-                            <select name="assigned_to" class="form-select">
-                                <option value="">Unassigned</option>
-                                @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('assigned_to', $asset->assigned_to) == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
                         <div class="col-12"><hr class="my-1"><p class="text-muted small mb-0">Purchase Information</p></div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Purchase Date</label>
@@ -89,13 +80,23 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Purchase Cost</label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">MYR</span>
                                 <input type="number" name="purchase_cost" class="form-control" value="{{ old('purchase_cost', $asset->purchase_cost) }}" step="0.01" min="0">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Warranty Expiry</label>
                             <input type="date" name="warranty_expiry" class="form-control" value="{{ old('warranty_expiry', $asset->warranty_expiry?->format('Y-m-d')) }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Asset Photo</label>
+                            @if($asset->photo_path)
+                            <div class="mb-2">
+                                <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->name }}" class="rounded border" style="width: 120px; height: 120px; object-fit: cover;">
+                            </div>
+                            @endif
+                            <input type="file" name="photo" class="form-control @error('photo') is-invalid @enderror" accept="image/*">
+                            @error('photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Notes</label>
@@ -108,15 +109,19 @@
                         </button>
                         <a href="{{ route('assets.show', $asset) }}" class="btn btn-outline-secondary px-4">Cancel</a>
                         @if(auth()->user()->isAdmin())
-                        <form method="POST" action="{{ route('assets.destroy', $asset) }}" class="ms-auto"
-                              onsubmit="return confirm('Delete this asset? This cannot be undone.')">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-outline-danger px-4"><i class="bi bi-trash me-1"></i>Delete</button>
-                        </form>
+                        <button type="submit" form="deleteAssetForm" class="btn btn-outline-danger px-4 ms-auto" onclick="return confirm('Delete this asset? This cannot be undone.')">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
                         @endif
                     </div>
                 </form>
+
+                @if(auth()->user()->isAdmin())
+                <form id="deleteAssetForm" method="POST" action="{{ route('assets.destroy', $asset) }}" class="d-none">
+                    @csrf
+                    @method('DELETE')
+                </form>
+                @endif
             </div>
         </div>
     </div>

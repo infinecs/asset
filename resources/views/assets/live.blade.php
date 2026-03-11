@@ -84,11 +84,13 @@
                             <input type="checkbox" class="form-check-input" data-bulk-select-all>
                         </th>
                         @endif
+                        <th>Photo</th>
                         <th>Asset</th>
                         <th>Category</th>
                         <th>Location</th>
                         <th>Assigned To</th>
                         <th>Status</th>
+                        <th>Warranty</th>
                         <th>Last Activity</th>
                         @if(auth()->user()->isStaff())
                         <th></th>
@@ -103,6 +105,13 @@
                             <input type="checkbox" class="form-check-input" data-bulk-row value="{{ $asset->id }}">
                         </td>
                         @endif
+                        <td>
+                            @if($asset->photo_path)
+                            <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->name }}" class="rounded border" style="width: 44px; height: 44px; object-fit: cover;">
+                            @else
+                            <span class="text-muted small">-</span>
+                            @endif
+                        </td>
                         <td>
                             <div class="fw-semibold">{{ $asset->name }}</div>
                             <code class="text-muted small">{{ $asset->asset_tag }}</code>
@@ -134,6 +143,20 @@
                             </span>
                         </td>
                         <td>
+                            @if(!$asset->warranty_expiry)
+                                <span class="badge bg-secondary">No Warranty</span>
+                            @elseif($asset->isWarrantyExpired())
+                                <span class="badge bg-danger">Expired</span>
+                            @elseif($asset->isWarrantyExpiringSoon())
+                                <span class="badge bg-warning text-dark">Expiring Soon</span>
+                            @else
+                                <span class="badge bg-success">Active</span>
+                            @endif
+                            @if($asset->warranty_expiry)
+                                <div class="small text-muted mt-1">{{ $asset->warranty_expiry->format('d M Y') }}</div>
+                            @endif
+                        </td>
+                        <td>
                             <span class="text-muted small">
                                 @if($asset->last_seen_at)
                                     <i class="bi bi-clock me-1"></i>{{ $asset->last_seen_at->diffForHumans() }}
@@ -157,7 +180,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ auth()->user()->isStaff() ? 8 : 6 }}" class="text-center py-5 text-muted">
+                        <td colspan="{{ auth()->user()->isStaff() ? 10 : 8 }}" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-1 d-block mb-2"></i>No assets to track
                         </td>
                     </tr>

@@ -161,6 +161,7 @@
                     <i class="bi bi-journal-bookmark"></i><span class="nav-text">Directory</span>
                 </a>
 
+                @if(auth()->user()->isStaff())
                 <div class="sidebar-section mt-2">Assets</div>
                 <a href="{{ route('assets.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('assets.index') ? 'active' : '' }}" data-sidebar-tooltip="All Assets">
                     <i class="bi bi-laptop"></i><span class="nav-text">All Assets</span>
@@ -170,7 +171,6 @@
                     <i class="bi bi-activity"></i><span class="nav-text">Live Tracker</span>
                 </a>
                 @endif
-                @if(auth()->user()->isStaff())
                 <a href="{{ route('assets.create') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('assets.create') ? 'active' : '' }}" data-sidebar-tooltip="Add Asset">
                     <i class="bi bi-plus-circle"></i><span class="nav-text">Add Asset</span>
                 </a>

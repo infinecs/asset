@@ -45,35 +45,24 @@ class RequestTicketController extends Controller
 
     public function create(Request $request)
     {
-        $assets = Asset::when(!auth()->user()->isAdmin(), function ($query) {
-                $query->where('status', 'available');
-            })
-            ->orderBy('name')
-            ->get();
         $categories = Category::orderBy('name')->get();
-        $selectedAsset = $request->filled('asset_id') ? Asset::find($request->asset_id) : null;
 
-        if ($selectedAsset && !auth()->user()->isAdmin() && $selectedAsset->status !== 'available') {
-            $selectedAsset = null;
-        }
-
-        return view('tickets.create', compact('assets', 'categories', 'selectedAsset'));
+        return view('tickets.create', compact('categories'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'asset_id' => 'nullable|exists:assets,id',
             'category_id' => 'nullable|exists:categories,id',
             'type' => 'required|in:new_asset,repair,replacement,return,transfer',
             'subject' => 'required|string|max:255',
             'description' => 'required|string',
-            'priority' => 'required|in:low,medium,high,critical',
         ]);
 
         $validated['requested_by'] = auth()->id();
         $validated['ticket_number'] = RequestTicket::generateTicketNumber();
         $validated['status'] = 'open';
+        $validated['priority'] = 'medium';
 
         $ticket = RequestTicket::create($validated);
 

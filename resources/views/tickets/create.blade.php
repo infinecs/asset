@@ -28,33 +28,6 @@
                             @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Priority <span class="text-danger">*</span></label>
-                            <select name="priority" class="form-select @error('priority') is-invalid @enderror" required>
-                                <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>Low</option>
-                                <option value="medium" {{ old('priority', 'medium') == 'medium' ? 'selected' : '' }}>Medium</option>
-                                <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>High</option>
-                                <option value="critical" {{ old('priority') == 'critical' ? 'selected' : '' }}>Critical</option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
-                            <input type="text" name="subject" class="form-control @error('subject') is-invalid @enderror"
-                                   value="{{ old('subject') }}" placeholder="Brief description of your request" required>
-                            @error('subject')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Related Asset (optional)</label>
-                            <select name="asset_id" class="form-select">
-                                <option value="">None / Not applicable</option>
-                                @foreach($assets as $asset)
-                                <option value="{{ $asset->id }}"
-                                    {{ old('asset_id', $selectedAsset?->id) == $asset->id ? 'selected' : '' }}>
-                                    {{ $asset->name }} ({{ $asset->asset_tag }})
-                                </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Category (optional)</label>
                             <select name="category_id" class="form-select">
                                 <option value="">Select category...</option>
@@ -63,6 +36,13 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
+                            <input type="text" name="subject" class="form-control @error('subject') is-invalid @enderror"
+                                   value="{{ old('subject') }}" placeholder="Brief description of your request" required>
+                            @error('subject')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+
                         <div class="col-12">
                             <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
                             <textarea name="description" class="form-control @error('description') is-invalid @enderror"

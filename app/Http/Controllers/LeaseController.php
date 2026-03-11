@@ -9,17 +9,62 @@ use Illuminate\Http\Request;
 
 class LeaseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $query = Lease::with(['asset', 'lessee', 'issuer', 'returnedBy'])->latest();
+
+        $unsignedSearch = trim((string) $request->query('unsigned_search', ''));
+        $signedSearch = trim((string) $request->query('signed_search', ''));
 
         if (!auth()->user()->isStaff()) {
             $query->where('lessee_id', auth()->id());
         }
 
-        $leases = $query->paginate(15);
+        $unsignedLeasesQuery = (clone $query)
+            ->where('status', '!=', 'signed');
 
-        return view('leases.index', compact('leases'));
+        if ($unsignedSearch !== '') {
+            $unsignedLeasesQuery->where(function ($filterQuery) use ($unsignedSearch) {
+                $filterQuery->where('lease_number', 'like', '%' . $unsignedSearch . '%')
+                    ->orWhere('status', 'like', '%' . $unsignedSearch . '%')
+                    ->orWhereHas('asset', function ($assetQuery) use ($unsignedSearch) {
+                        $assetQuery->where('name', 'like', '%' . $unsignedSearch . '%')
+                            ->orWhere('asset_tag', 'like', '%' . $unsignedSearch . '%');
+                    })
+                    ->orWhereHas('lessee', function ($lesseeQuery) use ($unsignedSearch) {
+                        $lesseeQuery->where('name', 'like', '%' . $unsignedSearch . '%');
+                    });
+            });
+        }
+
+        $unsignedLeases = $unsignedLeasesQuery
+            ->paginate(10, ['*'], 'unsigned_page')
+            ->appends(['unsigned_search' => $unsignedSearch, 'signed_search' => $signedSearch]);
+
+        $signedLeasesQuery = (clone $query)
+            ->where('status', 'signed')
+            ->whereHas('asset', function ($assetQuery) {
+                $assetQuery->where('status', 'in_use');
+            });
+
+        if ($signedSearch !== '') {
+            $signedLeasesQuery->where(function ($filterQuery) use ($signedSearch) {
+                $filterQuery->where('lease_number', 'like', '%' . $signedSearch . '%')
+                    ->orWhereHas('asset', function ($assetQuery) use ($signedSearch) {
+                        $assetQuery->where('name', 'like', '%' . $signedSearch . '%')
+                            ->orWhere('asset_tag', 'like', '%' . $signedSearch . '%');
+                    })
+                    ->orWhereHas('lessee', function ($lesseeQuery) use ($signedSearch) {
+                        $lesseeQuery->where('name', 'like', '%' . $signedSearch . '%');
+                    });
+            });
+        }
+
+        $signedLeases = $signedLeasesQuery
+            ->paginate(10, ['*'], 'signed_page')
+            ->appends(['unsigned_search' => $unsignedSearch, 'signed_search' => $signedSearch]);
+
+        return view('leases.index', compact('unsignedLeases', 'signedLeases', 'unsignedSearch', 'signedSearch'));
     }
 
     public function create()

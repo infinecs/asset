@@ -7,8 +7,8 @@ use App\Models\AssetHistory;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Location;
-use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AssetController extends Controller
@@ -64,8 +64,7 @@ class AssetController extends Controller
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
-        $users = User::orderBy('name')->get();
-        return view('assets.create', compact('brands', 'categories', 'locations', 'users'));
+        return view('assets.create', compact('brands', 'categories', 'locations'));
     }
 
     public function store(Request $request)
@@ -82,18 +81,24 @@ class AssetController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
-            'assigned_to' => 'nullable|exists:users,id',
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
             'purchase_cost' => 'nullable|numeric|min:0',
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
+            'photo' => 'nullable|image|max:2048',
         ]);
 
         $validated['asset_tag'] = $this->generateAssetTag();
         $validated['brand'] = null;
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
+        }
+
+        $validated['assigned_to'] = null;
+
+        if ($request->hasFile('photo')) {
+            $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
         }
 
         $asset = Asset::create($validated);
@@ -182,8 +187,7 @@ class AssetController extends Controller
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
-        $users = User::orderBy('name')->get();
-        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'users'));
+        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations'));
     }
 
     public function update(Request $request, Asset $asset)
@@ -200,12 +204,12 @@ class AssetController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
-            'assigned_to' => 'nullable|exists:users,id',
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
             'purchase_cost' => 'nullable|numeric|min:0',
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
+            'photo' => 'nullable|image|max:2048',
         ]);
 
         $changes = [];
@@ -213,6 +217,19 @@ class AssetController extends Controller
         $validated['brand'] = null;
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
+        }
+
+        $validated['assigned_to'] = $asset->leases()
+            ->whereNotNull('signed_at')
+            ->whereNull('returned_at')
+            ->latest('signed_at')
+            ->value('lessee_id');
+
+        if ($request->hasFile('photo')) {
+            if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
+                Storage::disk('public')->delete($asset->photo_path);
+            }
+            $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
         }
 
         foreach ($validated as $key => $value) {
@@ -240,6 +257,10 @@ class AssetController extends Controller
     {
         if (!auth()->user()->isAdmin()) {
             abort(403);
+        }
+
+        if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
+            Storage::disk('public')->delete($asset->photo_path);
         }
 
         $asset->delete();
