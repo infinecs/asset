@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'IT Asset Management')</title>
+    <title>@yield('title', 'Infinecs Asset Management')</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon.ico') }}">
     <!-- Bootstrap 5 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- Bootstrap Icons -->
@@ -147,7 +148,7 @@
         <!-- Sidebar -->
         <nav class="sidebar d-flex flex-column">
             <div class="sidebar-brand d-flex align-items-center justify-content-between">
-                <span class="brand-text"><i class="bi bi-hdd-rack me-2"></i>IT Assets</span>
+                <span class="brand-text"><img src="{{ asset('images/infinecs-logo-white.png') }}" alt="Infinecs" style="height: 28px;"></span>
                 <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Simplify view">
                     <i class="bi bi-layout-sidebar-inset"></i>
                 </button>
@@ -160,6 +161,9 @@
                 <a href="{{ route('directory.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('directory.index') ? 'active' : '' }}" data-sidebar-tooltip="Directory">
                     <i class="bi bi-journal-bookmark"></i><span class="nav-text">Directory</span>
                 </a>
+                <a href="{{ route('employees.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('employees.*') ? 'active' : '' }}" data-sidebar-tooltip="Employees">
+                    <i class="bi bi-people"></i><span class="nav-text">Employees</span>
+                </a>
 
                 @if(auth()->user()->isStaff())
                 <div class="sidebar-section mt-2">Assets</div>
@@ -171,25 +175,6 @@
                     <i class="bi bi-activity"></i><span class="nav-text">Live Tracker</span>
                 </a>
                 @endif
-                <a href="{{ route('assets.create') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('assets.create') ? 'active' : '' }}" data-sidebar-tooltip="Add Asset">
-                    <i class="bi bi-plus-circle"></i><span class="nav-text">Add Asset</span>
-                </a>
-                @endif
-
-                <div class="sidebar-section mt-2">Tickets</div>
-                <a href="{{ route('tickets.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('tickets.index') ? 'active' : '' }}" data-sidebar-tooltip="My Tickets">
-                    <i class="bi bi-ticket-detailed"></i><span class="nav-text">{{ auth()->user()->isAdmin() ? 'All Tickets' : 'Request Tickets' }}</span>
-                </a>
-                <a href="{{ route('tickets.create') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('tickets.create') ? 'active' : '' }}" data-sidebar-tooltip="New Request">
-                    <i class="bi bi-plus-square"></i><span class="nav-text">New Request</span>
-                </a>
-                @if(auth()->user()->isAdmin())
-                <a href="{{ route('leases.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('leases.*') ? 'active' : '' }}" data-sidebar-tooltip="Leases">
-                    <i class="bi bi-file-earmark-text"></i><span class="nav-text">Leases</span>
-                </a>
-                <a href="{{ route('leases.create') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('leases.create') ? 'active' : '' }}" data-sidebar-tooltip="New Lease">
-                    <i class="bi bi-file-earmark-plus"></i><span class="nav-text">New Lease</span>
-                </a>
                 @endif
 
                 @if(auth()->user()->isStaff())

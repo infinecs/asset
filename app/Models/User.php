@@ -27,31 +27,6 @@ class User extends Authenticatable
         ];
     }
 
-    public function assets(): HasMany
-    {
-        return $this->hasMany(Asset::class, 'assigned_to');
-    }
-
-    public function requestTickets(): HasMany
-    {
-        return $this->hasMany(RequestTicket::class, 'requested_by');
-    }
-
-    public function assignedTickets(): HasMany
-    {
-        return $this->hasMany(RequestTicket::class, 'assigned_to');
-    }
-
-    public function leases(): HasMany
-    {
-        return $this->hasMany(Lease::class, 'lessee_id');
-    }
-
-    public function issuedLeases(): HasMany
-    {
-        return $this->hasMany(Lease::class, 'issued_by');
-    }
-
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);

@@ -58,6 +58,64 @@
                 <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
                 <a href="{{ route('assets.index') }}" class="btn btn-outline-secondary">Clear</a>
             </div>
+
+            {{-- Advanced Filter toggle --}}
+            <div class="col-12 pt-0">
+                <button type="button"
+                    class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                    data-bs-toggle="collapse" data-bs-target="#advancedFilters"
+                    aria-expanded="{{ request()->hasAny(['cpu','ram','storage','display']) ? 'true' : 'false' }}">
+                    <i class="bi bi-sliders"></i> Advanced Filter
+                    @if(request()->hasAny(['cpu','ram','storage','display']))
+                    <span class="badge bg-primary ms-1">active</span>
+                    @endif
+                </button>
+            </div>
+
+            {{-- Advanced Filter panel --}}
+            <div class="col-12 pt-0 collapse {{ request()->hasAny(['cpu','ram','storage','display']) ? 'show' : '' }}" id="advancedFilters">
+                <div class="border rounded p-3 bg-light">
+                    <p class="text-muted small fw-semibold mb-2"><i class="bi bi-cpu me-1"></i>Technical Details</p>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">CPU</label>
+                            <select name="cpu" class="form-select form-select-sm">
+                                <option value="">All CPUs</option>
+                                @foreach($filterCpus as $opt)
+                                <option value="{{ $opt }}" {{ request('cpu') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">RAM</label>
+                            <select name="ram" class="form-select form-select-sm">
+                                <option value="">All RAM</option>
+                                @foreach($filterRams as $opt)
+                                <option value="{{ $opt }}" {{ request('ram') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Storage</label>
+                            <select name="storage" class="form-select form-select-sm">
+                                <option value="">All Storage</option>
+                                @foreach($filterStorages as $opt)
+                                <option value="{{ $opt }}" {{ request('storage') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Display</label>
+                            <select name="display" class="form-select form-select-sm">
+                                <option value="">All Displays</option>
+                                @foreach($filterDisplays as $opt)
+                                <option value="{{ $opt }}" {{ request('display') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </form>
     </div>
 </div>
@@ -131,7 +189,7 @@
                         </td>
                         <td>{{ $asset->category?->name ?? '-' }}</td>
                         <td>{{ $asset->location?->name ?? '-' }}</td>
-                        <td>{{ $asset->assignedUser?->name ?? '-' }}</td>
+                        <td>{{ $asset->assignedEmployee?->name ?? '-' }}</td>
                         <td>
                             <span class="badge bg-{{ $asset->status_badge }}">
                                 <span class="status-dot {{ $asset->status }} me-1"></span>

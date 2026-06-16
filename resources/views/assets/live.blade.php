@@ -125,12 +125,12 @@
                             @endif
                         </td>
                         <td>
-                            @if($asset->assignedUser)
+                            @if($asset->assignedEmployee)
                             <div class="d-flex align-items-center gap-2">
                                 <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width:24px;height:24px;">
-                                    <span class="text-white" style="font-size:.65rem;">{{ substr($asset->assignedUser->name, 0, 1) }}</span>
+                                    <span class="text-white" style="font-size:.65rem;">{{ substr($asset->assignedEmployee->name, 0, 1) }}</span>
                                 </div>
-                                <span class="small">{{ $asset->assignedUser->name }}</span>
+                                <span class="small">{{ $asset->assignedEmployee->name }}</span>
                             </div>
                             @else
                             <span class="text-muted small">Unassigned</span>

@@ -46,7 +46,7 @@ class UserController extends Controller
     {
         $this->authorizeAdmin();
 
-        $query = User::withCount(['assets', 'requestTickets']);
+        $query = User::query();
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
@@ -105,7 +105,6 @@ class UserController extends Controller
     {
         $this->authorizeAdmin();
 
-        $user->load(['assets.category', 'requestTickets']);
         return view('users.show', compact('user'));
     }
 

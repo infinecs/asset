@@ -10,10 +10,7 @@
         <code class="text-muted">{{ $asset->asset_tag }}</code>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ route('tickets.create', ['asset_id' => $asset->id]) }}" class="btn btn-outline-warning btn-sm">
-            <i class="bi bi-ticket-detailed me-1"></i>Request Ticket
-        </a>
-        @if(auth()->user()->isStaff())
+@if(auth()->user()->isStaff())
         <a href="{{ route('assets.edit', $asset) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
@@ -62,7 +59,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="text-muted small">Assigned To</label>
-                        <div class="fw-semibold">{{ $asset->assignedUser?->name ?? 'Unassigned' }}</div>
+                        <div class="fw-semibold">{{ $asset->assignedEmployee?->name ?? 'Unassigned' }}</div>
                     </div>
                     <div class="col-md-6">
                         <label class="text-muted small">Last Seen</label>
@@ -113,34 +110,35 @@
             </div>
         </div>
 
-        <!-- Related Tickets -->
-        @if($asset->requestTickets->count() > 0)
-        <div class="card border-0 shadow-sm">
+        <!-- Technical Details -->
+        @if($asset->cpu || $asset->ram || $asset->storage || $asset->display)
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white border-0 pt-3">
-                <h6 class="mb-0 fw-semibold">Related Tickets</h6>
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-cpu me-2 text-muted"></i>Technical Details</h6>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="table-light">
-                            <tr><th>Ticket #</th><th>Subject</th><th>Status</th><th>Date</th><th></th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach($asset->requestTickets as $ticket)
-                            <tr>
-                                <td><code>{{ $ticket->ticket_number }}</code></td>
-                                <td>{{ Str::limit($ticket->subject, 40) }}</td>
-                                <td><span class="badge bg-{{ $ticket->status_badge }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></td>
-                                <td class="text-muted small">{{ $ticket->created_at->format('d M Y') }}</td>
-                                <td><a href="{{ route('tickets.show', $ticket) }}" class="btn btn-sm btn-outline-primary">View</a></td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small">CPU</label>
+                        <div class="fw-semibold">{{ $asset->cpu ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">RAM</label>
+                        <div class="fw-semibold">{{ $asset->ram ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Storage</label>
+                        <div class="fw-semibold">{{ $asset->storage ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Display</label>
+                        <div class="fw-semibold">{{ $asset->display ?? '-' }}</div>
+                    </div>
                 </div>
             </div>
         </div>
         @endif
+
     </div>
 
     <!-- Sidebar -->

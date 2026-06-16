@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - IT Asset Management</title>
+    <title>Login - Infinecs Asset Management</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon.ico') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -16,10 +17,9 @@
         <div class="card login-card">
             <div class="card-body p-5">
                 <div class="text-center mb-4">
-                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:64px;height:64px;">
-                        <i class="bi bi-hdd-rack text-white fs-3"></i>
+                    <div class="mb-3">
+                        <img src="{{ asset('images/infinecs-logo.png') }}" alt="Infinecs" style="height: 48px;">
                     </div>
-                    <h4 class="fw-bold">IT Asset Management</h4>
                     <p class="text-muted small">Sign in to your account</p>
                 </div>
 

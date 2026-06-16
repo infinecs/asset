@@ -9,8 +9,7 @@ use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\DirectoryContactController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\LocationController;
-use App\Http\Controllers\LeaseController;
-use App\Http\Controllers\RequestTicketController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -38,17 +37,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/assets/delete-all', [AssetController::class, 'destroyAll'])->name('assets.destroy-all');
     Route::resource('assets', AssetController::class);
 
-    // Request Tickets
-    Route::patch('/tickets/{ticket}/status', [RequestTicketController::class, 'updateStatus'])->name('tickets.update-status');
-    Route::delete('/tickets/bulk-delete', [RequestTicketController::class, 'bulkDestroy'])->name('tickets.bulk-destroy');
-    Route::delete('/tickets/delete-all', [RequestTicketController::class, 'destroyAll'])->name('tickets.destroy-all');
-    Route::resource('tickets', RequestTicketController::class);
-
-    // Leases
-    Route::get('/leases/{lease}/sign', [LeaseController::class, 'sign'])->name('leases.sign');
-    Route::post('/leases/{lease}/sign', [LeaseController::class, 'signStore'])->name('leases.sign.store');
-    Route::patch('/leases/{lease}/return', [LeaseController::class, 'markReturned'])->name('leases.return');
-    Route::resource('leases', LeaseController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+    // Employees
+    Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
+    Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
+    Route::resource('employees', EmployeeController::class);
 
     // Staff/Admin routes
     Route::resource('departments', DepartmentController::class);

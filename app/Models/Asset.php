@@ -5,14 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Employee;
 
 class Asset extends Model
 {
     protected $fillable = [
-        'asset_tag', 'name', 'brand', 'model', 'serial_number',
+        'type', 'asset_tag', 'name', 'brand', 'model', 'serial_number',
         'brand_id', 'category_id', 'location_id', 'assigned_to', 'status',
         'purchase_date', 'purchase_cost', 'warranty_expiry',
         'notes', 'photo_path', 'last_seen_at',
+        'cpu', 'ram', 'storage', 'display',
     ];
 
     protected $casts = [
@@ -37,24 +39,14 @@ class Asset extends Model
         return $this->belongsTo(Location::class);
     }
 
-    public function assignedUser(): BelongsTo
+    public function assignedEmployee(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsTo(Employee::class, 'assigned_to');
     }
 
     public function histories(): HasMany
     {
         return $this->hasMany(AssetHistory::class)->latest();
-    }
-
-    public function requestTickets(): HasMany
-    {
-        return $this->hasMany(RequestTicket::class);
-    }
-
-    public function leases(): HasMany
-    {
-        return $this->hasMany(Lease::class)->latest();
     }
 
     public function getStatusBadgeAttribute(): string

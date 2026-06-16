@@ -46,7 +46,7 @@
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead class="table-light">
-                <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Assets</th><th>Tickets</th><th class="text-end">Actions</th></tr>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Phone</th><th class="text-end">Actions</th></tr>
             </thead>
             <tbody>
                 @forelse($users as $user)
@@ -67,9 +67,8 @@
                         </span>
                     </td>
                     <td class="text-muted">{{ $user->department ?? '-' }}</td>
-                    <td><span class="badge bg-light text-dark">{{ $user->assets_count }}</span></td>
-                    <td><span class="badge bg-light text-dark">{{ $user->request_tickets_count }}</span></td>
-                    <td class="text-end">
+                    <td class="text-muted">{{ $user->phone ?? '-' }}</td>
+<td class="text-end">
                         <div class="btn-group btn-group-sm">
                             <a href="{{ route('users.show', $user) }}" class="btn btn-outline-primary"><i class="bi bi-eye"></i></a>
                             <a href="{{ route('users.edit', $user) }}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
@@ -83,7 +82,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="7" class="text-center py-4 text-muted">No users found.</td></tr>
+                <tr><td colspan="6" class="text-center py-4 text-muted">No users found.</td></tr>
                 @endforelse
             </tbody>
         </table>

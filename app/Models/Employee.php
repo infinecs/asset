@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Employee extends Model
+{
+    protected $fillable = [
+        'name', 'id_number', 'work_location', 'email',
+    ];
+
+    public function assets(): HasMany
+    {
+        return $this->hasMany(Asset::class, 'assigned_to');
+    }
+}

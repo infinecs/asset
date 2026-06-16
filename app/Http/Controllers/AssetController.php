@@ -7,6 +7,8 @@ use App\Models\AssetHistory;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Location;
+use App\Models\Employee;
+use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -15,7 +17,7 @@ class AssetController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Asset::with(['brand', 'category', 'location', 'assignedUser']);
+        $query = Asset::with(['brand', 'category', 'location', 'assignedEmployee']);
 
         if (!auth()->user()->isAdmin()) {
             $query->where('status', 'available');
@@ -47,12 +49,33 @@ class AssetController extends Controller
             $query->where('location_id', $request->location);
         }
 
+        if ($request->filled('cpu')) {
+            $query->where('cpu', $request->cpu);
+        }
+
+        if ($request->filled('ram')) {
+            $query->where('ram', $request->ram);
+        }
+
+        if ($request->filled('storage')) {
+            $query->where('storage', $request->storage);
+        }
+
+        if ($request->filled('display')) {
+            $query->where('display', $request->display);
+        }
+
         $assets = $query->latest()->paginate(15)->withQueryString();
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
 
-        return view('assets.index', compact('assets', 'brands', 'categories', 'locations'));
+        $filterCpus     = Asset::whereNotNull('cpu')->distinct()->orderBy('cpu')->pluck('cpu');
+        $filterRams     = Asset::whereNotNull('ram')->distinct()->orderBy('ram')->pluck('ram');
+        $filterStorages = Asset::whereNotNull('storage')->distinct()->orderBy('storage')->pluck('storage');
+        $filterDisplays = Asset::whereNotNull('display')->distinct()->orderBy('display')->pluck('display');
+
+        return view('assets.index', compact('assets', 'brands', 'categories', 'locations', 'filterCpus', 'filterRams', 'filterStorages', 'filterDisplays'));
     }
 
     public function create()
@@ -73,7 +96,17 @@ class AssetController extends Controller
             abort(403);
         }
 
+        $typePrefix = match($request->input('type')) {
+            'desktop'    => 'ISSB-D',
+            'smartphone' => 'ISSB-S',
+            'tablet'     => 'ISSB-T',
+            default      => 'ISSB-L',
+        };
+        $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
+
         $validated = $request->validate([
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet',
+            'asset_tag' => 'required|string|max:255|unique:assets,asset_tag',
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
             'brand' => 'nullable|string|max:255',
@@ -87,9 +120,11 @@ class AssetController extends Controller
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
+            'cpu' => 'nullable|string|max:100',
+            'ram' => 'nullable|string|max:50',
+            'storage' => 'nullable|string|max:100',
+            'display' => 'nullable|string|max:50',
         ]);
-
-        $validated['asset_tag'] = $this->generateAssetTag();
         $validated['brand'] = null;
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
@@ -123,14 +158,11 @@ class AssetController extends Controller
             'brand',
             'category',
             'location',
-            'assignedUser',
+            'assignedEmployee',
             'histories.user',
-            'requestTickets.requester',
-            'leases.lessee',
-            'leases.returnedBy',
         ]);
 
-        $historyActivities = $asset->histories->map(function ($history) {
+        $activityTimeline = $asset->histories->map(function ($history) {
             return (object) [
                 'type' => 'asset_history',
                 'at' => $history->created_at,
@@ -139,41 +171,7 @@ class AssetController extends Controller
                 'notes' => $history->notes,
                 'icon' => $history->action == 'created' ? 'plus' : ($history->action == 'status_changed' ? 'arrow-repeat' : 'pencil'),
             ];
-        });
-
-        $leaseActivities = $asset->leases->flatMap(function ($lease) {
-            $events = [];
-
-            if ($lease->signed_at) {
-                $events[] = (object) [
-                    'type' => 'lease_signed',
-                    'at' => $lease->signed_at,
-                    'title' => 'Leased to ' . ($lease->lessee?->name ?? 'User'),
-                    'by' => $lease->signed_name ?: ($lease->lessee?->name ?? 'User'),
-                    'notes' => 'Lease #' . $lease->lease_number . ' signed',
-                    'icon' => 'pen',
-                ];
-            }
-
-            if ($lease->returned_at) {
-                $events[] = (object) [
-                    'type' => 'lease_returned',
-                    'at' => $lease->returned_at,
-                    'title' => 'Asset returned',
-                    'by' => $lease->returnedBy?->name ?? 'System',
-                    'notes' => $lease->returned_notes ?: ('Lease #' . $lease->lease_number . ' marked as returned'),
-                    'icon' => 'box-arrow-in-left',
-                ];
-            }
-
-            return $events;
-        });
-
-        $activityTimeline = $historyActivities
-            ->concat($leaseActivities)
-            ->sortByDesc('at')
-            ->take(15)
-            ->values();
+        })->sortByDesc('at')->take(15)->values();
 
         return view('assets.show', compact('asset', 'activityTimeline'));
     }
@@ -187,7 +185,9 @@ class AssetController extends Controller
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
-        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations'));
+        $employees = Employee::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
+        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments'));
     }
 
     public function update(Request $request, Asset $asset)
@@ -196,7 +196,17 @@ class AssetController extends Controller
             abort(403);
         }
 
+        $typePrefix = match($request->input('type')) {
+            'desktop'    => 'ISSB-D',
+            'smartphone' => 'ISSB-S',
+            'tablet'     => 'ISSB-T',
+            default      => 'ISSB-L',
+        };
+        $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
+
         $validated = $request->validate([
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet',
+            'asset_tag' => 'required|string|max:255|unique:assets,asset_tag,' . $asset->id,
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
             'brand' => 'nullable|string|max:255',
@@ -204,12 +214,18 @@ class AssetController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
+            'assigned_to' => 'nullable|exists:employees,id',
+            'last_seen_at' => 'nullable|date_format:Y-m-d\TH:i',
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
             'purchase_cost' => 'nullable|numeric|min:0',
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
+            'cpu' => 'nullable|string|max:100',
+            'ram' => 'nullable|string|max:50',
+            'storage' => 'nullable|string|max:100',
+            'display' => 'nullable|string|max:50',
         ]);
 
         $changes = [];
@@ -218,12 +234,6 @@ class AssetController extends Controller
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
         }
-
-        $validated['assigned_to'] = $asset->leases()
-            ->whereNotNull('signed_at')
-            ->whereNull('returned_at')
-            ->latest('signed_at')
-            ->value('lessee_id');
 
         if ($request->hasFile('photo')) {
             if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
@@ -332,7 +342,7 @@ class AssetController extends Controller
             abort(403);
         }
 
-        $assets = Asset::with(['brand', 'category', 'location', 'assignedUser'])
+        $assets = Asset::with(['brand', 'category', 'location', 'assignedEmployee'])
             ->when(!auth()->user()->isAdmin(), function ($query) {
                 $query->where('status', 'available');
             })
