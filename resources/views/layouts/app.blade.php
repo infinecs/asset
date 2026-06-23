@@ -148,7 +148,7 @@
         <!-- Sidebar -->
         <nav class="sidebar d-flex flex-column">
             <div class="sidebar-brand d-flex align-items-center justify-content-between">
-                <span class="brand-text"><img src="{{ asset('images/infinecs-logo-white.png') }}" alt="Infinecs" style="height: 28px;"></span>
+                <a href="{{ route('dashboard') }}" class="brand-text"><img src="{{ asset('images/infinecs-logo-white.png') }}" alt="Infinecs" style="height: 36px; max-width: 200px; object-fit: contain; object-position: left center;"></a>
                 <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Simplify view">
                     <i class="bi bi-layout-sidebar-inset"></i>
                 </button>
