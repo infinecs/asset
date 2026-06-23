@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Infinecs Asset Management')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.ico') }}">
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
     <!-- Bootstrap 5 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- Bootstrap Icons -->
@@ -127,6 +133,13 @@
         .status-dot.under_maintenance { background: #f59e0b; }
         .status-dot.retired { background: #94a3b8; }
         .status-dot.lost { background: #ef4444; }
+        [data-bs-theme="dark"] body { background-color: #0f172a; }
+        [data-bs-theme="dark"] .topbar { background: #1e293b; border-color: #334155; }
+        [data-bs-theme="dark"] .topbar h6 { color: #f1f5f9 !important; }
+        [data-bs-theme="dark"] .topbar .text-muted { color: #94a3b8 !important; }
+        #theme-toggle { border: 0; background: transparent; color: inherit; padding: .25rem .4rem; border-radius: .375rem; cursor: pointer; font-size: 1.1rem; }
+        #theme-toggle:hover { background: rgba(0,0,0,.08); }
+        [data-bs-theme="dark"] #theme-toggle:hover { background: rgba(255,255,255,.08); }
         @media (max-width: 768px) {
             .sidebar { width: 100%; min-height: auto; position: relative; }
             .main-content { margin-left: 0; }
@@ -232,6 +245,9 @@
                 <h6 class="mb-0 fw-semibold text-dark">@yield('page-title', 'Dashboard')</h6>
                 <div class="d-flex align-items-center gap-3">
                     <span class="small text-muted">{{ now()->format('D, d M Y') }}</span>
+                    <button id="theme-toggle" title="Toggle dark mode">
+                        <i class="bi bi-moon-stars-fill" id="theme-icon"></i>
+                    </button>
                 </div>
             </div>
 
@@ -417,6 +433,25 @@
                 syncSelection();
             });
         });
+    </script>
+    <script>
+        (function () {
+            const btn = document.getElementById('theme-toggle');
+            const icon = document.getElementById('theme-icon');
+
+            function applyTheme(theme) {
+                document.documentElement.setAttribute('data-bs-theme', theme);
+                icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+                localStorage.setItem('theme', theme);
+            }
+
+            applyTheme(localStorage.getItem('theme') || 'light');
+
+            btn.addEventListener('click', function () {
+                const current = document.documentElement.getAttribute('data-bs-theme');
+                applyTheme(current === 'dark' ? 'light' : 'dark');
+            });
+        })();
     </script>
     @stack('scripts')
 </body>
