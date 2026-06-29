@@ -133,12 +133,16 @@
         .status-dot.under_maintenance { background: #f59e0b; }
         .status-dot.retired { background: #94a3b8; }
         .status-dot.lost { background: #ef4444; }
+        .asset-row-hover { transition: background .15s; }
+        .asset-row-hover:hover { background: #f1f5f9; }
+        [data-bs-theme="dark"] .asset-row-hover:hover { background: #1e293b; }
         [data-bs-theme="dark"] body { background-color: #0f172a; }
         [data-bs-theme="dark"] .topbar { background: #1e293b; border-color: #334155; }
         [data-bs-theme="dark"] .topbar h6 { color: #f1f5f9 !important; }
         [data-bs-theme="dark"] .topbar .text-muted { color: #94a3b8 !important; }
-        #theme-toggle { border: 0; background: transparent; color: inherit; padding: .25rem .4rem; border-radius: .375rem; cursor: pointer; font-size: 1.1rem; }
+        #theme-toggle { border: 1px solid #cbd5e1; background: transparent; color: inherit; padding: .25rem .4rem; border-radius: .375rem; cursor: pointer; font-size: 1.1rem; }
         #theme-toggle:hover { background: rgba(0,0,0,.08); }
+        [data-bs-theme="dark"] #theme-toggle { border-color: #475569; }
         [data-bs-theme="dark"] #theme-toggle:hover { background: rgba(255,255,255,.08); }
         @media (max-width: 768px) {
             .sidebar { width: 100%; min-height: auto; position: relative; }

@@ -86,7 +86,7 @@
 {{-- Pending Tasks Alert --}}
 @if(auth()->user()->isAdmin() && $pendingTaskAlert && $pendingTaskAlert['count'] > 0)
 <div class="card border-0 shadow-sm border-start border-warning border-3 mb-4">
-    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+    <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-semibold text-warning">
             <i class="bi bi-bell-fill me-2"></i>
             {{ $pendingTaskAlert['count'] }} pending task{{ $pendingTaskAlert['count'] > 1 ? 's' : '' }} · Week {{ $pendingTaskAlert['weekNumber'] }}
@@ -117,13 +117,13 @@
     {{-- Recent Assets --}}
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
                 <h6 class="mb-0 fw-semibold">Recent Assets</h6>
                 <a href="{{ route('assets.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
             <div class="card-body p-0">
                 @forelse($recentAssets as $asset)
-                <a href="{{ route('assets.show', $asset) }}" class="d-flex align-items-center p-3 border-bottom text-decoration-none text-body" style="transition:background .15s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
+                <a href="{{ route('assets.show', $asset) }}" class="d-flex align-items-center p-3 border-bottom text-decoration-none text-body asset-row-hover">
                     <div class="bg-primary bg-opacity-10 rounded-3 p-2 me-3 flex-shrink-0">
                         <i class="bi bi-laptop text-primary"></i>
                     </div>
@@ -155,7 +155,7 @@
 
         {{-- Asset Status Breakdown --}}
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Asset Status</h6>
             </div>
             <div class="card-body">
@@ -187,7 +187,7 @@
 
         {{-- Quick Actions --}}
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Quick Actions</h6>
             </div>
             <div class="card-body">
@@ -215,7 +215,7 @@
     @if($assetsByCategory->count() > 0)
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Assets by Category</h6>
             </div>
             <div class="card-body">
@@ -239,7 +239,7 @@
     @if($warrantyExpiring->count() > 0)
     <div class="col-12">
         <div class="card border-0 shadow-sm border-start border-warning border-3">
-            <div class="card-header bg-white border-0 pt-3 d-flex align-items-center gap-2">
+            <div class="card-header bg-transparent border-0 pt-3 d-flex align-items-center gap-2">
                 <h6 class="mb-0 fw-semibold text-warning">
                     <i class="bi bi-exclamation-triangle me-1"></i>Warranties Expiring Soon
                 </h6>
