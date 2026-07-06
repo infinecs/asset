@@ -143,7 +143,7 @@
                                 <option value="">— Select CPU —</option>
                                 @foreach([
                                     'Intel Core Ultra (14th Gen)' => [
-                                        'Intel Core Ultra 5 125U','Intel Core Ultra 5 125H',
+                                        'Intel Core Ultra 5 125U','Intel Core Ultra 5 125H', 'Intel Core Ultra 5 135U',
                                         'Intel Core Ultra 7 155U','Intel Core Ultra 7 155H','Intel Core Ultra 7 165H',
                                         'Intel Core Ultra 9 185H',
                                     ],
