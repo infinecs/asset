@@ -45,7 +45,7 @@
         <a href="{{ route('tasks.index', ['date' => $weekStart->copy()->subWeek()->toDateString(), 'user_id' => $selectedUserId]) }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-chevron-left"></i>
         </a>
-        <button class="btn btn-light btn-sm border" disabled>Work Week {{ $workWeekNumber }} ({{ $workWeekYear }}) · {{ $weekStart->format('d-m-Y') }} - {{ $weekEnd->format('d-m-Y') }}</button>
+        <button class="btn btn-outline-secondary btn-sm" disabled>Work Week {{ $workWeekNumber }} ({{ $workWeekYear }}) · {{ $weekStart->format('d-m-Y') }} - {{ $weekEnd->format('d-m-Y') }}</button>
         <a href="{{ route('tasks.index', ['date' => $weekStart->copy()->addWeek()->toDateString(), 'user_id' => $selectedUserId]) }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-chevron-right"></i>
         </a>
@@ -173,7 +173,7 @@
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                                     <button type="submit" class="btn btn-primary">Save Changes</button>
                                 </div>
                             </form>

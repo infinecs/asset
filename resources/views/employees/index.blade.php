@@ -98,7 +98,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="alert alert-light border mb-4">
+                <div class="alert alert-secondary border mb-4">
                     <p class="small fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>CSV Format</p>
                     <p class="small text-muted mb-2">Upload a <strong>.csv</strong> file with these columns in order:</p>
                     <ol class="small text-muted mb-2">

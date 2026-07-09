@@ -57,7 +57,7 @@
                                 <span class="text-white fw-bold" style="font-size:.75rem;">{{ substr($user->name, 0, 1) }}</span>
                             </div>
                             <span class="fw-semibold">{{ $user->name }}</span>
-                            @if($user->id === auth()->id())<span class="badge bg-light text-muted ms-1">You</span>@endif
+                            @if($user->id === auth()->id())<span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">You</span>@endif
                         </div>
                     </td>
                     <td class="text-muted">{{ $user->email }}</td>

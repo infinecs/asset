@@ -248,6 +248,19 @@
                             @error('photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
+                            <label class="form-label fw-semibold">Signed Document</label>
+                            @if($asset->signed_document_path)
+                            <div class="mb-2">
+                                <a href="{{ asset('storage/' . $asset->signed_document_path) }}" target="_blank" class="text-decoration-none">
+                                    <i class="bi bi-file-earmark-text me-1"></i>View current document
+                                </a>
+                            </div>
+                            @endif
+                            <input type="file" name="signed_document" class="form-control @error('signed_document') is-invalid @enderror" accept=".pdf,.doc,.docx">
+                            <div class="form-text">Signed handover/acceptance document (PDF or Word, max 10MB). Uploading a new file replaces the current one.</div>
+                            @error('signed_document')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-12">
                             <label class="form-label fw-semibold">Notes</label>
                             <textarea name="notes" class="form-control" rows="3">{{ old('notes', $asset->notes) }}</textarea>
                         </div>
