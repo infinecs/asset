@@ -25,7 +25,7 @@
     <!-- Asset Details -->
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 fw-semibold">Asset Information</h6>
                 <span class="badge bg-{{ $asset->status_badge }} px-3 py-2">
                     <span class="status-dot {{ $asset->status }} me-1"></span>{{ $asset->status_label }}
@@ -77,7 +77,7 @@
 
         <!-- Purchase Info -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Purchase Information</h6>
             </div>
             <div class="card-body">
@@ -113,7 +113,7 @@
         <!-- Technical Details -->
         @if($asset->cpu || $asset->ram || $asset->storage || $asset->display)
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold"><i class="bi bi-cpu me-2 text-muted"></i>Technical Details</h6>
             </div>
             <div class="card-body">
@@ -144,7 +144,7 @@
     <!-- Sidebar -->
     <div class="col-lg-4">
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Asset Photo</h6>
             </div>
             <div class="card-body text-center">
@@ -159,7 +159,7 @@
         <!-- Quick Status Update -->
         @if(auth()->user()->isStaff())
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Update Status</h6>
             </div>
             <div class="card-body">
@@ -188,7 +188,7 @@
 
         <!-- History -->
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Activity History</h6>
             </div>
             <div class="card-body p-0">

@@ -123,7 +123,7 @@
 <!-- Assets Table -->
 <div class="card border-0 shadow-sm" data-bulk-container>
     @if(auth()->user()->isStaff())
-    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+    <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
         <span class="text-muted small"><span data-bulk-count>0</span> selected</span>
         <div class="d-flex gap-2">
             <form method="POST" action="{{ route('assets.bulk-destroy') }}" data-bulk-form onsubmit="return confirm('Delete selected assets?')">
@@ -147,7 +147,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         @if(auth()->user()->isStaff())
                         <th style="width: 40px;">
@@ -228,7 +228,7 @@
         </div>
     </div>
     @if($assets->hasPages())
-    <div class="card-footer bg-white">
+    <div class="card-footer bg-transparent">
         {{ $assets->links() }}
     </div>
     @endif

@@ -7,7 +7,7 @@
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                 <div>
                     <h5 class="fw-semibold mb-0">{{ $asset->name }}</h5>
                     <code class="text-muted">{{ $asset->asset_tag }}</code>

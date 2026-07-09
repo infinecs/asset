@@ -7,7 +7,7 @@
     <a href="{{ route('brands.create') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Add Brand</a>
 </div>
 <div class="card border-0 shadow-sm" data-bulk-container>
-    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+    <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
         <span class="text-muted small"><span data-bulk-count>0</span> selected</span>
         <div class="d-flex gap-2">
             <form method="POST" action="{{ route('brands.bulk-destroy') }}" data-bulk-form onsubmit="return confirm('Delete selected brands?')">
@@ -29,7 +29,7 @@
     </div>
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
-            <thead class="table-light">
+            <thead>
                 <tr><th style="width: 40px;"><input type="checkbox" class="form-check-input" data-bulk-select-all></th><th>Name</th><th>Assets</th><th class="text-end">Actions</th></tr>
             </thead>
             <tbody>

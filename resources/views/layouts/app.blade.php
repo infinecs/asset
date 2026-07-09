@@ -136,6 +136,10 @@
         .asset-row-hover { transition: background .15s; }
         .asset-row-hover:hover { background: #f1f5f9; }
         [data-bs-theme="dark"] .asset-row-hover:hover { background: #1e293b; }
+        [data-bs-theme="dark"] .ts-control,
+        [data-bs-theme="dark"] .ts-control input,
+        [data-bs-theme="dark"] .ts-dropdown { color: var(--bs-body-color); }
+        [data-bs-theme="dark"] .ts-dropdown .optgroup-header { color: #94a3b8; }
         [data-bs-theme="dark"] body { background-color: #0f172a; }
         [data-bs-theme="dark"] .topbar { background: #1e293b; border-color: #334155; }
         [data-bs-theme="dark"] .topbar h6 { color: #f1f5f9 !important; }

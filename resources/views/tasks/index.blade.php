@@ -55,13 +55,13 @@
 <div class="row g-4">
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Work Week {{ $workWeekNumber }} (Mon-Fri)</h6>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-bordered align-middle mb-0">
-                        <thead class="table-light text-center">
+                        <thead class="text-center">
                             <tr>
                                 <th>Mon</th>
                                 <th>Tue</th>
@@ -102,7 +102,7 @@
         </div>
 
         <div class="card border-0 shadow-sm mt-4">
-            <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 fw-semibold">Daily Cards · {{ $selectedDateObj->format('d-m-Y') }}</h6>
                 <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fullCardModal">
                     <i class="bi bi-card-text me-1"></i>View Full Card
@@ -189,7 +189,7 @@
 
     <div class="col-lg-5">
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Add Task</h6>
             </div>
             <div class="card-body">

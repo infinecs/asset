@@ -35,12 +35,12 @@
 
     <div class="col-md-8">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-3">
+            <div class="card-header bg-transparent border-0 pt-3">
                 <h6 class="mb-0 fw-semibold">Assigned Assets ({{ $employee->assets->count() }})</h6>
             </div>
             <div class="card-body p-0">
                 <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
+                    <thead>
                         <tr><th>Asset Tag</th><th>Name</th><th>Category</th><th>Status</th><th></th></tr>
                     </thead>
                     <tbody>

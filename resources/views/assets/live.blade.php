@@ -47,7 +47,7 @@
 
 <!-- Live Asset Grid -->
 <div class="card border-0 shadow-sm" data-bulk-container>
-    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+    <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-semibold">
             <span class="bg-success rounded-circle d-inline-block me-2" style="width:8px;height:8px;"></span>
             Live Status
@@ -77,7 +77,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         @if(auth()->user()->isStaff())
                         <th style="width: 40px;">
@@ -190,7 +190,7 @@
         </div>
     </div>
     @if($assets->hasPages())
-    <div class="card-footer bg-white">
+    <div class="card-footer bg-transparent">
         {{ $assets->links() }}
     </div>
     @endif

@@ -45,7 +45,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
-            <thead class="table-light">
+            <thead>
                 <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Phone</th><th class="text-end">Actions</th></tr>
             </thead>
             <tbody>
@@ -88,7 +88,7 @@
         </table>
     </div>
     @if($users->hasPages())
-    <div class="card-footer bg-white">
+    <div class="card-footer bg-transparent">
         {{ $users->links() }}
     </div>
     @endif

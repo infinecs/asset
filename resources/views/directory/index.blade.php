@@ -45,7 +45,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th>Name (System User)</th>
                         <th>Email</th>
@@ -96,21 +96,21 @@
         </div>
     </div>
     @if($users->hasPages())
-    <div class="card-footer bg-white">
+    <div class="card-footer bg-transparent">
         {{ $users->links() }}
     </div>
     @endif
 </div>
 
 <div class="card border-0 shadow-sm mt-4">
-    <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+    <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-semibold">Additional Directory Contacts</h6>
         <span class="text-muted small">Non-user contacts</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th>Name</th>
                         <th>Email</th>

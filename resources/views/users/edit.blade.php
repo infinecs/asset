@@ -6,7 +6,7 @@
 <div class="row justify-content-center">
     <div class="col-md-7">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                 <h5 class="fw-semibold mb-0">{{ $user->name }}</h5>
                 <a href="{{ $isSettings ? route('dashboard') : route('users.index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
             </div>

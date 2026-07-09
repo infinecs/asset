@@ -5,7 +5,7 @@
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 pt-4 px-4"><h5 class="fw-semibold mb-0">New Location</h5></div>
+            <div class="card-header bg-transparent border-0 pt-4 px-4"><h5 class="fw-semibold mb-0">New Location</h5></div>
             <div class="card-body p-4">
                 <form method="POST" action="{{ route('locations.store') }}">
                     @csrf
