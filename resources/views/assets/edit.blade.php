@@ -155,7 +155,7 @@
                                     ],
                                     'Intel 12th Gen (Alder Lake)' => [
                                         'Intel Core i3-1215U','Intel Core i3-1220P',
-                                        'Intel Core i5-1240P','Intel Core i5-1250P',
+                                        'Intel Core i5-1235U','Intel Core i5-1240P','Intel Core i5-1250P',
                                         'Intel Core i5-12450H','Intel Core i5-12450HX','Intel Core i5-12500H','Intel Core i5-12600H',
                                         'Intel Core i7-1260P','Intel Core i7-1270P',
                                         'Intel Core i7-12700H','Intel Core i7-12800H','Intel Core i7-12800HX',
@@ -190,6 +190,10 @@
                                         'AMD Ryzen 5 5500U','AMD Ryzen 5 5600U','AMD Ryzen 5 5600H',
                                         'AMD Ryzen 7 5700U','AMD Ryzen 7 5800H',
                                         'AMD Ryzen 9 5900HS','AMD Ryzen 9 5900HX',
+                                    ],
+                                    'AMD Ryzen 3000 Series' => [
+                                        'AMD Ryzen 5 3500U','AMD Ryzen 5 3550H',
+                                        'AMD Ryzen 7 3700U','AMD Ryzen 7 3750H',
                                     ],
                                     'Apple' => [
                                         'Apple M1','Apple M1 Pro','Apple M1 Max',

@@ -26,7 +26,7 @@
                     <input type="text" name="id_number_suffix"
                            class="form-control @error('id_number') is-invalid @enderror"
                            value="{{ old('id_number_suffix', Str::after($employee->id_number, 'INF-')) }}"
-                           placeholder="001" required>
+                           placeholder="0001" required>
                     @error('id_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>

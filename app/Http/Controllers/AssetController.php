@@ -65,7 +65,7 @@ class AssetController extends Controller
             $query->where('display', $request->display);
         }
 
-        $assets = $query->latest()->paginate(15)->withQueryString();
+        $assets = $query->orderByRaw('CAST(SUBSTRING(asset_tag, 7) AS UNSIGNED) DESC')->paginate(15)->withQueryString();
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();

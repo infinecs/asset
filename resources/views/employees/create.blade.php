@@ -25,7 +25,7 @@
                     <span class="input-group-text fw-semibold">INF-</span>
                     <input type="text" name="id_number_suffix"
                            class="form-control @error('id_number') is-invalid @enderror"
-                           value="{{ old('id_number_suffix') }}" placeholder="001" required>
+                           value="{{ old('id_number_suffix') }}" placeholder="0001" required>
                     @error('id_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
