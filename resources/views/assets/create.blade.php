@@ -113,7 +113,7 @@
                                         'Intel Core Ultra 5 225H',
                                     ],
                                     'Intel Core Ultra Series 1 (Meteor Lake)' => [
-                                        'Intel Core Ultra 5 125U','Intel Core Ultra 5 125H', 'Intel Core Ultra 5 135U',
+                                        'Intel Core Ultra 5 120U','Intel Core Ultra 5 125U','Intel Core Ultra 5 125H', 'Intel Core Ultra 5 135U',
                                         'Intel Core Ultra 7 155U','Intel Core Ultra 7 155H','Intel Core Ultra 7 165H',
                                         'Intel Core Ultra 9 185H',
                                     ],
