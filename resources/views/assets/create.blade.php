@@ -218,6 +218,12 @@
                             @error('photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
+                            <label class="form-label fw-semibold">Signed Document</label>
+                            <input type="file" name="signed_document" class="form-control @error('signed_document') is-invalid @enderror" accept=".pdf,.doc,.docx">
+                            <div class="form-text">Signed handover/acceptance document (PDF or Word, max 10MB).</div>
+                            @error('signed_document')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-12">
                             <label class="form-label fw-semibold">Notes</label>
                             <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes...">{{ old('notes') }}</textarea>
                         </div>

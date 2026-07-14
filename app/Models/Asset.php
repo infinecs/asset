@@ -13,7 +13,7 @@ class Asset extends Model
         'type', 'asset_tag', 'name', 'brand', 'model', 'serial_number',
         'brand_id', 'category_id', 'location_id', 'assigned_to', 'status',
         'purchase_date', 'purchase_cost', 'warranty_expiry',
-        'notes', 'photo_path', 'last_seen_at',
+        'notes', 'photo_path', 'signed_document_path', 'last_seen_at',
         'cpu', 'ram', 'storage', 'display',
     ];
 

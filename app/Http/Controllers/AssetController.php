@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 
 class AssetController extends Controller
 {
-    public function index(Request $request)
+    private function filteredAssetsQuery(Request $request)
     {
         $query = Asset::with(['brand', 'category', 'location', 'assignedEmployee']);
 
@@ -65,7 +65,39 @@ class AssetController extends Controller
             $query->where('display', $request->display);
         }
 
-        $assets = $query->orderByRaw('CAST(SUBSTRING(asset_tag, 7) AS UNSIGNED) DESC')->paginate(15)->withQueryString();
+        $sortable = ['asset_tag', 'name', 'category', 'location', 'assigned_to', 'status', 'last_seen_at'];
+        $sort = $request->get('sort');
+        $direction = $request->get('direction') === 'desc' ? 'desc' : 'asc';
+
+        if ($sort && in_array($sort, $sortable, true)) {
+            $query->select('assets.*');
+
+            switch ($sort) {
+                case 'category':
+                    $query->leftJoin('categories', 'categories.id', '=', 'assets.category_id')
+                          ->orderBy('categories.name', $direction);
+                    break;
+                case 'location':
+                    $query->leftJoin('locations', 'locations.id', '=', 'assets.location_id')
+                          ->orderBy('locations.name', $direction);
+                    break;
+                case 'assigned_to':
+                    $query->leftJoin('employees', 'employees.id', '=', 'assets.assigned_to')
+                          ->orderBy('employees.name', $direction);
+                    break;
+                default:
+                    $query->orderBy('assets.' . $sort, $direction);
+            }
+        } else {
+            $query->orderByRaw('CAST(SUBSTRING(asset_tag, 7) AS UNSIGNED) DESC');
+        }
+
+        return $query;
+    }
+
+    public function index(Request $request)
+    {
+        $assets = $this->filteredAssetsQuery($request)->paginate(15)->withQueryString();
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
@@ -76,6 +108,53 @@ class AssetController extends Controller
         $filterDisplays = Asset::whereNotNull('display')->distinct()->orderBy('display')->pluck('display');
 
         return view('assets.index', compact('assets', 'brands', 'categories', 'locations', 'filterCpus', 'filterRams', 'filterStorages', 'filterDisplays'));
+    }
+
+    public function export(Request $request)
+    {
+        $assets = $this->filteredAssetsQuery($request)->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="assets_' . now()->format('Y-m-d_His') . '.csv"',
+        ];
+
+        $callback = function () use ($assets) {
+            $h = fopen('php://output', 'w');
+            fputcsv($h, [
+                'Asset Tag', 'Name', 'Type', 'Brand', 'Model', 'Serial Number',
+                'Category', 'Location', 'Assigned To', 'Status',
+                'CPU', 'RAM', 'Storage', 'Display',
+                'Purchase Date', 'Purchase Cost', 'Warranty Expiry', 'Last Seen',
+            ]);
+
+            foreach ($assets as $asset) {
+                fputcsv($h, [
+                    $asset->asset_tag,
+                    $asset->name,
+                    $asset->type,
+                    $asset->brand_label,
+                    $asset->model,
+                    $asset->serial_number,
+                    $asset->category?->name,
+                    $asset->location?->name,
+                    $asset->assignedEmployee?->name,
+                    $asset->status_label,
+                    $asset->cpu,
+                    $asset->ram,
+                    $asset->storage,
+                    $asset->display,
+                    $asset->purchase_date?->format('Y-m-d'),
+                    $asset->purchase_cost,
+                    $asset->warranty_expiry?->format('Y-m-d'),
+                    $asset->last_seen_at?->format('Y-m-d H:i'),
+                ]);
+            }
+
+            fclose($h);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function create()
@@ -120,6 +199,7 @@ class AssetController extends Controller
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
+            'signed_document' => 'nullable|mimes:pdf,doc,docx|max:10240',
             'cpu' => 'nullable|string|max:100',
             'ram' => 'nullable|string|max:50',
             'storage' => 'nullable|string|max:100',
@@ -134,6 +214,10 @@ class AssetController extends Controller
 
         if ($request->hasFile('photo')) {
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
+        }
+
+        if ($request->hasFile('signed_document')) {
+            $validated['signed_document_path'] = $request->file('signed_document')->store('assets/documents', 'public');
         }
 
         $asset = Asset::create($validated);
@@ -162,13 +246,65 @@ class AssetController extends Controller
             'histories.user',
         ]);
 
-        $activityTimeline = $asset->histories->map(function ($history) {
+        $relationNameMaps = [
+            'category_id' => Category::pluck('name', 'id'),
+            'location_id' => Location::pluck('name', 'id'),
+            'assigned_to' => Employee::pluck('name', 'id'),
+            'brand_id' => Brand::pluck('name', 'id'),
+        ];
+        $dateFields = ['purchase_date', 'warranty_expiry', 'last_seen_at'];
+
+        $activityTimeline = $asset->histories->map(function ($history) use ($relationNameMaps, $dateFields) {
+            $changes = collect($history->changes ?? [])
+                ->reject(fn ($change, $field) => in_array($field, ['photo', 'signed_document'], true))
+                ->map(function ($change, $field) use ($relationNameMaps, $dateFields) {
+                    $old = $change['old'] ?? null;
+                    $new = $change['new'] ?? null;
+
+                    if (is_array($old)) {
+                        $old = !empty($old) ? json_encode($old) : null;
+                    }
+                    if (is_array($new)) {
+                        $new = !empty($new) ? json_encode($new) : null;
+                    }
+
+                    if (isset($relationNameMaps[$field])) {
+                        $old = $old ? ($relationNameMaps[$field][$old] ?? $old) : null;
+                        $new = $new ? ($relationNameMaps[$field][$new] ?? $new) : null;
+                    } elseif ($field === 'last_seen_at') {
+                        $old = $old ? \Carbon\Carbon::parse($old)->format('M d, Y h:i A') : null;
+                        $new = $new ? \Carbon\Carbon::parse($new)->format('M d, Y h:i A') : null;
+                    } elseif (in_array($field, $dateFields, true)) {
+                        $old = $old ? \Carbon\Carbon::parse($old)->format('M d, Y') : null;
+                        $new = $new ? \Carbon\Carbon::parse($new)->format('M d, Y') : null;
+                    } elseif (in_array($field, ['photo_path', 'signed_document_path'], true)) {
+                        $old = $old ? basename($old) : null;
+                        $new = $new ? basename($new) : null;
+                    }
+
+                    $labels = [
+                        'category_id' => 'Category',
+                        'location_id' => 'Location',
+                        'brand_id' => 'Brand',
+                        'assigned_to' => 'Assigned To',
+                        'photo_path' => 'Photo',
+                        'signed_document_path' => 'Signed Document',
+                    ];
+
+                    return [
+                        'label' => $labels[$field] ?? ucwords(str_replace('_', ' ', $field)),
+                        'old' => $old ?? '—',
+                        'new' => $new ?? '—',
+                    ];
+                })->values();
+
             return (object) [
                 'type' => 'asset_history',
                 'at' => $history->created_at,
                 'title' => ucwords(str_replace('_', ' ', $history->action)),
                 'by' => $history->user?->name ?? 'System',
                 'notes' => $history->notes,
+                'changes' => $changes,
                 'icon' => $history->action == 'created' ? 'plus' : ($history->action == 'status_changed' ? 'arrow-repeat' : 'pencil'),
             ];
         })->sortByDesc('at')->take(15)->values();
@@ -222,6 +358,7 @@ class AssetController extends Controller
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
+            'signed_document' => 'nullable|mimes:pdf,doc,docx|max:10240',
             'cpu' => 'nullable|string|max:100',
             'ram' => 'nullable|string|max:50',
             'storage' => 'nullable|string|max:100',
@@ -242,7 +379,14 @@ class AssetController extends Controller
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
         }
 
-        foreach ($validated as $key => $value) {
+        if ($request->hasFile('signed_document')) {
+            if ($asset->signed_document_path && Storage::disk('public')->exists($asset->signed_document_path)) {
+                Storage::disk('public')->delete($asset->signed_document_path);
+            }
+            $validated['signed_document_path'] = $request->file('signed_document')->store('assets/documents', 'public');
+        }
+
+        foreach (collect($validated)->except(['photo', 'signed_document']) as $key => $value) {
             if ($asset->$key != $value) {
                 $changes[$key] = ['old' => $asset->$key, 'new' => $value];
             }
@@ -271,6 +415,10 @@ class AssetController extends Controller
 
         if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
             Storage::disk('public')->delete($asset->photo_path);
+        }
+
+        if ($asset->signed_document_path && Storage::disk('public')->exists($asset->signed_document_path)) {
+            Storage::disk('public')->delete($asset->signed_document_path);
         }
 
         $asset->delete();

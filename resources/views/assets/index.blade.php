@@ -10,6 +10,9 @@
         <p class="text-muted small mb-0">Manage and track all IT assets</p>
     </div>
     <div class="d-flex gap-2">
+        <a href="{{ route('assets.export', request()->query()) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-download me-2"></i>Export CSV
+        </a>
         @if(auth()->user()->isStaff())
         <a href="{{ route('assets.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle me-2"></i>Add Asset
@@ -74,7 +77,7 @@
 
             {{-- Advanced Filter panel --}}
             <div class="col-12 pt-0 collapse {{ request()->hasAny(['cpu','ram','storage','display']) ? 'show' : '' }}" id="advancedFilters">
-                <div class="border rounded p-3 bg-light">
+                <div class="border rounded p-3 bg-body-tertiary">
                     <p class="text-muted small fw-semibold mb-2"><i class="bi bi-cpu me-1"></i>Technical Details</p>
                     <div class="row g-3">
                         <div class="col-md-3">
@@ -147,6 +150,10 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
+                @php
+                    $sortDir = request('sort') && request('direction') !== 'desc' ? 'desc' : 'asc';
+                    $sortLink = fn($column) => request()->fullUrlWithQuery(['sort' => $column, 'direction' => request('sort') === $column ? $sortDir : 'asc']);
+                @endphp
                 <thead>
                     <tr>
                         @if(auth()->user()->isStaff())
@@ -155,13 +162,48 @@
                         </th>
                         @endif
                         <th>Photo</th>
-                        <th>Asset Tag</th>
-                        <th>Name</th>
-                        <th>Category</th>
-                        <th>Location</th>
-                        <th>Assigned To</th>
-                        <th>Status</th>
-                        <th>Last Seen</th>
+                        <th>
+                            <a href="{{ $sortLink('asset_tag') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                Asset Tag
+                                <i class="bi {{ request('sort') === 'asset_tag' ? (request('direction') === 'desc' ? 'bi-sort-down' : 'bi-sort-up') : 'bi-arrow-down-up text-muted' }} small"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ $sortLink('name') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                Name
+                                <i class="bi {{ request('sort') === 'name' ? (request('direction') === 'desc' ? 'bi-sort-down' : 'bi-sort-up') : 'bi-arrow-down-up text-muted' }} small"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ $sortLink('category') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                Category
+                                <i class="bi {{ request('sort') === 'category' ? (request('direction') === 'desc' ? 'bi-sort-down' : 'bi-sort-up') : 'bi-arrow-down-up text-muted' }} small"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ $sortLink('location') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                Location
+                                <i class="bi {{ request('sort') === 'location' ? (request('direction') === 'desc' ? 'bi-sort-down' : 'bi-sort-up') : 'bi-arrow-down-up text-muted' }} small"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ $sortLink('assigned_to') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                Assigned To
+                                <i class="bi {{ request('sort') === 'assigned_to' ? (request('direction') === 'desc' ? 'bi-sort-down' : 'bi-sort-up') : 'bi-arrow-down-up text-muted' }} small"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ $sortLink('status') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                Status
+                                <i class="bi {{ request('sort') === 'status' ? (request('direction') === 'desc' ? 'bi-sort-down' : 'bi-sort-up') : 'bi-arrow-down-up text-muted' }} small"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ $sortLink('last_seen_at') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                                Last Seen
+                                <i class="bi {{ request('sort') === 'last_seen_at' ? (request('direction') === 'desc' ? 'bi-sort-down' : 'bi-sort-up') : 'bi-arrow-down-up text-muted' }} small"></i>
+                            </a>
+                        </th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

@@ -103,7 +103,7 @@
             </span>
             @endforeach
             @if($pendingTaskAlert['count'] > $pendingTaskAlert['tasks']->count())
-            <span class="badge bg-light text-muted border fw-normal px-2 py-1" style="font-size:.8rem;">
+            <span class="badge bg-secondary-subtle text-secondary-emphasis border fw-normal px-2 py-1" style="font-size:.8rem;">
                 +{{ $pendingTaskAlert['count'] - $pendingTaskAlert['tasks']->count() }} more
             </span>
             @endif
@@ -201,7 +201,7 @@
                     <a href="{{ route('assets.live') }}" class="btn btn-outline-success d-flex align-items-center gap-2">
                         <i class="bi bi-activity"></i> Live Tracker
                     </a>
-<a href="{{ route('users.index') }}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+                    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
                         <i class="bi bi-people"></i> Manage Users
                     </a>
                     @endif

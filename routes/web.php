@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/settings', [UserController::class, 'updateSettings'])->name('settings.update');
 
     // Assets
+    Route::get('/assets/export', [AssetController::class, 'export'])->name('assets.export');
     Route::get('/assets/live', [AssetController::class, 'live'])->name('assets.live');
     Route::patch('/assets/{asset}/status', [AssetController::class, 'updateStatus'])->name('assets.update-status');
     Route::delete('/assets/bulk-delete', [AssetController::class, 'bulkDestroy'])->name('assets.bulk-destroy');

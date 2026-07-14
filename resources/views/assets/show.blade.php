@@ -156,6 +156,22 @@
             </div>
         </div>
 
+        <!-- Signed Document -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0 pt-3">
+                <h6 class="mb-0 fw-semibold">Signed Document</h6>
+            </div>
+            <div class="card-body text-center">
+                @if($asset->signed_document_path)
+                <a href="{{ asset('storage/' . $asset->signed_document_path) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-file-earmark-text me-1"></i>View / Download
+                </a>
+                @else
+                <div class="text-muted small py-4">No document uploaded.</div>
+                @endif
+            </div>
+        </div>
+
         <!-- Quick Status Update -->
         @if(auth()->user()->isStaff())
         <div class="card border-0 shadow-sm mb-4">
@@ -194,7 +210,7 @@
             <div class="card-body p-0">
                 @forelse($activityTimeline as $activity)
                 <div class="d-flex gap-2 p-3 border-bottom">
-                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                    <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
                         <i class="bi bi-{{ $activity->icon }} small text-muted"></i>
                     </div>
                     <div>
@@ -204,6 +220,16 @@
                         </div>
                         @if($activity->notes)
                         <div class="text-muted small">{{ $activity->notes }}</div>
+                        @endif
+                        @if(!empty($activity->changes))
+                        <ul class="list-unstyled mb-0 mt-1">
+                            @foreach($activity->changes as $change)
+                            <li class="text-muted" style="font-size:.72rem;">
+                                <span class="fw-semibold">{{ $change['label'] }}:</span>
+                                {{ $change['old'] }} <i class="bi bi-arrow-right mx-1"></i> {{ $change['new'] }}
+                            </li>
+                            @endforeach
+                        </ul>
                         @endif
                     </div>
                 </div>
