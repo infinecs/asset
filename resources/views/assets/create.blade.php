@@ -109,10 +109,18 @@
                             <select name="cpu" class="form-select">
                                 <option value="">— Select CPU —</option>
                                 @foreach([
-                                    'Intel Core Ultra (14th Gen)' => [
+                                    'Intel Core Ultra Series 2 (Arrow Lake/Lunar Lake)' => [
+                                        'Intel Core Ultra 5 225H',
+                                    ],
+                                    'Intel Core Ultra Series 1 (Meteor Lake)' => [
                                         'Intel Core Ultra 5 125U','Intel Core Ultra 5 125H', 'Intel Core Ultra 5 135U',
                                         'Intel Core Ultra 7 155U','Intel Core Ultra 7 155H','Intel Core Ultra 7 165H',
                                         'Intel Core Ultra 9 185H',
+                                    ],
+                                    'Intel 14th Gen (Raptor Lake Refresh)' => [
+                                        'Intel Core i5-14500HX',
+                                        'Intel Core i7-14700HX',
+                                        'Intel Core i9-14900HX',
                                     ],
                                     'Intel 13th Gen (Raptor Lake)' => [
                                         'Intel Core i3-1305U','Intel Core i3-1315U',
@@ -128,7 +136,7 @@
                                         'Intel Core i7-12700H','Intel Core i7-12800H','Intel Core i7-12800HX',
                                         'Intel Core i9-12900H','Intel Core i9-12900HK',
                                     ],
-                                    'Intel 11th Gen (Tiger Lake)' => [
+                                    'Intel 11th Gen (Rocket/Tiger Lake)' => [
                                         'Intel Core i3-1115G4','Intel Core i3-1125G4',
                                         'Intel Core i5-1135G7','Intel Core i5-1155G7',
                                         'Intel Core i5-11300H','Intel Core i5-11400H',
