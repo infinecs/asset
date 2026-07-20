@@ -163,7 +163,7 @@
                                     ],
                                     'Intel 12th Gen (Alder Lake)' => [
                                         'Intel Core i3-1215U','Intel Core i3-1220P',
-                                        'Intel Core i5-1235U','Intel Core i5-1240P','Intel Core i5-1250P',
+                                        'Intel Core i5-1235U','Intel Core i5-1240P','Intel Core i5-1245U','Intel Core i5-1250P',
                                         'Intel Core i5-12450H','Intel Core i5-12450HX','Intel Core i5-12500H','Intel Core i5-12600H',
                                         'Intel Core i7-1260P','Intel Core i7-1270P',
                                         'Intel Core i7-12700H','Intel Core i7-12800H','Intel Core i7-12800HX',
@@ -171,7 +171,7 @@
                                     ],
                                     'Intel 11th Gen (Rocket/Tiger Lake)' => [
                                         'Intel Core i3-1115G4','Intel Core i3-1125G4',
-                                        'Intel Core i5-1135G7','Intel Core i5-1155G7',
+                                        'Intel Core i5-1135G7','Intel Core i5-1145G7','Intel Core i5-1155G7',
                                         'Intel Core i5-11300H','Intel Core i5-11400H',
                                         'Intel Core i7-1165G7','Intel Core i7-1185G7',
                                         'Intel Core i7-11370H','Intel Core i7-11800H',
@@ -239,7 +239,7 @@
                             <label class="form-label fw-semibold">Display</label>
                             <select name="display" class="form-select">
                                 <option value="">— Select Display —</option>
-                                @foreach(['11.6"','13.3"','13.6"','14.0"','14.2"','15.6"','16.0"','17.3"'] as $opt)
+                                @foreach(['11.6"','13.0"','13.3"','13.6"','14.0"','14.2"','15.6"','16.0"','17.3"'] as $opt)
                                 <option value="{{ $opt }}" {{ old('display', $asset->display) === $opt ? 'selected' : '' }}>{{ $opt }}</option>
                                 @endforeach
                             </select>
@@ -247,12 +247,10 @@
 
                         <div class="col-12">
                             <label class="form-label fw-semibold">Asset Photo</label>
-                            @if($asset->photo_path)
                             <div class="mb-2">
-                                <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->name }}" class="rounded border" style="width: 120px; height: 120px; object-fit: cover;">
+                                <img id="photo_preview" src="{{ $asset->photo_path ? asset('storage/' . $asset->photo_path) : '' }}" alt="{{ $asset->name }}" class="rounded border {{ $asset->photo_path ? '' : 'd-none' }}" style="width: 120px; height: 120px; object-fit: cover;">
                             </div>
-                            @endif
-                            <input type="file" name="photo" class="form-control @error('photo') is-invalid @enderror" accept="image/*">
+                            <input type="file" name="photo" id="photo_input" class="form-control @error('photo') is-invalid @enderror" accept="image/*">
                             @error('photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
@@ -319,6 +317,23 @@
             const suffix = this.value.trim();
             const num = parseInt(suffix, 10);
             nameInput.value = suffix ? 'Infinecs' + (isNaN(num) ? suffix : num) : '';
+        });
+
+        const photoInput   = document.getElementById('photo_input');
+        const photoPreview = document.getElementById('photo_preview');
+
+        photoInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                photoPreview.src = e.target.result;
+                photoPreview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
         });
     });
 </script>
