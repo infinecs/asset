@@ -182,6 +182,26 @@
                                         'Intel Core i5-10210U','Intel Core i5-10310U','Intel Core i5-10500H',
                                         'Intel Core i7-10510U','Intel Core i7-10750H','Intel Core i7-10850H',
                                     ],
+                                    'Intel 9th Gen (Coffee Lake Refresh)' => [
+                                        'Intel Core i5-9300H',
+                                        'Intel Core i7-9750H',
+                                        'Intel Core i9-9880H','Intel Core i9-9980HK',
+                                    ],
+                                    'Intel 8th Gen (Coffee/Kaby Lake)' => [
+                                        'Intel Core i3-8145U',
+                                        'Intel Core i5-8250U','Intel Core i5-8265U','Intel Core i5-8300H',
+                                        'Intel Core i7-8550U','Intel Core i7-8565U','Intel Core i7-8750H','Intel Core i7-8850H',
+                                        'Intel Core i9-8950HK',
+                                    ],
+                                    'AMD Ryzen AI 300 Series' => [
+                                        'AMD Ryzen AI 7 350',
+                                        'AMD Ryzen AI 9 365','AMD Ryzen AI 9 HX 370',
+                                    ],
+                                    'AMD Ryzen 8000 Series' => [
+                                        'AMD Ryzen 5 8540U','AMD Ryzen 5 8640U',
+                                        'AMD Ryzen 7 8840U','AMD Ryzen 7 8840HS',
+                                        'AMD Ryzen 9 8945HS',
+                                    ],
                                     'AMD Ryzen 7000 Series' => [
                                         'AMD Ryzen 3 7330U',
                                         'AMD Ryzen 5 7530U','AMD Ryzen 5 7535U','AMD Ryzen 5 7600H',
@@ -207,6 +227,7 @@
                                         'Apple M1','Apple M1 Pro','Apple M1 Max',
                                         'Apple M2','Apple M2 Pro','Apple M2 Max',
                                         'Apple M3','Apple M3 Pro','Apple M3 Max',
+                                        'Apple M4','Apple M4 Pro','Apple M4 Max',
                                     ],
                                 ] as $group => $cpus)
                                 <optgroup label="{{ $group }}">
