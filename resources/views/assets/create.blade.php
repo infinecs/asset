@@ -21,6 +21,7 @@
                                 <option value="desktop"    {{ old('type') === 'desktop'    ? 'selected' : '' }}>Desktop</option>
                                 <option value="smartphone" {{ old('type') === 'smartphone' ? 'selected' : '' }}>Smartphone</option>
                                 <option value="tablet"     {{ old('type') === 'tablet'     ? 'selected' : '' }}>Tablet</option>
+                                <option value="monitor"    {{ old('type') === 'monitor'    ? 'selected' : '' }}>Monitor</option>
                             </select>
                             @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
@@ -281,6 +282,7 @@
             desktop:    'ISSB-D',
             smartphone: 'ISSB-S',
             tablet:     'ISSB-T',
+            monitor:    'ISSB-M',
         };
 
         typeSelect.addEventListener('change', function () {

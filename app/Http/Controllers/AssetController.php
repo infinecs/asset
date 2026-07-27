@@ -179,12 +179,13 @@ class AssetController extends Controller
             'desktop'    => 'ISSB-D',
             'smartphone' => 'ISSB-S',
             'tablet'     => 'ISSB-T',
+            'monitor'    => 'ISSB-M',
             default      => 'ISSB-L',
         };
         $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
 
         $validated = $request->validate([
-            'type' => 'nullable|in:laptop,desktop,smartphone,tablet',
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor',
             'asset_tag' => 'required|string|max:255|unique:assets,asset_tag',
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
