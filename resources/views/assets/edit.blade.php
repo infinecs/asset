@@ -193,6 +193,11 @@
                                         'Intel Core i7-8550U','Intel Core i7-8565U','Intel Core i7-8750H','Intel Core i7-8850H',
                                         'Intel Core i9-8950HK',
                                     ],
+                                    'Intel 7th Gen (Kaby Lake)' => [
+                                        'Intel Core i3-7100U','Intel Core i3-7130U',
+                                        'Intel Core i5-7200U','Intel Core i5-7300HQ','Intel Core i5-7440HQ',
+                                        'Intel Core i7-7500U','Intel Core i7-7600U','Intel Core i7-7700HQ','Intel Core i7-7820HQ',
+                                    ],
                                     'AMD Ryzen AI 300 Series' => [
                                         'AMD Ryzen AI 7 350',
                                         'AMD Ryzen AI 9 365','AMD Ryzen AI 9 HX 370',

@@ -6,8 +6,8 @@
 @section('content')
 
 {{-- Stats --}}
-<div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3">
+<div class="row row-cols-1 row-cols-sm-2 row-cols-xl-5 g-3 mb-4">
+    <div class="col">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between">
@@ -23,7 +23,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between">
@@ -41,7 +41,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between">
@@ -59,7 +59,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between">
@@ -75,8 +75,26 @@
                     @if($stats['lost_assets'] > 0)
                         <span class="text-danger">{{ $stats['lost_assets'] }} lost</span>
                     @else
-                        <span class="text-muted">{{ $stats['retired_assets'] }} retired</span>
+                        <span class="text-muted">&nbsp;</span>
                     @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small mb-1">Retired</div>
+                        <div class="fs-2 fw-bold text-secondary">{{ $stats['retired_assets'] }}</div>
+                    </div>
+                    <div class="bg-secondary bg-opacity-10 rounded-3 p-3">
+                        <i class="bi bi-archive text-secondary fs-4"></i>
+                    </div>
+                </div>
+                <div class="mt-2 text-muted" style="font-size:.75rem;">
+                    {{ $stats['total_assets'] > 0 ? round($stats['retired_assets'] / $stats['total_assets'] * 100) : 0 }}% of total
                 </div>
             </div>
         </div>
