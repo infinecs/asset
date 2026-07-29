@@ -166,7 +166,8 @@ class AssetController extends Controller
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
-        return view('assets.create', compact('brands', 'categories', 'locations'));
+        $employees = Employee::orderBy('name')->get();
+        return view('assets.create', compact('brands', 'categories', 'locations', 'employees'));
     }
 
     public function store(Request $request)
@@ -194,6 +195,7 @@ class AssetController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
+            'assigned_to' => 'nullable|exists:employees,id',
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
             'purchase_cost' => 'nullable|numeric|min:0',
@@ -210,8 +212,6 @@ class AssetController extends Controller
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
         }
-
-        $validated['assigned_to'] = null;
 
         if ($request->hasFile('photo')) {
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
@@ -337,12 +337,13 @@ class AssetController extends Controller
             'desktop'    => 'ISSB-D',
             'smartphone' => 'ISSB-S',
             'tablet'     => 'ISSB-T',
+            'monitor'    => 'ISSB-M',
             default      => 'ISSB-L',
         };
         $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
 
         $validated = $request->validate([
-            'type' => 'nullable|in:laptop,desktop,smartphone,tablet',
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor',
             'asset_tag' => 'required|string|max:255|unique:assets,asset_tag,' . $asset->id,
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',

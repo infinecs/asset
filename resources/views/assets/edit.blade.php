@@ -26,9 +26,10 @@
                             if (str_starts_with($asset->asset_tag, 'ISSB-D'))      $currentType = 'desktop';
                             elseif (str_starts_with($asset->asset_tag, 'ISSB-S')) $currentType = 'smartphone';
                             elseif (str_starts_with($asset->asset_tag, 'ISSB-T')) $currentType = 'tablet';
+                            elseif (str_starts_with($asset->asset_tag, 'ISSB-M')) $currentType = 'monitor';
                             else                                                    $currentType = 'laptop';
                         }
-                        $editPrefixMap = ['laptop'=>'ISSB-L','desktop'=>'ISSB-D','smartphone'=>'ISSB-S','tablet'=>'ISSB-T'];
+                        $editPrefixMap = ['laptop'=>'ISSB-L','desktop'=>'ISSB-D','smartphone'=>'ISSB-S','tablet'=>'ISSB-T','monitor'=>'ISSB-M'];
                         $currentPrefix = $editPrefixMap[$currentType] ?? 'ISSB-L';
                         $currentSuffix = old('asset_tag_suffix', Str::after($asset->asset_tag, $currentPrefix));
                     @endphp
@@ -40,6 +41,7 @@
                                 <option value="desktop"    {{ $currentType === 'desktop'    ? 'selected' : '' }}>Desktop</option>
                                 <option value="smartphone" {{ $currentType === 'smartphone' ? 'selected' : '' }}>Smartphone</option>
                                 <option value="tablet"     {{ $currentType === 'tablet'     ? 'selected' : '' }}>Tablet</option>
+                                <option value="monitor"    {{ $currentType === 'monitor'    ? 'selected' : '' }}>Monitor</option>
                             </select>
                             @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
@@ -333,6 +335,7 @@
             desktop:    'ISSB-D',
             smartphone: 'ISSB-S',
             tablet:     'ISSB-T',
+            monitor:    'ISSB-M',
         };
 
         typeSelect.addEventListener('change', function () {

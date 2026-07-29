@@ -22,7 +22,7 @@
             <div class="mb-3">
                 <label class="form-label fw-semibold">ID Number <span class="text-danger">*</span></label>
                 <div class="input-group">
-                    <span class="input-group-text fw-semibold">INF-</span>
+                    <span class="input-group-text fw-semibold">INF</span>
                     <input type="text" name="id_number_suffix"
                            class="form-control @error('id_number') is-invalid @enderror"
                            value="{{ old('id_number_suffix') }}" placeholder="0001" required>

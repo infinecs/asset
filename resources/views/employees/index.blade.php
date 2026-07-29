@@ -103,7 +103,7 @@
                     <p class="small text-muted mb-2">Upload a <strong>.csv</strong> file with these columns in order:</p>
                     <ol class="small text-muted mb-2">
                         <li><strong>Name</strong> — full name (required)</li>
-                        <li><strong>ID Suffix</strong> — the part after <code>INF-</code>, e.g. <code>001</code> (required)</li>
+                        <li><strong>ID Suffix</strong> — the part after <code>INF</code>, e.g. <code>001</code> (required)</li>
                         <li><strong>Work Location</strong> — location name (optional)</li>
                         <li><strong>Email</strong> — email address (required)</li>
                     </ol>

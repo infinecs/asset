@@ -35,7 +35,7 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
-        $request->merge(['id_number' => 'INF-' . trim($request->input('id_number_suffix', ''))]);
+        $request->merge(['id_number' => $this->normalizeIdNumber($request->input('id_number_suffix', ''))]);
 
         $validated = $request->validate([
             'name'          => 'required|string|max:255',
@@ -63,7 +63,7 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
-        $request->merge(['id_number' => 'INF-' . trim($request->input('id_number_suffix', ''))]);
+        $request->merge(['id_number' => $this->normalizeIdNumber($request->input('id_number_suffix', ''))]);
 
         $validated = $request->validate([
             'name'          => 'required|string|max:255',
@@ -112,7 +112,7 @@ class EmployeeController extends Controller
                 continue;
             }
 
-            $idNumber = str_starts_with($idSuffix, 'INF-') ? $idSuffix : 'INF-' . $idSuffix;
+            $idNumber = $this->normalizeIdNumber($idSuffix);
 
             if (Employee::where('id_number', $idNumber)->orWhere('email', $email)->exists()) {
                 $skipped[] = "Row {$row} ({$name}): duplicate ID or email";
@@ -148,12 +148,19 @@ class EmployeeController extends Controller
 
         $callback = function () {
             $h = fopen('php://output', 'w');
-            fputcsv($h, ['Name', 'ID Suffix (after INF-)', 'Work Location', 'Email']);
+            fputcsv($h, ['Name', 'ID Suffix (after INF)', 'Work Location', 'Email']);
             fputcsv($h, ['Ahmad Razif', '001', 'Kuala Lumpur', 'ahmad.razif@infinecs.com']);
             fputcsv($h, ['Siti Noor', '002', 'Selangor', 'siti.noor@infinecs.com']);
             fclose($h);
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function normalizeIdNumber(string $value): string
+    {
+        $suffix = preg_replace('/^(?:INF-?)+/i', '', trim($value));
+
+        return 'INF' . $suffix;
     }
 }

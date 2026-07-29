@@ -28,7 +28,8 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Asset Tag <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span id="asset_tag_prefix" class="input-group-text fw-semibold">{{ old('type','laptop') === 'desktop' ? 'ISSB-D' : (old('type') === 'smartphone' ? 'ISSB-S' : (old('type') === 'tablet' ? 'ISSB-T' : 'ISSB-L')) }}</span>
+                                <span id="asset_tag_prefix" class="input-group-text fw-semibold">{{ old('type','laptop') === 'desktop' ? 'ISSB-D' :(old('type') === 'smartphone' ? 'ISSB-S' :(old('type') === 'tablet' ? 'ISSB-T' :(old('type') === 'monitor' ? 'ISSB-M' : 'ISSB-L'))) }}
+                                </span>
                                 <input type="text" id="asset_tag_suffix" name="asset_tag_suffix"
                                        class="form-control @error('asset_tag') is-invalid @enderror"
                                        value="{{ old('asset_tag_suffix') }}" placeholder="023" required>
@@ -83,6 +84,17 @@
                                 <option value="">Select Location</option>
                                 @foreach($locations as $loc)
                                 <option value="{{ $loc->id }}" {{ old('location_id') == $loc->id ? 'selected' : '' }}>{{ $loc->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Assigned To</label>
+                            <select name="assigned_to" class="form-select">
+                                <option value="">Not Assigned</option>
+                                @foreach($employees as $employee)
+                                <option value="{{ $employee->id }}" {{ old('assigned_to') == $employee->id ? 'selected' : '' }}>
+                                    {{ $employee->name }} &lt;{{ $employee->id_number }}&gt;
+                                </option>
                                 @endforeach
                             </select>
                         </div>
@@ -276,6 +288,8 @@
         const prefixLabel  = document.getElementById('asset_tag_prefix');
         const suffixInput  = document.getElementById('asset_tag_suffix');
         const nameInput    = document.getElementById('asset_name');
+        const photoInput   = document.getElementById('photo_input');
+        const photoPreview = document.getElementById('photo_preview');
 
         const prefixMap = {
             laptop:     'ISSB-L',
@@ -285,18 +299,30 @@
             monitor:    'ISSB-M',
         };
 
+        const namePrefixMap = {
+            laptop:     'InfinecsL',
+            desktop:    'InfinecsD',
+            smartphone: 'InfinecsS',
+            tablet:     'InfinecsT',
+            monitor:    'InfinecsM',
+        };
+
+        function updatePrefix() {
+            prefixLabel.textContent = prefixMap[typeSelect.value] || 'ISSB-L';
+        }
+
+        function updateName() {
+            const suffix = suffixInput.value.trim();
+            const prefix = namePrefixMap[typeSelect.value] || 'InfinecsL';
+            nameInput.value = suffix ? prefix + suffix : prefix;
+        }
+
         typeSelect.addEventListener('change', function () {
-            prefixLabel.textContent = prefixMap[this.value] || 'ISSB-L';
+            updatePrefix();
+            updateName();
         });
 
-        suffixInput.addEventListener('input', function () {
-            const suffix = this.value.trim();
-            const num = parseInt(suffix, 10);
-            nameInput.value = suffix ? 'Infinecs' + (isNaN(num) ? suffix : num) : '';
-        });
-
-        const photoInput   = document.getElementById('photo_input');
-        const photoPreview = document.getElementById('photo_preview');
+        suffixInput.addEventListener('input', updateName);
 
         photoInput.addEventListener('change', function () {
             const file = this.files[0];
@@ -304,7 +330,6 @@
                 photoPreview.classList.add('d-none');
                 return;
             }
-
             const reader = new FileReader();
             reader.onload = function (e) {
                 photoPreview.src = e.target.result;
@@ -312,6 +337,11 @@
             };
             reader.readAsDataURL(file);
         });
+
+        if (!nameInput.value) {
+            updatePrefix();
+            updateName();
+        }
     });
 </script>
 @endpush

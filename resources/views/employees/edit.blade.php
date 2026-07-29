@@ -22,10 +22,10 @@
             <div class="mb-3">
                 <label class="form-label fw-semibold">ID Number <span class="text-danger">*</span></label>
                 <div class="input-group">
-                    <span class="input-group-text fw-semibold">INF-</span>
+                    <span class="input-group-text fw-semibold">INF</span>
                     <input type="text" name="id_number_suffix"
                            class="form-control @error('id_number') is-invalid @enderror"
-                           value="{{ old('id_number_suffix', Str::after($employee->id_number, 'INF-')) }}"
+                           value="{{ old('id_number_suffix', preg_replace('/^(?:INF-?)+/i', '', $employee->id_number)) }}"
                            placeholder="0001" required>
                     @error('id_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
