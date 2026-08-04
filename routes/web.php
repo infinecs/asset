@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\DirectoryContactController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DigitalProductController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\TaskController;
@@ -37,6 +38,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/assets/bulk-delete', [AssetController::class, 'bulkDestroy'])->name('assets.bulk-destroy');
     Route::delete('/assets/delete-all', [AssetController::class, 'destroyAll'])->name('assets.destroy-all');
     Route::resource('assets', AssetController::class);
+
+    // Digital Products (licenses)
+    Route::resource('digital-products', DigitalProductController::class);
 
     // Employees
     Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');

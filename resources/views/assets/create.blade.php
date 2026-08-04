@@ -11,29 +11,27 @@
                 <h5 class="text-base font-semibold text-slate-900 dark:text-white">New Asset</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('assets.store') }}" enctype="multipart/form-data" x-data="{ assetType: '{{ old('type', 'laptop') }}' }">
+                <form method="POST" action="{{ route('assets.store') }}" enctype="multipart/form-data">
                     @csrf
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
                             <label class="field-label">Type <span class="text-red-500">*</span></label>
-                            <select id="asset_type" name="type" class="field-input @error('type') is-invalid @enderror" x-model="assetType" required>
+                            <select id="asset_type" name="type" class="field-input @error('type') is-invalid @enderror" required>
                                 <option value="laptop"     {{ old('type', 'laptop') === 'laptop'     ? 'selected' : '' }}>Laptop</option>
                                 <option value="desktop"    {{ old('type') === 'desktop'    ? 'selected' : '' }}>Desktop</option>
                                 <option value="smartphone" {{ old('type') === 'smartphone' ? 'selected' : '' }}>Smartphone</option>
                                 <option value="tablet"     {{ old('type') === 'tablet'     ? 'selected' : '' }}>Tablet</option>
                                 <option value="monitor"    {{ old('type') === 'monitor'    ? 'selected' : '' }}>Monitor</option>
-                                <option value="digital_product" {{ old('type') === 'digital_product' ? 'selected' : '' }}>Digital Product</option>
                             </select>
                             @error('type')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div x-show="assetType !== 'digital_product'" x-cloak>
+                        <div>
                             <label class="field-label">Asset Tag <span class="text-red-500">*</span></label>
                             <div class="flex">
                                 <span id="asset_tag_prefix" class="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ old('type','laptop') === 'desktop' ? 'ISSBD' : (old('type') === 'smartphone' ? 'ISSBS' : (old('type') === 'tablet' ? 'ISSBT' : 'ISSBL')) }}</span>
                                 <input type="text" id="asset_tag_suffix" name="asset_tag_suffix"
                                        class="field-input rounded-l-none @error('asset_tag') is-invalid @enderror"
-                                       value="{{ old('asset_tag_suffix') }}" placeholder="023"
-                                       :required="assetType !== 'digital_product'">
+                                       value="{{ old('asset_tag_suffix') }}" placeholder="023" required>
                             </div>
                             @error('asset_tag')<p class="field-error">{{ $message }}</p>@enderror
                         </div>

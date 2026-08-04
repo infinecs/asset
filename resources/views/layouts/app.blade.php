@@ -69,6 +69,10 @@
                     <i class="bi bi-laptop"></i><span x-show="!sidebarCollapsed || mobileOpen">All Assets</span>
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">All Assets</span>
                 </a>
+                <a href="{{ route('digital-products.index') }}" class="sidebar-link {{ request()->routeIs('digital-products.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-key"></i><span x-show="!sidebarCollapsed || mobileOpen">Digital Products</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Digital Products</span>
+                </a>
                 @if(auth()->user()->isAdmin())
                 <a href="{{ route('assets.live') }}" class="sidebar-link {{ request()->routeIs('assets.live') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
                     <i class="bi bi-activity"></i><span x-show="!sidebarCollapsed || mobileOpen">Live Tracker</span>
@@ -207,6 +211,32 @@
                         allowEmptyOption: true,
                         searchField: ['text'],
                         placeholder: 'Search and select...',
+                        sortField: [
+                            { field: '$score' },
+                            { field: '$order' }
+                        ]
+                    });
+
+                    select.dataset.inlineSearchReady = '1';
+                });
+
+                const multiSearchableNames = [
+                    'employee_ids[]'
+                ];
+
+                const multiSelector = multiSearchableNames
+                    .map(function (name) { return 'select[name="' + name + '"]'; })
+                    .join(',');
+
+                document.querySelectorAll(multiSelector).forEach(function (select) {
+                    if (select.dataset.inlineSearchReady === '1') {
+                        return;
+                    }
+
+                    new TomSelect(select, {
+                        create: false,
+                        searchField: ['text'],
+                        placeholder: 'Search and select employees...',
                         sortField: [
                             { field: '$score' },
                             { field: '$order' }

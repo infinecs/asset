@@ -122,6 +122,42 @@
             </div>
         </div>
 
+        <!-- Assigned Digital Products -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-key me-2 text-slate-400"></i>Assigned Digital Products ({{ $employee->digitalProducts->count() }})</h6>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table-clean">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Plan</th>
+                            <th>Assigned On</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($employee->digitalProducts as $product)
+                        <tr>
+                            <td class="font-semibold text-slate-800 dark:text-slate-100">{{ $product->name }}</td>
+                            <td class="text-slate-500 dark:text-slate-400">{{ $product->plan ?? '-' }}</td>
+                            <td class="text-slate-500 dark:text-slate-400">{{ $product->pivot->assigned_at ? \Illuminate\Support\Carbon::parse($product->pivot->assigned_at)->format('d M Y') : '-' }}</td>
+                            <td class="text-right"><a href="{{ route('digital-products.show', $product) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-slate-500 dark:text-slate-400">
+                                <i class="bi bi-key mb-2 block text-2xl"></i>
+                                No digital products assigned
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- HR Documents Display Section -->
         <div class="card">
             <div class="card-header">

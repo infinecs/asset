@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
@@ -19,6 +20,13 @@ class Employee extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(EmployeeDocument::class);
+    }
+
+    public function digitalProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(DigitalProduct::class, 'digital_product_employee')
+            ->withPivot('assigned_at')
+            ->withTimestamps();
     }
 
     public function getStatusBadgeAttribute(): string

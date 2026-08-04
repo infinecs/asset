@@ -109,6 +109,8 @@
     }
     .ts-wrapper .ts-control { @apply !border-slate-300 dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-100; }
     .ts-wrapper.focus .ts-control { @apply !border-primary-500 !ring-1 !ring-primary-500; }
+    .ts-wrapper.multi .ts-control { @apply rounded-lg; }
+    .ts-wrapper.multi .ts-control .item { @apply !rounded-md !bg-primary-100 !text-primary-700 dark:!bg-primary-900/40 dark:!text-primary-300; }
     .ts-dropdown { @apply !border-slate-200 !text-slate-800 dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-100; }
     .ts-dropdown .active { @apply !bg-primary-50 dark:!bg-primary-900/40; }
     .ts-dropdown .optgroup-header { @apply !text-slate-500 dark:!text-slate-400; }
