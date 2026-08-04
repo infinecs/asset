@@ -3,57 +3,52 @@
 @section('title', $isSettings ? 'Settings' : 'Edit User')
 @section('page-title', $isSettings ? 'Settings' : 'Edit User')
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-7">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="fw-semibold mb-0">{{ $user->name }}</h5>
-                <a href="{{ $isSettings ? route('dashboard') : route('users.index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+<div class="flex justify-center">
+    <div class="w-full max-w-2xl">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="text-base font-semibold text-slate-900 dark:text-white">{{ $user->name }}</h5>
+                <a href="{{ $isSettings ? route('dashboard') : route('users.index') }}" class="btn btn-sm btn-outline"><i class="bi bi-arrow-left"></i>Back</a>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body">
                 <form method="POST" action="{{ $isSettings ? route('settings.update') : route('users.update', $user) }}">
                     @csrf @method('PUT')
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required>
-                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                            <label class="field-label">Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" class="field-input @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required>
+                            @error('name')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
-                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
-                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div>
+                            <label class="field-label">Email <span class="text-red-500">*</span></label>
+                            <input type="email" name="email" class="field-input @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
+                            @error('email')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-check mt-4">
-                                <input class="form-check-input" type="checkbox" value="1" id="change-password-toggle" name="change_password" {{ old('change_password') ? 'checked' : '' }}>
-                                <label class="form-check-label fw-semibold" for="change-password-toggle">
-                                    Change Password
-                                </label>
-                            </div>
+                        <div class="flex items-center">
+                            <label class="mt-4 flex items-center gap-2">
+                                <input class="h-4 w-4 rounded border-slate-300 accent-primary-600" type="checkbox" value="1" id="change-password-toggle" name="change_password" {{ old('change_password') ? 'checked' : '' }}>
+                                <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Change Password</span>
+                            </label>
                         </div>
-                        <div class="col-md-6"></div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">New Password</label>
-                            <input type="password" name="password" id="new-password-input" class="form-control" {{ old('change_password') ? '' : 'disabled' }}>
+                        <div>
+                            <label class="field-label">New Password</label>
+                            <input type="password" name="password" id="new-password-input" class="field-input" {{ old('change_password') ? '' : 'disabled' }}>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Confirm Password</label>
-                            <input type="password" name="password_confirmation" id="confirm-password-input" class="form-control" {{ old('change_password') ? '' : 'disabled' }}>
+                        <div>
+                            <label class="field-label">Confirm Password</label>
+                            <input type="password" name="password_confirmation" id="confirm-password-input" class="field-input" {{ old('change_password') ? '' : 'disabled' }}>
                         </div>
                         @if(!$isSettings)
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
-                            <select name="role" class="form-select" required>
+                        <div>
+                            <label class="field-label">Role <span class="text-red-500">*</span></label>
+                            <select name="role" class="field-input" required>
                                 <option value="staff" {{ old('role', $user->role) == 'staff' ? 'selected' : '' }}>Staff</option>
                                 <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Admin</option>
                             </select>
                         </div>
-                        @endif
-                        @if(!$isSettings)
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Department</label>
-                            <select name="department" class="form-select">
+                        <div>
+                            <label class="field-label">Department</label>
+                            <select name="department" class="field-input">
                                 <option value="">Select Department</option>
                                 @foreach($departments as $department)
                                 <option value="{{ $department->name }}" {{ old('department', $user->department) == $department->name ? 'selected' : '' }}>{{ $department->name }}</option>
@@ -61,14 +56,14 @@
                             </select>
                         </div>
                         @endif
-                        <div class="col-md-{{ $isSettings ? '12' : '4' }}">
-                            <label class="form-label fw-semibold">Phone</label>
-                            <input type="text" name="phone" class="form-control" value="{{ old('phone', $user->phone) }}">
+                        <div>
+                            <label class="field-label">Phone</label>
+                            <input type="text" name="phone" class="field-input" value="{{ old('phone', $user->phone) }}">
                         </div>
                     </div>
-                    <div class="d-flex gap-2 mt-4">
-                        <button class="btn btn-primary px-4"><i class="bi bi-check-lg me-2"></i>Save Changes</button>
-                        <a href="{{ $isSettings ? route('dashboard') : route('users.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                    <div class="mt-4 flex gap-2">
+                        <button class="btn btn-primary px-4"><i class="bi bi-check-lg"></i>Save Changes</button>
+                        <a href="{{ $isSettings ? route('dashboard') : route('users.index') }}" class="btn btn-outline px-4">Cancel</a>
                     </div>
                 </form>
             </div>

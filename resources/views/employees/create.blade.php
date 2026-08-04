@@ -2,37 +2,37 @@
 @section('title', 'Add Employee')
 @section('page-title', 'Add Employee')
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="mb-0">Add Employee</h5>
-    <a href="{{ route('employees.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+<div class="mb-6 flex items-center justify-between">
+    <h5 class="text-lg font-semibold text-slate-900 dark:text-white">Add Employee</h5>
+    <a href="{{ route('employees.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
 </div>
 
-<div class="card border-0 shadow-sm" style="max-width:600px;">
-    <div class="card-body p-4">
+<div class="card max-w-[600px]">
+    <div class="card-body">
         <form method="POST" action="{{ route('employees.store') }}">
             @csrf
 
             <div class="mb-3">
-                <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
-                <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                <label class="field-label">Full Name <span class="text-red-500">*</span></label>
+                <input type="text" name="name" class="field-input @error('name') is-invalid @enderror"
                        value="{{ old('name') }}" required>
-                @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                @error('name')<p class="field-error">{{ $message }}</p>@enderror
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-semibold">ID Number <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text fw-semibold">INF</span>
+                <label class="field-label">ID Number <span class="text-red-500">*</span></label>
+                <div class="flex">
+                    <span class="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">INF</span>
                     <input type="text" name="id_number_suffix"
-                           class="form-control @error('id_number') is-invalid @enderror"
+                           class="field-input rounded-l-none @error('id_number') is-invalid @enderror"
                            value="{{ old('id_number_suffix') }}" placeholder="0161" required>
-                    @error('id_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+                @error('id_number')<p class="field-error">{{ $message }}</p>@enderror
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-semibold">Work Location</label>
-                <select name="work_location" class="form-select @error('work_location') is-invalid @enderror">
+                <label class="field-label">Work Location</label>
+                <select name="work_location" class="field-input @error('work_location') is-invalid @enderror">
                     <option value="">— Select Location —</option>
                     @foreach($locations as $location)
                     <option value="{{ $location->name }}" {{ old('work_location') === $location->name ? 'selected' : '' }}>
@@ -40,28 +40,28 @@
                     </option>
                     @endforeach
                 </select>
-                @error('work_location')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                @error('work_location')<p class="field-error">{{ $message }}</p>@enderror
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
-                <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                <label class="field-label">Email <span class="text-red-500">*</span></label>
+                <input type="email" name="email" class="field-input @error('email') is-invalid @enderror"
                        value="{{ old('email') }}" required>
-                @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                @error('email')<p class="field-error">{{ $message }}</p>@enderror
             </div>
 
             <div class="mb-4">
-                <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
-                <select name="status" class="form-select @error('status') is-invalid @enderror" required>
+                <label class="field-label">Status <span class="text-red-500">*</span></label>
+                <select name="status" class="field-input @error('status') is-invalid @enderror" required>
                     <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="retired" {{ old('status') === 'retired' ? 'selected' : '' }}>Retired</option>
                 </select>
-                @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                @error('status')<p class="field-error">{{ $message }}</p>@enderror
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="flex gap-2">
                 <button type="submit" class="btn btn-primary">Add Employee</button>
-                <a href="{{ route('employees.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                <a href="{{ route('employees.index') }}" class="btn btn-outline">Cancel</a>
             </div>
         </form>
     </div>
