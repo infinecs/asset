@@ -109,7 +109,7 @@
                     </td>
                     <td>
                         <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->name }}</div>
-                        <code class="text-xs text-slate-500 dark:text-slate-400">{{ $asset->asset_tag }}</code>
+                        <code class="text-xs text-slate-500 dark:text-slate-400">{{ $asset->asset_tag ?? '-' }}</code>
                     </td>
                     <td>{{ $asset->category?->name ?? '-' }}</td>
                     <td>

@@ -184,7 +184,7 @@
                         <span class="text-sm text-slate-400">-</span>
                         @endif
                     </td>
-                    <td><code class="text-primary-600 dark:text-primary-400">{{ $asset->asset_tag }}</code></td>
+                    <td><code class="text-primary-600 dark:text-primary-400">{{ $asset->asset_tag ?? '-' }}</code></td>
                     <td>
                         <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->name }}</div>
                         @if($asset->brand_label !== '-' || $asset->model)

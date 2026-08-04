@@ -175,18 +175,26 @@ class AssetController extends Controller
             abort(403);
         }
 
-        $typePrefix = match($request->input('type')) {
-            'desktop'    => 'ISSBD',
-            'smartphone' => 'ISSBS',
-            'tablet'     => 'ISSBT',
-            'monitor'    => 'ISSBM',
-            default      => 'ISSBL',
-        };
-        $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
+        $isDigitalProduct = $request->input('type') === 'digital_product';
+
+        if ($isDigitalProduct) {
+            $request->merge(['asset_tag' => null]);
+        } else {
+            $typePrefix = match($request->input('type')) {
+                'desktop'    => 'ISSBD',
+                'smartphone' => 'ISSBS',
+                'tablet'     => 'ISSBT',
+                'monitor'    => 'ISSBM',
+                default      => 'ISSBL',
+            };
+            $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
+        }
 
         $validated = $request->validate([
-            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor',
-            'asset_tag' => 'required|string|max:255|unique:assets,asset_tag',
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor,digital_product',
+            'asset_tag' => $isDigitalProduct
+                ? ['nullable', 'string', 'max:255']
+                : ['required', 'string', 'max:255', 'unique:assets,asset_tag'],
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
             'brand' => 'nullable|string|max:255',
@@ -333,18 +341,26 @@ class AssetController extends Controller
             abort(403);
         }
 
-        $typePrefix = match($request->input('type')) {
-            'desktop'    => 'ISSBD',
-            'smartphone' => 'ISSBS',
-            'tablet'     => 'ISSBT',
-            'monitor'    => 'ISSBM',
-            default      => 'ISSBL',
-        };
-        $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
+        $isDigitalProduct = $request->input('type') === 'digital_product';
+
+        if ($isDigitalProduct) {
+            $request->merge(['asset_tag' => null]);
+        } else {
+            $typePrefix = match($request->input('type')) {
+                'desktop'    => 'ISSBD',
+                'smartphone' => 'ISSBS',
+                'tablet'     => 'ISSBT',
+                'monitor'    => 'ISSBM',
+                default      => 'ISSBL',
+            };
+            $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
+        }
 
         $validated = $request->validate([
-            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor',
-            'asset_tag' => 'required|string|max:255|unique:assets,asset_tag,' . $asset->id,
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor,digital_product',
+            'asset_tag' => $isDigitalProduct
+                ? ['nullable', 'string', 'max:255']
+                : ['required', 'string', 'max:255', 'unique:assets,asset_tag,' . $asset->id],
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
             'brand' => 'nullable|string|max:255',

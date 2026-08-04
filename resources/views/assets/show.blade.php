@@ -7,7 +7,7 @@
 <div class="mb-6 flex items-center justify-between">
     <div>
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">{{ $asset->name }}</h5>
-        <code class="text-slate-500 dark:text-slate-400">{{ $asset->asset_tag }}</code>
+        <code class="text-slate-500 dark:text-slate-400">{{ $asset->asset_tag ?? '-' }}</code>
     </div>
     <div class="flex gap-2">
         @if(auth()->user()->isStaff())
@@ -35,7 +35,7 @@
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label class="text-sm text-slate-500 dark:text-slate-400">Asset Tag</label>
-                        <div class="font-semibold text-slate-800 dark:text-slate-100"><code>{{ $asset->asset_tag }}</code></div>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100"><code>{{ $asset->asset_tag ?? '-' }}</code></div>
                     </div>
                     <div>
                         <label class="text-sm text-slate-500 dark:text-slate-400">Serial Number</label>

@@ -10,48 +10,51 @@
             <div class="card-header">
                 <div>
                     <h5 class="text-base font-semibold text-slate-900 dark:text-white">{{ $asset->name }}</h5>
-                    <code class="text-slate-500 dark:text-slate-400">{{ $asset->asset_tag }}</code>
+                    <code class="text-slate-500 dark:text-slate-400">{{ $asset->asset_tag ?? '-' }}</code>
                 </div>
                 <a href="{{ route('assets.show', $asset) }}" class="btn btn-sm btn-outline">
                     <i class="bi bi-arrow-left"></i>Back
                 </a>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('assets.update', $asset) }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route('assets.update', $asset) }}" enctype="multipart/form-data" x-data="{ assetType: '{{ old('type', $asset->type ?: 'laptop') }}' }">
                     @csrf
                     @method('PUT')
                     @php
                         $currentType = old('type', $asset->type);
                         if (!$currentType) {
-                            if (str_starts_with($asset->asset_tag, 'ISSBD'))      $currentType = 'desktop';
-                            elseif (str_starts_with($asset->asset_tag, 'ISSBS')) $currentType = 'smartphone';
-                            elseif (str_starts_with($asset->asset_tag, 'ISSBT')) $currentType = 'tablet';
+                            $tag = $asset->asset_tag ?? '';
+                            if (str_starts_with($tag, 'ISSBD'))      $currentType = 'desktop';
+                            elseif (str_starts_with($tag, 'ISSBS')) $currentType = 'smartphone';
+                            elseif (str_starts_with($tag, 'ISSBT')) $currentType = 'tablet';
                             else                                                    $currentType = 'laptop';
                         }
                         $editPrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT'];
                         $currentPrefix = $editPrefixMap[$currentType] ?? 'ISSBL';
-                        $currentSuffix = old('asset_tag_suffix', Str::after($asset->asset_tag, $currentPrefix));
+                        $currentSuffix = old('asset_tag_suffix', Str::after($asset->asset_tag ?? '', $currentPrefix));
                     @endphp
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
                             <label class="field-label">Type <span class="text-red-500">*</span></label>
-                            <select id="asset_type" name="type" class="field-input @error('type') is-invalid @enderror" required>
+                            <select id="asset_type" name="type" class="field-input @error('type') is-invalid @enderror" x-model="assetType" required>
                                 <option value="laptop"     {{ $currentType === 'laptop'     ? 'selected' : '' }}>Laptop</option>
                                 <option value="desktop"    {{ $currentType === 'desktop'    ? 'selected' : '' }}>Desktop</option>
                                 <option value="smartphone" {{ $currentType === 'smartphone' ? 'selected' : '' }}>Smartphone</option>
                                 <option value="tablet"     {{ $currentType === 'tablet'     ? 'selected' : '' }}>Tablet</option>
                                 <option value="monitor"    {{ $currentType === 'monitor'    ? 'selected' : '' }}>Monitor</option>
+                                <option value="digital_product" {{ $currentType === 'digital_product' ? 'selected' : '' }}>Digital Product</option>
                             </select>
                             @error('type')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div>
+                        <div x-show="assetType !== 'digital_product'" x-cloak>
                             <label class="field-label">Asset Tag <span class="text-red-500">*</span></label>
                             <div class="flex">
                                 <span id="asset_tag_prefix" class="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $currentPrefix }}</span>
                                 <input type="text" id="asset_tag_suffix" name="asset_tag_suffix"
                                        class="field-input rounded-l-none @error('asset_tag') is-invalid @enderror"
                                        value="{{ $currentSuffix }}"
-                                       placeholder="023" required>
+                                       placeholder="023"
+                                       :required="assetType !== 'digital_product'">
                             </div>
                             @error('asset_tag')<p class="field-error">{{ $message }}</p>@enderror
                         </div>

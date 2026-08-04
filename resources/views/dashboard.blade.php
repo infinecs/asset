@@ -114,7 +114,7 @@
                     <div class="min-w-0 flex-1">
                         <div class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $asset->name }}</div>
                         <div class="text-xs text-slate-500 dark:text-slate-400">
-                            <code class="text-[.7rem]">{{ $asset->asset_tag }}</code>
+                            <code class="text-[.7rem]">{{ $asset->asset_tag ?? '-' }}</code>
                             @if($asset->category) · {{ $asset->category->name }}@endif
                             @if($asset->assignedEmployee) · <span class="text-primary-600 dark:text-primary-400">{{ $asset->assignedEmployee->name }}</span>@endif
                         </div>
@@ -242,7 +242,7 @@
                         @foreach($warrantyExpiring->sortBy('warranty_expiry') as $asset)
                         <tr>
                             <td class="font-semibold">{{ $asset->name }}</td>
-                            <td><code class="text-xs">{{ $asset->asset_tag }}</code></td>
+                            <td><code class="text-xs">{{ $asset->asset_tag ?? '-' }}</code></td>
                             <td class="text-slate-500 dark:text-slate-400">{{ $asset->category?->name ?? '-' }}</td>
                             <td>
                                 <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $asset->warranty_expiry->format('d M Y') }}</span>

@@ -103,7 +103,7 @@
                     <tbody>
                         @forelse($employee->assets as $asset)
                         <tr>
-                            <td><code class="text-primary-600 dark:text-primary-400">{{ $asset->asset_tag }}</code></td>
+                            <td><code class="text-primary-600 dark:text-primary-400">{{ $asset->asset_tag ?? '-' }}</code></td>
                             <td class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->name }}</td>
                             <td class="text-slate-500 dark:text-slate-400">{{ $asset->category?->name ?? '-' }}</td>
                             <td><span class="badge badge-{{ $asset->status_badge }}">{{ $asset->status_label }}</span></td>
