@@ -22,10 +22,10 @@
             <div class="mb-3">
                 <label class="form-label fw-semibold">ID Number <span class="text-danger">*</span></label>
                 <div class="input-group">
-                    <span class="input-group-text fw-semibold">INF-</span>
+                    <span class="input-group-text fw-semibold">INF</span>
                     <input type="text" name="id_number_suffix"
                            class="form-control @error('id_number') is-invalid @enderror"
-                           value="{{ old('id_number_suffix') }}" placeholder="0001" required>
+                           value="{{ old('id_number_suffix') }}" placeholder="0161" required>
                     @error('id_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
@@ -43,11 +43,20 @@
                 @error('work_location')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
-            <div class="mb-4">
+            <div class="mb-3">
                 <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
                 <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
                        value="{{ old('email') }}" required>
                 @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
+                <select name="status" class="form-select @error('status') is-invalid @enderror" required>
+                    <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="retired" {{ old('status') === 'retired' ? 'selected' : '' }}>Retired</option>
+                </select>
+                @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             <div class="d-flex gap-2">

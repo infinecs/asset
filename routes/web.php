@@ -40,7 +40,11 @@ Route::middleware('auth')->group(function () {
 
     // Employees
     Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
+    Route::patch('/employees/{employee}/status', [EmployeeController::class, 'updateStatus'])->name('employees.update-status');
     Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
+    Route::post('/employees/{employee}/documents', [EmployeeController::class, 'uploadDocument'])->name('employees.upload-document');
+    Route::delete('/employees/{employee}/documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('employees.delete-document');
+    Route::get('/employees/{employee}/documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employees.download-document');
     Route::resource('employees', EmployeeController::class);
 
     // Staff/Admin routes

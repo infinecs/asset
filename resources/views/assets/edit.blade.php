@@ -23,13 +23,13 @@
                     @php
                         $currentType = old('type', $asset->type);
                         if (!$currentType) {
-                            if (str_starts_with($asset->asset_tag, 'ISSB-D'))      $currentType = 'desktop';
-                            elseif (str_starts_with($asset->asset_tag, 'ISSB-S')) $currentType = 'smartphone';
-                            elseif (str_starts_with($asset->asset_tag, 'ISSB-T')) $currentType = 'tablet';
+                            if (str_starts_with($asset->asset_tag, 'ISSBD'))      $currentType = 'desktop';
+                            elseif (str_starts_with($asset->asset_tag, 'ISSBS')) $currentType = 'smartphone';
+                            elseif (str_starts_with($asset->asset_tag, 'ISSBT')) $currentType = 'tablet';
                             else                                                    $currentType = 'laptop';
                         }
-                        $editPrefixMap = ['laptop'=>'ISSB-L','desktop'=>'ISSB-D','smartphone'=>'ISSB-S','tablet'=>'ISSB-T'];
-                        $currentPrefix = $editPrefixMap[$currentType] ?? 'ISSB-L';
+                        $editPrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT'];
+                        $currentPrefix = $editPrefixMap[$currentType] ?? 'ISSBL';
                         $currentSuffix = old('asset_tag_suffix', Str::after($asset->asset_tag, $currentPrefix));
                     @endphp
                     <div class="row g-3">
@@ -298,15 +298,15 @@
         const nameInput   = document.getElementById('asset_name');
 
         const prefixMap = {
-            laptop:     'ISSB-L',
-            desktop:    'ISSB-D',
-            smartphone: 'ISSB-S',
-            tablet:     'ISSB-T',
-            monitor:    'ISSB-M',
+            laptop:     'ISSBL',
+            desktop:    'ISSBD',
+            smartphone: 'ISSBS',
+            tablet:     'ISSBT',
+            monitor:    'ISSBM',
         };
 
         typeSelect.addEventListener('change', function () {
-            prefixLabel.textContent = prefixMap[this.value] || 'ISSB-L';
+            prefixLabel.textContent = prefixMap[this.value] || 'ISSBL';
         });
 
         suffixInput.addEventListener('input', function () {

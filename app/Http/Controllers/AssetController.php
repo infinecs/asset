@@ -89,7 +89,7 @@ class AssetController extends Controller
                     $query->orderBy('assets.' . $sort, $direction);
             }
         } else {
-            $query->orderByRaw('CAST(SUBSTRING(asset_tag, 7) AS UNSIGNED) DESC');
+            $query->orderByRaw('CAST(SUBSTRING(asset_tag, 6) AS UNSIGNED) DESC');
         }
 
         return $query;
@@ -176,11 +176,11 @@ class AssetController extends Controller
         }
 
         $typePrefix = match($request->input('type')) {
-            'desktop'    => 'ISSB-D',
-            'smartphone' => 'ISSB-S',
-            'tablet'     => 'ISSB-T',
-            'monitor'    => 'ISSB-M',
-            default      => 'ISSB-L',
+            'desktop'    => 'ISSBD',
+            'smartphone' => 'ISSBS',
+            'tablet'     => 'ISSBT',
+            'monitor'    => 'ISSBM',
+            default      => 'ISSBL',
         };
         $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
 
@@ -334,11 +334,11 @@ class AssetController extends Controller
         }
 
         $typePrefix = match($request->input('type')) {
-            'desktop'    => 'ISSB-D',
-            'smartphone' => 'ISSB-S',
-            'tablet'     => 'ISSB-T',
-            'monitor'     => 'ISSB-M',
-            default      => 'ISSB-L',
+            'desktop'    => 'ISSBD',
+            'smartphone' => 'ISSBS',
+            'tablet'     => 'ISSBT',
+            'monitor'    => 'ISSBM',
+            default      => 'ISSBL',
         };
         $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
 

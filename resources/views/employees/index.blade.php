@@ -20,11 +20,18 @@
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
         <form method="GET" action="{{ route('employees.index') }}" class="row g-3">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Search name, ID number, email, work location...">
                 </div>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="retired" {{ request('status') === 'retired' ? 'selected' : '' }}>Retired</option>
+                </select>
             </div>
             <div class="col-md-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
@@ -43,6 +50,7 @@
                     <th>ID Number</th>
                     <th>Work Location</th>
                     <th>Email</th>
+                    <th>Status</th>
                     @if(auth()->user()->isAdmin())
                     <th class="text-end">Actions</th>
                     @endif
@@ -62,6 +70,20 @@
                     <td><code class="text-primary">{{ $employee->id_number }}</code></td>
                     <td class="text-muted">{{ $employee->work_location ?? '-' }}</td>
                     <td class="text-muted">{{ $employee->email }}</td>
+                    <td>
+                        @if(auth()->user()->isAdmin())
+                        <form method="POST" action="{{ route('employees.update-status', $employee) }}">
+                            @csrf @method('PATCH')
+                            <select name="status" class="form-select form-select-sm border-0 fw-semibold text-white bg-{{ $employee->status_badge }}"
+                                    style="width:auto;" onchange="this.form.submit()">
+                                <option value="active" {{ $employee->status === 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="retired" {{ $employee->status === 'retired' ? 'selected' : '' }}>Retired</option>
+                            </select>
+                        </form>
+                        @else
+                        <span class="badge bg-{{ $employee->status_badge }}">{{ $employee->status_label }}</span>
+                        @endif
+                    </td>
                     @if(auth()->user()->isAdmin())
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
@@ -76,7 +98,7 @@
                     @endif
                 </tr>
                 @empty
-                <tr><td colspan="{{ auth()->user()->isAdmin() ? 5 : 4 }}" class="text-center py-4 text-muted">No employees found.</td></tr>
+                <tr><td colspan="{{ auth()->user()->isAdmin() ? 6 : 5 }}" class="text-center py-4 text-muted">No employees found.</td></tr>
                 @endforelse
             </tbody>
         </table>

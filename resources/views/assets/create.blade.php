@@ -28,7 +28,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Asset Tag <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span id="asset_tag_prefix" class="input-group-text fw-semibold">{{ old('type','laptop') === 'desktop' ? 'ISSB-D' : (old('type') === 'smartphone' ? 'ISSB-S' : (old('type') === 'tablet' ? 'ISSB-T' : 'ISSB-L')) }}</span>
+                                <span id="asset_tag_prefix" class="input-group-text fw-semibold">{{ old('type','laptop') === 'desktop' ? 'ISSBD' : (old('type') === 'smartphone' ? 'ISSBS' : (old('type') === 'tablet' ? 'ISSBT' : 'ISSBL')) }}</span>
                                 <input type="text" id="asset_tag_suffix" name="asset_tag_suffix"
                                        class="form-control @error('asset_tag') is-invalid @enderror"
                                        value="{{ old('asset_tag_suffix') }}" placeholder="023" required>
@@ -241,15 +241,15 @@
         const nameInput    = document.getElementById('asset_name');
 
         const prefixMap = {
-            laptop:     'ISSB-L',
-            desktop:    'ISSB-D',
-            smartphone: 'ISSB-S',
-            tablet:     'ISSB-T',
-            monitor:    'ISSB-M',
+            laptop:     'ISSBL',
+            desktop:    'ISSBD',
+            smartphone: 'ISSBS',
+            tablet:     'ISSBT',
+            monitor:    'ISSBM',
         };
 
         typeSelect.addEventListener('change', function () {
-            prefixLabel.textContent = prefixMap[this.value] || 'ISSB-L';
+            prefixLabel.textContent = prefixMap[this.value] || 'ISSBL';
         });
 
         suffixInput.addEventListener('input', function () {
