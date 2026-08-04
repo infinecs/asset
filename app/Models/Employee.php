@@ -33,7 +33,7 @@ class Employee extends Model
     {
         return match ($this->status) {
             'active' => 'success',
-            'retired' => 'secondary',
+            'resigned' => 'secondary',
             default => 'secondary',
         };
     }
@@ -42,7 +42,7 @@ class Employee extends Model
     {
         return match ($this->status) {
             'active' => 'Active',
-            'retired' => 'Retired',
+            'resigned' => 'Resigned',
             default => 'Unknown',
         };
     }

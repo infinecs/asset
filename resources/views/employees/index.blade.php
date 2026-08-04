@@ -30,7 +30,7 @@
                 <select name="status" class="field-input">
                     <option value="">All Statuses</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="retired" {{ request('status') === 'retired' ? 'selected' : '' }}>Retired</option>
+                    <option value="resigned" {{ request('status') === 'resigned' ? 'selected' : '' }}>Resigned</option>
                 </select>
             </div>
             <div class="flex gap-2 md:col-span-4">
@@ -82,7 +82,7 @@
                             <select name="status" onchange="this.form.submit()"
                                     class="w-auto rounded-full border-0 px-3 py-1 text-xs font-medium text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 {{ $statusSelectClass }}">
                                 <option value="active" {{ $employee->status === 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="retired" {{ $employee->status === 'retired' ? 'selected' : '' }}>Retired</option>
+                                <option value="resigned" {{ $employee->status === 'resigned' ? 'selected' : '' }}>Resigned</option>
                             </select>
                         </form>
                         @else

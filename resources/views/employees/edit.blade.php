@@ -56,7 +56,7 @@
                 <label class="field-label">Status <span class="text-red-500">*</span></label>
                 <select name="status" class="field-input @error('status') is-invalid @enderror" required>
                     <option value="active" {{ old('status', $employee->status) === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="retired" {{ old('status', $employee->status) === 'retired' ? 'selected' : '' }}>Retired</option>
+                    <option value="resigned" {{ old('status', $employee->status) === 'resigned' ? 'selected' : '' }}>Resigned</option>
                 </select>
                 @error('status')<p class="field-error">{{ $message }}</p>@enderror
             </div>

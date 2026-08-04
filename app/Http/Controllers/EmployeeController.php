@@ -53,7 +53,7 @@ class EmployeeController extends Controller
             'id_number'     => 'required|string|max:50|unique:employees,id_number',
             'work_location' => 'nullable|string|max:255',
             'email'         => 'required|email|unique:employees,email',
-            'status'        => 'required|in:active,retired',
+            'status'        => 'required|in:active,resigned',
         ]);
 
         Employee::create($validated);
@@ -82,7 +82,7 @@ class EmployeeController extends Controller
             'id_number'     => 'required|string|max:50|unique:employees,id_number,' . $employee->id,
             'work_location' => 'nullable|string|max:255',
             'email'         => 'required|email|unique:employees,email,' . $employee->id,
-            'status'        => 'required|in:active,retired',
+            'status'        => 'required|in:active,resigned',
         ]);
 
         $employee->update($validated);
@@ -97,7 +97,7 @@ class EmployeeController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:active,retired',
+            'status' => 'required|in:active,resigned',
         ]);
 
         $employee->update($validated);
