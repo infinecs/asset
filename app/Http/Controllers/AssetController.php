@@ -420,7 +420,13 @@ class AssetController extends Controller
             ]);
         }
 
-        return redirect()->route('assets.show', $asset)->with('success', 'Asset updated successfully.');
+        $returnTo = $request->input('return');
+        $showUrl = route('assets.show', $asset);
+        if ($returnTo && str_starts_with($returnTo, '/assets')) {
+            $showUrl .= '?return=' . urlencode($returnTo);
+        }
+
+        return redirect($showUrl)->with('success', 'Asset updated successfully.');
     }
 
     public function destroy(Asset $asset)

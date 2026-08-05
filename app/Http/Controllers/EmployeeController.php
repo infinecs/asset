@@ -87,7 +87,12 @@ class EmployeeController extends Controller
 
         $employee->update($validated);
 
-        return redirect()->route('employees.index')->with('success', 'Employee updated successfully.');
+        $returnTo = $request->input('return');
+        $redirectUrl = ($returnTo && str_starts_with($returnTo, '/employees'))
+            ? $returnTo
+            : route('employees.index');
+
+        return redirect($redirectUrl)->with('success', 'Employee updated successfully.');
     }
 
     public function updateStatus(Request $request, Employee $employee)

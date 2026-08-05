@@ -4,6 +4,7 @@
 @section('page-title', 'Asset Inventory')
 
 @section('content')
+@php $returnTo = urlencode(request()->getRequestUri()); @endphp
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div>
         <h5 class="text-lg font-semibold text-slate-900 dark:text-white">All Assets</h5>
@@ -205,11 +206,11 @@
                     </td>
                     <td class="text-right">
                         <div class="inline-flex gap-1">
-                            <a href="{{ route('assets.show', $asset) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View">
+                            <a href="{{ route('assets.show', $asset) }}?return={{ $returnTo }}" class="btn btn-sm btn-outline-primary btn-icon" title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
                             @if(auth()->user()->isStaff())
-                            <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline btn-icon" title="Edit">
+                            <a href="{{ route('assets.edit', $asset) }}?return={{ $returnTo }}" class="btn btn-sm btn-outline btn-icon" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             @endif

@@ -4,6 +4,7 @@
 @section('page-title', 'Asset Details')
 
 @section('content')
+@php $safeReturn = request('return') && str_starts_with(request('return'), '/assets') ? request('return') : null; @endphp
 <div class="mb-6 flex items-center justify-between">
     <div>
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">{{ $asset->name }}</h5>
@@ -11,11 +12,11 @@
     </div>
     <div class="flex gap-2">
         @if(auth()->user()->isStaff())
-        <a href="{{ route('assets.edit', $asset) }}" class="btn btn-primary btn-sm">
+        <a href="{{ route('assets.edit', $asset) }}{{ $safeReturn ? '?return=' . urlencode($safeReturn) : '' }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil"></i>Edit
         </a>
         @endif
-        <a href="{{ route('assets.index') }}" class="btn btn-outline btn-sm">
+        <a href="{{ $safeReturn ? url($safeReturn) : route('assets.index') }}" class="btn btn-outline btn-sm">
             <i class="bi bi-arrow-left"></i>Back
         </a>
     </div>
@@ -225,18 +226,18 @@
                     <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/40">
                         <i class="bi bi-{{ $activity->icon }} text-sm text-slate-500 dark:text-slate-400"></i>
                     </div>
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $activity->title }}</div>
                         <div class="text-xs text-slate-500 dark:text-slate-400">
                             {{ $activity->by }} · {{ $activity->at->diffForHumans() }}
                         </div>
                         @if($activity->notes)
-                        <div class="text-sm text-slate-500 dark:text-slate-400">{{ $activity->notes }}</div>
+                        <div class="text-sm text-slate-500 dark:text-slate-400 break-words">{{ $activity->notes }}</div>
                         @endif
                         @if(!empty($activity->changes))
                         <ul class="mt-1 list-none space-y-0.5 p-0">
                             @foreach($activity->changes as $change)
-                            <li class="text-xs text-slate-500 dark:text-slate-400">
+                            <li class="text-xs text-slate-500 dark:text-slate-400 break-words">
                                 <span class="font-semibold">{{ $change['label'] }}:</span>
                                 {{ $change['old'] }} <i class="bi bi-arrow-right mx-1"></i> {{ $change['new'] }}
                             </li>

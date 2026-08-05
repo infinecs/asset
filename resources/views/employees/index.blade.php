@@ -2,6 +2,7 @@
 @section('title', 'Employees')
 @section('page-title', 'Employees')
 @section('content')
+@php $returnTo = urlencode(request()->getRequestUri()); @endphp
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div>
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Employees</h5>
@@ -92,8 +93,8 @@
                     @if(auth()->user()->isAdmin())
                     <td class="text-right">
                         <div class="inline-flex gap-1">
-                            <a href="{{ route('employees.show', $employee) }}" class="btn btn-sm btn-outline-primary btn-icon"><i class="bi bi-eye"></i></a>
-                            <a href="{{ route('employees.edit', $employee) }}" class="btn btn-sm btn-outline btn-icon"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ route('employees.show', $employee) }}?return={{ $returnTo }}" class="btn btn-sm btn-outline-primary btn-icon"><i class="bi bi-eye"></i></a>
+                            <a href="{{ route('employees.edit', $employee) }}?return={{ $returnTo }}" class="btn btn-sm btn-outline btn-icon"><i class="bi bi-pencil"></i></a>
                             <form method="POST" action="{{ route('employees.destroy', $employee) }}" onsubmit="return confirm('Delete this employee?')">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger btn-icon"><i class="bi bi-trash"></i></button>

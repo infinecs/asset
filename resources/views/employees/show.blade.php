@@ -2,13 +2,14 @@
 @section('title', $employee->name . ' - Employees')
 @section('page-title', 'Employee Profile')
 @section('content')
+@php $safeReturn = request('return') && str_starts_with(request('return'), '/employees') ? request('return') : null; @endphp
 <div class="mb-6 flex items-center justify-between">
     <h5 class="text-lg font-semibold text-slate-900 dark:text-white">{{ $employee->name }}</h5>
     <div class="flex gap-2">
         @if(auth()->user()->isAdmin())
-        <a href="{{ route('employees.edit', $employee) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i>Edit</a>
+        <a href="{{ route('employees.edit', $employee) }}{{ $safeReturn ? '?return=' . urlencode($safeReturn) : '' }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i>Edit</a>
         @endif
-        <a href="{{ route('employees.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
+        <a href="{{ $safeReturn ? url($safeReturn) : route('employees.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
     </div>
 </div>
 

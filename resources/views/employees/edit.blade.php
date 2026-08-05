@@ -2,15 +2,17 @@
 @section('title', 'Edit Employee')
 @section('page-title', 'Edit Employee')
 @section('content')
+@php $safeReturn = request('return') && str_starts_with(request('return'), '/employees') ? request('return') : null; @endphp
 <div class="mb-6 flex items-center justify-between">
     <h5 class="text-lg font-semibold text-slate-900 dark:text-white">Edit Employee</h5>
-    <a href="{{ route('employees.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
+    <a href="{{ $safeReturn ? url($safeReturn) : route('employees.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
 </div>
 
 <div class="card max-w-[600px]">
     <div class="card-body">
         <form method="POST" action="{{ route('employees.update', $employee) }}">
             @csrf @method('PUT')
+            <input type="hidden" name="return" value="{{ $safeReturn }}">
 
             <div class="mb-3">
                 <label class="field-label">Full Name <span class="text-red-500">*</span></label>
@@ -63,7 +65,7 @@
 
             <div class="flex gap-2">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
-                <a href="{{ route('employees.index') }}" class="btn btn-outline">Cancel</a>
+                <a href="{{ $safeReturn ? url($safeReturn) : route('employees.index') }}" class="btn btn-outline">Cancel</a>
             </div>
         </form>
     </div>

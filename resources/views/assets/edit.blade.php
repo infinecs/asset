@@ -4,6 +4,7 @@
 @section('page-title', 'Edit Asset')
 
 @section('content')
+@php $safeReturn = request('return') && str_starts_with(request('return'), '/assets') ? request('return') : null; @endphp
 <div class="flex justify-center">
     <div class="w-full max-w-4xl">
         <div class="card">
@@ -12,7 +13,7 @@
                     <h5 class="text-base font-semibold text-slate-900 dark:text-white">{{ $asset->name }}</h5>
                     <code class="text-slate-500 dark:text-slate-400">{{ $asset->asset_tag ?? '-' }}</code>
                 </div>
-                <a href="{{ route('assets.show', $asset) }}" class="btn btn-sm btn-outline">
+                <a href="{{ route('assets.show', $asset) }}{{ $safeReturn ? '?return=' . urlencode($safeReturn) : '' }}" class="btn btn-sm btn-outline">
                     <i class="bi bi-arrow-left"></i>Back
                 </a>
             </div>
@@ -20,6 +21,7 @@
                 <form method="POST" action="{{ route('assets.update', $asset) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
+                    <input type="hidden" name="return" value="{{ $safeReturn }}">
                     @php
                         $currentType = old('type', $asset->type);
                         if (!$currentType) {
@@ -280,7 +282,7 @@
                         <button type="submit" class="btn btn-primary px-4">
                             <i class="bi bi-check-lg"></i>Save Changes
                         </button>
-                        <a href="{{ route('assets.show', $asset) }}" class="btn btn-outline px-4">Cancel</a>
+                        <a href="{{ route('assets.show', $asset) }}{{ $safeReturn ? '?return=' . urlencode($safeReturn) : '' }}" class="btn btn-outline px-4">Cancel</a>
                         @if(auth()->user()->isAdmin())
                         <button type="submit" form="deleteAssetForm" class="btn btn-outline-danger ml-auto px-4" onclick="return confirm('Delete this asset? This cannot be undone.')">
                             <i class="bi bi-trash"></i>Delete
