@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
     // Assets
     Route::get('/assets/export', [AssetController::class, 'export'])->name('assets.export');
     Route::get('/assets/live', [AssetController::class, 'live'])->name('assets.live');
+    Route::get('/assets/{asset}/label', [AssetController::class, 'label'])->name('assets.label');
     Route::patch('/assets/{asset}/status', [AssetController::class, 'updateStatus'])->name('assets.update-status');
     Route::delete('/assets/bulk-delete', [AssetController::class, 'bulkDestroy'])->name('assets.bulk-destroy');
     Route::delete('/assets/delete-all', [AssetController::class, 'destroyAll'])->name('assets.destroy-all');

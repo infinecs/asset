@@ -155,6 +155,19 @@
             </div>
         </div>
 
+        <!-- QR Code -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Asset QR Code</h6>
+            </div>
+            <div class="card-body flex flex-col items-center gap-3 text-center">
+                <div class="rounded-lg bg-white p-2">{!! $qrCode !!}</div>
+                <a href="{{ route('assets.label', $asset) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-printer"></i>Print Label
+                </a>
+            </div>
+        </div>
+
         <!-- Signed Document -->
         <div class="card mb-4">
             <div class="card-header">

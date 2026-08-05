@@ -12,6 +12,7 @@ use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AssetController extends Controller
 {
@@ -310,7 +311,20 @@ class AssetController extends Controller
             ];
         })->sortByDesc('at')->take(15)->values();
 
-        return view('assets.show', compact('asset', 'activityTimeline'));
+        $qrCode = QrCode::size(140)->margin(1)->generate(route('assets.show', $asset));
+
+        return view('assets.show', compact('asset', 'activityTimeline', 'qrCode'));
+    }
+
+    public function label(Asset $asset)
+    {
+        if (!auth()->user()->isAdmin() && $asset->status !== 'available') {
+            abort(403);
+        }
+
+        $qrCode = QrCode::size(220)->margin(1)->generate(route('assets.show', $asset));
+
+        return view('assets.label', compact('asset', 'qrCode'));
     }
 
     public function edit(Asset $asset)
