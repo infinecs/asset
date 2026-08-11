@@ -28,9 +28,10 @@
                             if (str_starts_with($asset->asset_tag, 'ISSBD'))      $currentType = 'desktop';
                             elseif (str_starts_with($asset->asset_tag, 'ISSBS')) $currentType = 'smartphone';
                             elseif (str_starts_with($asset->asset_tag, 'ISSBT')) $currentType = 'tablet';
+                            elseif (str_starts_with($asset->asset_tag, 'ISSBM')) $currentType = 'monitor';
                             else                                                    $currentType = 'laptop';
                         }
-                        $editPrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT'];
+                        $editPrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT','monitor'=>'ISSBM'];
                         $currentPrefix = $editPrefixMap[$currentType] ?? 'ISSBL';
                         $currentSuffix = old('asset_tag_suffix', Str::after($asset->asset_tag, $currentPrefix));
                     @endphp
@@ -92,7 +93,7 @@
                         </div>
                         <div>
                             <label class="field-label">Category</label>
-                            <select name="category_id" class="field-input">
+                            <select id="asset_category" name="category_id" class="field-input">
                                 <option value="">Select Category</option>
                                 @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}" {{ old('category_id', $asset->category_id) == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
@@ -304,10 +305,11 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const typeSelect  = document.getElementById('asset_type');
-        const prefixLabel = document.getElementById('asset_tag_prefix');
-        const suffixInput = document.getElementById('asset_tag_suffix');
-        const nameInput   = document.getElementById('asset_name');
+        const typeSelect     = document.getElementById('asset_type');
+        const prefixLabel    = document.getElementById('asset_tag_prefix');
+        const suffixInput    = document.getElementById('asset_tag_suffix');
+        const nameInput      = document.getElementById('asset_name');
+        const categorySelect = document.getElementById('asset_category');
 
         const prefixMap = {
             laptop:     'ISSBL',
@@ -317,8 +319,28 @@
             monitor:    'ISSBM',
         };
 
+        const categoryMap = {
+            laptop:     'Laptop',
+            desktop:    'Desktop',
+            smartphone: 'Mobile Device',
+            tablet:     'Mobile Device',
+            monitor:    'Monitor',
+        };
+
         typeSelect.addEventListener('change', function () {
             prefixLabel.textContent = prefixMap[this.value] || 'ISSBL';
+
+            const categoryName = categoryMap[this.value];
+            if (categoryName && categorySelect) {
+                const match = Array.from(categorySelect.options).find(opt => opt.text.trim() === categoryName);
+                if (match) {
+                    if (categorySelect.tomselect) {
+                        categorySelect.tomselect.setValue(match.value);
+                    } else {
+                        categorySelect.value = match.value;
+                    }
+                }
+            }
         });
 
         suffixInput.addEventListener('input', function () {

@@ -17,7 +17,8 @@
                         <div>
                             <label class="field-label">Type <span class="text-red-500">*</span></label>
                             <select id="asset_type" name="type" class="field-input @error('type') is-invalid @enderror" required>
-                                <option value="laptop"     {{ old('type', 'laptop') === 'laptop'     ? 'selected' : '' }}>Laptop</option>
+                                <option value="" disabled {{ old('type') ? '' : 'selected' }}>Choose</option>
+                                <option value="laptop"     {{ old('type') === 'laptop'     ? 'selected' : '' }}>Laptop</option>
                                 <option value="desktop"    {{ old('type') === 'desktop'    ? 'selected' : '' }}>Desktop</option>
                                 <option value="smartphone" {{ old('type') === 'smartphone' ? 'selected' : '' }}>Smartphone</option>
                                 <option value="tablet"     {{ old('type') === 'tablet'     ? 'selected' : '' }}>Tablet</option>
@@ -28,7 +29,10 @@
                         <div>
                             <label class="field-label">Asset Tag <span class="text-red-500">*</span></label>
                             <div class="flex">
-                                <span id="asset_tag_prefix" class="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ old('type','laptop') === 'desktop' ? 'ISSBD' : (old('type') === 'smartphone' ? 'ISSBS' : (old('type') === 'tablet' ? 'ISSBT' : 'ISSBL')) }}</span>
+                                @php
+                                    $newTypePrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT','monitor'=>'ISSBM'];
+                                @endphp
+                                <span id="asset_tag_prefix" class="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $newTypePrefixMap[old('type')] ?? '—' }}</span>
                                 <input type="text" id="asset_tag_suffix" name="asset_tag_suffix"
                                        class="field-input rounded-l-none @error('asset_tag') is-invalid @enderror"
                                        value="{{ old('asset_tag_suffix') }}" placeholder="023" required>
@@ -70,7 +74,7 @@
                         </div>
                         <div>
                             <label class="field-label">Category</label>
-                            <select name="category_id" class="field-input">
+                            <select id="asset_category" name="category_id" class="field-input">
                                 <option value="">Select Category</option>
                                 @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
@@ -83,6 +87,17 @@
                                 <option value="">Select Location</option>
                                 @foreach($locations as $loc)
                                 <option value="{{ $loc->id }}" {{ old('location_id') == $loc->id ? 'selected' : '' }}>{{ $loc->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Assigned To</label>
+                            <select name="assigned_to" class="field-input">
+                                <option value="">Not Assigned</option>
+                                @foreach($employees as $employee)
+                                <option value="{{ $employee->id }}" {{ old('assigned_to') == $employee->id ? 'selected' : '' }}>
+                                    {{ $employee->name }} <{{ $employee->id_number }}>
+                                </option>
                                 @endforeach
                             </select>
                         </div>
@@ -243,10 +258,11 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const typeSelect   = document.getElementById('asset_type');
-        const prefixLabel  = document.getElementById('asset_tag_prefix');
-        const suffixInput  = document.getElementById('asset_tag_suffix');
-        const nameInput    = document.getElementById('asset_name');
+        const typeSelect     = document.getElementById('asset_type');
+        const prefixLabel    = document.getElementById('asset_tag_prefix');
+        const suffixInput    = document.getElementById('asset_tag_suffix');
+        const nameInput      = document.getElementById('asset_name');
+        const categorySelect = document.getElementById('asset_category');
 
         const prefixMap = {
             laptop:     'ISSBL',
@@ -256,15 +272,53 @@
             monitor:    'ISSBM',
         };
 
+        const categoryMap = {
+            laptop:     'Laptop',
+            desktop:    'Desktop',
+            smartphone: 'Mobile Device',
+            tablet:     'Mobile Device',
+            monitor:    'Monitor',
+        };
+
+        const nameLabelMap = {
+            laptop:     '',
+            desktop:    'Desktop',
+            smartphone: 'Smartphone',
+            tablet:     'Tablet',
+            monitor:    'Monitor',
+        };
+
+        function updateAssetName() {
+            const suffix = suffixInput.value.trim();
+            if (!suffix) {
+                nameInput.value = '';
+                return;
+            }
+            const num = parseInt(suffix, 10);
+            const suffixPart = isNaN(num) ? suffix : num;
+            const label = nameLabelMap[typeSelect.value] || '';
+            nameInput.value = 'Infinecs' + label + suffixPart;
+        }
+
         typeSelect.addEventListener('change', function () {
-            prefixLabel.textContent = prefixMap[this.value] || 'ISSBL';
+            prefixLabel.textContent = prefixMap[this.value] || '—';
+
+            const categoryName = categoryMap[this.value];
+            if (categoryName && categorySelect) {
+                const match = Array.from(categorySelect.options).find(opt => opt.text.trim() === categoryName);
+                if (match) {
+                    if (categorySelect.tomselect) {
+                        categorySelect.tomselect.setValue(match.value);
+                    } else {
+                        categorySelect.value = match.value;
+                    }
+                }
+            }
+
+            updateAssetName();
         });
 
-        suffixInput.addEventListener('input', function () {
-            const suffix = this.value.trim();
-            const num = parseInt(suffix, 10);
-            nameInput.value = suffix ? 'Infinecs' + (isNaN(num) ? suffix : num) : '';
-        });
+        suffixInput.addEventListener('input', updateAssetName);
     });
 </script>
 @endpush
