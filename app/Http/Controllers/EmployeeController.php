@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Location;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -33,6 +34,63 @@ class EmployeeController extends Controller
         return view('employees.index', compact('employees'));
     }
 
+    public function bulkEditBirthdays(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $query = Employee::where('status', 'active');
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('id_number', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->input('missing') === '1') {
+            $query->whereNull('date_of_birth');
+        }
+
+        $employees = $query->orderByRaw('CAST(SUBSTRING(id_number, 4) AS UNSIGNED) ASC')->paginate(50)->withQueryString();
+
+        return view('employees.bulk-edit-birthdays', compact('employees'));
+    }
+
+    public function updateBirthdays(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'birthdays' => 'nullable|array',
+            'birthdays.*' => 'nullable|date_format:d/m/Y',
+        ]);
+
+        $submitted = $validated['birthdays'] ?? [];
+        $employees = Employee::whereIn('id', array_keys($submitted))->get()->keyBy('id');
+
+        $updated = 0;
+        foreach ($submitted as $employeeId => $date) {
+            $employee = $employees->get((int) $employeeId);
+            if (!$employee) {
+                continue;
+            }
+
+            $newDate = $date ? Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d') : null;
+            if ($employee->date_of_birth?->format('Y-m-d') !== $newDate) {
+                $employee->date_of_birth = $newDate;
+                $employee->save();
+                $updated++;
+            }
+        }
+
+        return redirect()->back()->with('success', "{$updated} birthday(s) updated.");
+    }
+
     public function create()
     {
         $locations = Location::orderBy('name')->get();
@@ -54,7 +112,9 @@ class EmployeeController extends Controller
             'work_location' => 'nullable|string|max:255',
             'email'         => 'required|email|unique:employees,email',
             'status'        => 'required|in:active,resigned',
+            'date_of_birth' => 'nullable|date',
         ]);
+        $validated['gift_card_opt_out'] = $request->boolean('gift_card_opt_out');
 
         Employee::create($validated);
 
@@ -83,7 +143,9 @@ class EmployeeController extends Controller
             'work_location' => 'nullable|string|max:255',
             'email'         => 'required|email|unique:employees,email,' . $employee->id,
             'status'        => 'required|in:active,resigned',
+            'date_of_birth' => 'nullable|date',
         ]);
+        $validated['gift_card_opt_out'] = $request->boolean('gift_card_opt_out');
 
         $employee->update($validated);
 

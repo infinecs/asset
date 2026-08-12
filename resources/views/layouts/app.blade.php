@@ -99,6 +99,10 @@
                     <i class="bi bi-geo-alt"></i><span x-show="!sidebarCollapsed || mobileOpen">Locations</span>
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Locations</span>
                 </a>
+                <a href="{{ route('gift-cards.index') }}" class="sidebar-link {{ request()->routeIs('gift-cards.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-gift"></i><span x-show="!sidebarCollapsed || mobileOpen">Gift Cards</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Gift Cards</span>
+                </a>
                 @endif
 
                 @if(auth()->user()->isAdmin())
@@ -221,7 +225,8 @@
                 });
 
                 const multiSearchableNames = [
-                    'employee_ids[]'
+                    'employee_ids[]',
+                    'person_in_charge_ids[]'
                 ];
 
                 const multiSelector = multiSearchableNames

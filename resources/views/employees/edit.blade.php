@@ -54,6 +54,22 @@
                 @error('email')<p class="field-error">{{ $message }}</p>@enderror
             </div>
 
+            <div class="mb-3">
+                <label class="field-label">Date of Birth</label>
+                <input type="date" name="date_of_birth" class="field-input @error('date_of_birth') is-invalid @enderror"
+                       value="{{ old('date_of_birth', $employee->date_of_birth?->format('Y-m-d')) }}">
+                <p class="field-hint">Used to schedule birthday gift cards.</p>
+                @error('date_of_birth')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input type="checkbox" name="gift_card_opt_out" value="1" class="h-4 w-4 rounded border-slate-300 accent-primary-600" {{ old('gift_card_opt_out', $employee->gift_card_opt_out) ? 'checked' : '' }}>
+                    Opt out of the birthday gift card program
+                </label>
+                <p class="field-hint">If checked, this employee will never receive a birthday gift card or reminder.</p>
+            </div>
+
             <div class="mb-4">
                 <label class="field-label">Status <span class="text-red-500">*</span></label>
                 <select name="status" class="field-input @error('status') is-invalid @enderror" required>

@@ -9,6 +9,7 @@ use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\DirectoryContactController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DigitalProductController;
+use App\Http\Controllers\GiftCardController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\TaskController;
@@ -45,12 +46,22 @@ Route::middleware('auth')->group(function () {
 
     // Employees
     Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
+    Route::get('/employees/bulk-edit-birthdays', [EmployeeController::class, 'bulkEditBirthdays'])->name('employees.bulk-edit-birthdays');
+    Route::post('/employees/bulk-edit-birthdays', [EmployeeController::class, 'updateBirthdays'])->name('employees.update-birthdays');
     Route::patch('/employees/{employee}/status', [EmployeeController::class, 'updateStatus'])->name('employees.update-status');
     Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
     Route::post('/employees/{employee}/documents', [EmployeeController::class, 'uploadDocument'])->name('employees.upload-document');
     Route::delete('/employees/{employee}/documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('employees.delete-document');
     Route::get('/employees/{employee}/documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employees.download-document');
     Route::resource('employees', EmployeeController::class);
+
+    // Gift Cards (birthday gift cards)
+    Route::get('/gift-cards/preview/birthday', [GiftCardController::class, 'previewBirthdayTemplate'])->name('gift-cards.preview.birthday');
+    Route::get('/gift-cards/settings', [GiftCardController::class, 'settings'])->name('gift-cards.settings');
+    Route::put('/gift-cards/settings', [GiftCardController::class, 'updateSettings'])->name('gift-cards.settings.update');
+    Route::get('/gift-cards', [GiftCardController::class, 'index'])->name('gift-cards.index');
+    Route::put('/gift-cards/{employee}', [GiftCardController::class, 'updateCode'])->name('gift-cards.update');
+    Route::post('/gift-cards/{employee}/test-send', [GiftCardController::class, 'testSend'])->name('gift-cards.test-send');
 
     // Staff/Admin routes
     Route::resource('departments', DepartmentController::class);

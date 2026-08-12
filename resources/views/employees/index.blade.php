@@ -10,6 +10,9 @@
     </div>
     @if(auth()->user()->isAdmin())
     <div class="flex gap-2">
+        <a href="{{ route('employees.bulk-edit-birthdays') }}" class="btn btn-outline">
+            <i class="bi bi-calendar-heart"></i>Bulk Edit Birthdays
+        </a>
         <button type="button" class="btn btn-outline" @click="$dispatch('open-modal', 'importModal')">
             <i class="bi bi-upload"></i>Import Excel
         </button>
