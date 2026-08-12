@@ -12,6 +12,14 @@
         <a href="{{ route('employees.bulk-edit-birthdays', ['missing' => 1]) }}" class="btn btn-outline"><i class="bi bi-calendar-heart"></i>Fill Missing Birthdays</a>
         <a href="{{ route('gift-cards.preview.birthday') }}" target="_blank" class="btn btn-outline"><i class="bi bi-eye"></i>Preview Template</a>
         <a href="{{ route('gift-cards.settings') }}" class="btn btn-outline"><i class="bi bi-gear"></i>Settings</a>
+        @if(auth()->user()->email === 'faris.razhi@infinecs.com')
+        <button type="button" class="btn btn-outline" x-data x-cloak
+                @click="$store.giftCardTestSend.toggle()"
+                :title="$store.giftCardTestSend.visible ? 'Hide test send buttons' : 'Show test send buttons'">
+            <i class="bi" :class="$store.giftCardTestSend.visible ? 'bi-eye-slash' : 'bi-eye'"></i>
+            <span x-text="$store.giftCardTestSend.visible ? 'Hide Test Send' : 'Show Test Send'"></span>
+        </button>
+        @endif
     </div>
     @endif
 </div>
@@ -113,6 +121,8 @@
                         </a>
                         @else
                         <div class="inline-flex gap-1">
+                            @if(auth()->user()->email === 'faris.razhi@infinecs.com')
+                            <div x-data x-show="$store.giftCardTestSend.visible" x-cloak>
                             @if($giftCard?->gift_card_code)
                             <form id="test-send-form-{{ $row['employee']->id }}-{{ $row['occurrence']->year }}" method="POST" action="{{ route('gift-cards.test-send', $row['employee']) }}">
                                 @csrf
@@ -126,6 +136,8 @@
                             <button type="button" class="btn btn-sm btn-outline btn-icon" disabled title="Set a reload reference first">
                                 <i class="bi bi-send"></i>
                             </button>
+                            @endif
+                            </div>
                             @endif
                             <button type="button" class="btn btn-sm btn-outline btn-icon" @click="editing = !editing">
                                 <i class="bi" :class="editing ? 'bi-x-lg' : 'bi-pencil'"></i>
@@ -159,7 +171,7 @@
     @endif
 </div>
 
-@if(auth()->user()->isAdmin())
+@if(auth()->user()->email === 'faris.razhi@infinecs.com')
 <x-ui.modal id="testSendModal" maxWidth="max-w-md">
     <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
         <h5 class="text-base font-semibold text-slate-900 dark:text-white"><i class="bi bi-send me-2"></i>Send Test Email</h5>
@@ -180,6 +192,16 @@
 
 @push('scripts')
 <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('giftCardTestSend', {
+            visible: localStorage.getItem('giftCardTestSendVisible') === 'true',
+            toggle() {
+                this.visible = !this.visible;
+                localStorage.setItem('giftCardTestSendVisible', this.visible);
+            },
+        });
+    });
+
     let pendingTestSendFormId = null;
 
     function openTestSendModal(formId, employeeName) {

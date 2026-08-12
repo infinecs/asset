@@ -150,7 +150,7 @@ class GiftCardController extends Controller
 
     public function testSend(Request $request, Employee $employee)
     {
-        $this->authorizeAdmin();
+        $this->authorizeTestSend();
 
         $validated = $request->validate([
             'occasion_year' => 'required|integer',
@@ -229,6 +229,15 @@ class GiftCardController extends Controller
     private function authorizeAdmin(): void
     {
         if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+    }
+
+    private function authorizeTestSend(): void
+    {
+        $this->authorizeAdmin();
+
+        if (auth()->user()->email !== 'faris.razhi@infinecs.com') {
             abort(403);
         }
     }
