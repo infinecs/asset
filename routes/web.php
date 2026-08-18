@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/departments/{outcomeDepartment}', [OutcomeAdminController::class, 'destroyDepartment'])->name('departments.destroy');
 
         Route::get('/report', [OutcomeAdminController::class, 'report'])->name('report');
+        Route::get('/report/export', [OutcomeAdminController::class, 'exportReport'])->name('report.export');
         Route::get('/summary', [OutcomeAdminController::class, 'summary'])->name('summary');
         Route::get('/summary/export', [OutcomeAdminController::class, 'exportSummary'])->name('summary.export');
     });

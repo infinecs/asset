@@ -99,34 +99,39 @@ class OutcomeAdminController extends Controller
         return redirect()->route('outcome.departments.index')->with('success', 'Department deleted.');
     }
 
+    private const REPORT_SORTABLE_COLUMNS = [
+        'user' => 'users.name',
+        'start_date' => 'outcome_tasks.start_date',
+        'end_date' => 'outcome_tasks.end_date',
+        'category' => 'outcome_tasks.category',
+        'department' => 'outcome_tasks.department',
+        'man_hour' => 'outcome_tasks.man_hour',
+        'is_completed' => 'outcome_tasks.is_completed',
+    ];
+
+    private function reportQuery(Request $request)
+    {
+        $sortColumn = self::REPORT_SORTABLE_COLUMNS[$request->input('sort')] ?? 'outcome_tasks.start_date';
+        $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
+
+        return OutcomeTask::query()
+            ->join('users', 'users.id', '=', 'outcome_tasks.user_id')
+            ->select('outcome_tasks.*', 'users.name as user_name')
+            ->when($request->filled('user_id'), fn ($q) => $q->where('outcome_tasks.user_id', $request->user_id))
+            ->when($request->filled('department'), fn ($q) => $q->where('outcome_tasks.department', $request->department))
+            ->when($request->filled('category'), fn ($q) => $q->where('outcome_tasks.category', $request->category))
+            ->when($request->filled('status'), fn ($q) => $q->where('outcome_tasks.is_completed', $request->status === 'completed'))
+            ->when($request->filled('date_from'), fn ($q) => $q->whereDate('outcome_tasks.start_date', '>=', $request->date_from))
+            ->when($request->filled('date_to'), fn ($q) => $q->whereDate('outcome_tasks.start_date', '<=', $request->date_to))
+            ->orderBy($sortColumn, $direction);
+    }
+
     public function report(Request $request)
     {
         $this->authorizeOutcomeManager();
 
-        $query = OutcomeTask::with('user')->orderByDesc('start_date');
-
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->user_id);
-        }
-
-        if ($request->filled('department')) {
-            $query->where('department', $request->department);
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-
-        if ($request->filled('date_from')) {
-            $query->whereDate('start_date', '>=', $request->date_from);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->whereDate('start_date', '<=', $request->date_to);
-        }
-
-        $tasks = $query->paginate(20)->withQueryString();
-        $totalManHours = (clone $query)->sum('man_hour');
+        $tasks = $this->reportQuery($request)->paginate(20)->withQueryString();
+        $totalManHours = $this->reportQuery($request)->reorder()->sum('outcome_tasks.man_hour');
 
         return view('outcome.admin.report', [
             'tasks' => $tasks,
@@ -134,7 +139,44 @@ class OutcomeAdminController extends Controller
             'users' => User::where('role', 'normal')->orderBy('name')->get(['id', 'name']),
             'categories' => OutcomeCategory::orderBy('name')->pluck('name'),
             'departments' => OutcomeDepartment::orderBy('name')->pluck('name'),
+            'sort' => $request->input('sort', 'start_date'),
+            'direction' => $request->input('direction', 'desc'),
         ]);
+    }
+
+    public function exportReport(Request $request)
+    {
+        $this->authorizeOutcomeManager();
+
+        $tasks = $this->reportQuery($request)->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="task_log_' . now()->format('Y-m-d') . '.csv"',
+        ];
+
+        $callback = function () use ($tasks) {
+            $h = fopen('php://output', 'w');
+
+            fputcsv($h, ['User', 'Start Date', 'End Date', 'Task', 'Department', 'Description', 'Man Hour', 'Status']);
+
+            foreach ($tasks as $task) {
+                fputcsv($h, [
+                    $task->user_name,
+                    $task->start_date->format('d-m-Y'),
+                    $task->end_date->format('d-m-Y'),
+                    $task->category,
+                    $task->department ?: '-',
+                    $task->job_description,
+                    rtrim(rtrim(number_format((float) $task->man_hour, 2), '0'), '.'),
+                    $task->is_completed ? 'Completed' : 'Not Completed',
+                ]);
+            }
+
+            fclose($h);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     private const HOURS_PER_MAN_DAY = 8;
