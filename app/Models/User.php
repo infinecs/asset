@@ -42,9 +42,9 @@ class User extends Authenticatable
         return in_array($this->role, ['admin', 'superadmin'], true);
     }
 
-    public function isNormal(): bool
+    public function isContingentWorker(): bool
     {
-        return $this->role === 'normal';
+        return $this->role === 'contingent_worker';
     }
 
     public function isSuperAdmin(): bool
@@ -60,5 +60,14 @@ class User extends Authenticatable
     public function canManageOutcome(): bool
     {
         return in_array($this->role, ['superadmin', 'manager'], true);
+    }
+
+    public function roleLabel(): string
+    {
+        return match ($this->role) {
+            'superadmin' => 'Super Admin',
+            'contingent_worker' => 'Contingent Worker',
+            default => ucfirst($this->role),
+        };
     }
 }

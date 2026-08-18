@@ -15,7 +15,7 @@
     </div>
     <h5 class="mb-1 font-semibold text-slate-900 dark:text-white">{{ $user->name }}</h5>
     <p class="mb-2 text-sm text-slate-500 dark:text-slate-400">{{ $user->email }}</p>
-    <span class="badge badge-{{ $user->role == 'admin' ? 'danger' : 'warning' }} mx-auto mb-3">{{ ucfirst($user->role) }}</span>
+    <span class="badge badge-{{ $user->role == 'admin' ? 'danger' : 'warning' }} mx-auto mb-3">{{ $user->roleLabel() }}</span>
     <dl class="space-y-2 text-left text-sm">
         <div><dt class="text-slate-500 dark:text-slate-400">Department</dt><dd class="font-semibold text-slate-800 dark:text-slate-100">{{ $user->department ?? '-' }}</dd></div>
         <div><dt class="text-slate-500 dark:text-slate-400">Phone</dt><dd class="font-semibold text-slate-800 dark:text-slate-100">{{ $user->phone ?? '-' }}</dd></div>

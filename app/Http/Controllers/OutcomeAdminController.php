@@ -136,7 +136,7 @@ class OutcomeAdminController extends Controller
         return view('outcome.admin.report', [
             'tasks' => $tasks,
             'totalManHours' => $totalManHours,
-            'users' => User::where('role', 'normal')->orderBy('name')->get(['id', 'name']),
+            'users' => User::where('role', 'contingent_worker')->orderBy('name')->get(['id', 'name']),
             'categories' => OutcomeCategory::orderBy('name')->pluck('name'),
             'departments' => OutcomeDepartment::orderBy('name')->pluck('name'),
             'sort' => $request->input('sort', 'start_date'),
@@ -191,7 +191,7 @@ class OutcomeAdminController extends Controller
         $this->authorizeOutcomeManager();
 
         $view = $request->input('view') === 'yearly' ? 'yearly' : 'monthly';
-        $normalUsers = User::where('role', 'normal')->orderBy('name')->get(['id', 'name']);
+        $contingentWorkers = User::where('role', 'contingent_worker')->orderBy('name')->get(['id', 'name']);
 
         if ($view === 'yearly') {
             $data = $this->buildYearlyData($request);
@@ -200,7 +200,7 @@ class OutcomeAdminController extends Controller
             return view('outcome.admin.summary', [
                 'view' => 'yearly',
                 'yearlyMode' => $yearlyMode,
-                'normalUsers' => $normalUsers,
+                'contingentWorkers' => $contingentWorkers,
                 'byUserYearly' => $data['byUser'],
                 'byUserYearlyDaily' => $data['byUserDaily'],
                 'dailyRange' => $data['dailyRange'],
@@ -216,7 +216,7 @@ class OutcomeAdminController extends Controller
         return view('outcome.admin.summary', [
             'view' => 'monthly',
             'monthlyMode' => $monthlyMode,
-            'normalUsers' => $normalUsers,
+            'contingentWorkers' => $contingentWorkers,
             'byUser' => $data['byUser'],
             'byUserMonthlyCategory' => $data['byUserCategory'],
             'accumulated' => $data['accumulated'],
@@ -345,7 +345,7 @@ class OutcomeAdminController extends Controller
 
         $entries = OutcomeTask::query()
             ->join('users', 'users.id', '=', 'outcome_tasks.user_id')
-            ->where('users.role', 'normal')
+            ->where('users.role', 'contingent_worker')
             ->whereBetween('outcome_tasks.start_date', [$month->toDateString(), $monthEnd->toDateString()])
             ->when($request->filled('user_id'), fn ($q) => $q->where('outcome_tasks.user_id', $request->user_id))
             ->orderBy('users.name')
@@ -402,7 +402,7 @@ class OutcomeAdminController extends Controller
 
         $entries = OutcomeTask::query()
             ->join('users', 'users.id', '=', 'outcome_tasks.user_id')
-            ->where('users.role', 'normal')
+            ->where('users.role', 'contingent_worker')
             ->whereYear('outcome_tasks.start_date', $year)
             ->when($request->filled('user_id'), fn ($q) => $q->where('outcome_tasks.user_id', $request->user_id))
             ->orderBy('outcome_tasks.start_date')

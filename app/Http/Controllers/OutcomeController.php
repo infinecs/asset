@@ -13,7 +13,7 @@ class OutcomeController extends Controller
 {
     public function index()
     {
-        $this->authorizeNormal();
+        $this->authorizeContingentWorker();
 
         $tasks = OutcomeTask::where('user_id', auth()->id())
             ->orderByDesc('start_date')
@@ -29,7 +29,7 @@ class OutcomeController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorizeNormal();
+        $this->authorizeContingentWorker();
 
         $validated = $request->validate([
             'start_date' => 'required|date',
@@ -47,7 +47,7 @@ class OutcomeController extends Controller
 
     public function toggle(OutcomeTask $outcomeTask)
     {
-        $this->authorizeNormal();
+        $this->authorizeContingentWorker();
 
         if ($outcomeTask->user_id !== auth()->id()) {
             abort(403);
@@ -77,9 +77,9 @@ class OutcomeController extends Controller
             ->pluck('outcome_categories.name');
     }
 
-    private function authorizeNormal(): void
+    private function authorizeContingentWorker(): void
     {
-        if (!auth()->user()->isNormal()) {
+        if (!auth()->user()->isContingentWorker()) {
             abort(403);
         }
     }

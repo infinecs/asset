@@ -34,7 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [UserController::class, 'settings'])->name('settings.edit');
     Route::put('/settings', [UserController::class, 'updateSettings'])->name('settings.update');
 
-    // Outcome Based (normal role)
+    // Outcome Based (contingent worker role)
     Route::get('/outcome-based', [OutcomeController::class, 'index'])->name('outcome.index');
     Route::post('/outcome-based', [OutcomeController::class, 'store'])->name('outcome.store');
     Route::patch('/outcome-based/{outcomeTask}/toggle', [OutcomeController::class, 'toggle'])->name('outcome.toggle');

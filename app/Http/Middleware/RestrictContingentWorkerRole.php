@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 
-class RestrictNormalRole
+class RestrictContingentWorkerRole
 {
     private const ALLOWED_ROUTE_PATTERNS = [
         'outcome.*',
@@ -17,7 +17,7 @@ class RestrictNormalRole
     {
         $user = $request->user();
 
-        if ($user && $user->isNormal() && !$request->routeIs(...self::ALLOWED_ROUTE_PATTERNS)) {
+        if ($user && $user->isContingentWorker() && !$request->routeIs(...self::ALLOWED_ROUTE_PATTERNS)) {
             return redirect()->route('outcome.index');
         }
 

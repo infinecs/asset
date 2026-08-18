@@ -74,7 +74,7 @@
                     <td>{{ $user->department ?? '-' }}</td>
                     <td>{{ $user->phone ?? '-' }}</td>
                     <td>
-                        <span class="badge badge-{{ $user->role === 'admin' ? 'danger' : 'warning' }}">{{ ucfirst($user->role) }}</span>
+                        <span class="badge badge-{{ $user->role === 'admin' ? 'danger' : 'warning' }}">{{ $user->roleLabel() }}</span>
                     </td>
                     <td class="text-right">
                         <button type="button" class="btn btn-sm btn-outline copy-email-btn" data-email="{{ $user->email }}" title="Copy email">

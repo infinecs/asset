@@ -34,8 +34,8 @@
                 <label class="field-label">User</label>
                 <select name="user_id" class="field-input">
                     <option value="">All Users</option>
-                    @foreach($normalUsers as $normalUser)
-                    <option value="{{ $normalUser->id }}" {{ (string) request('user_id') === (string) $normalUser->id ? 'selected' : '' }}>{{ $normalUser->name }}</option>
+                    @foreach($contingentWorkers as $contingentWorker)
+                    <option value="{{ $contingentWorker->id }}" {{ (string) request('user_id') === (string) $contingentWorker->id ? 'selected' : '' }}>{{ $contingentWorker->name }}</option>
                     @endforeach
                 </select>
             </div>

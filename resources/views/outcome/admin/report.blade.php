@@ -19,7 +19,7 @@
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div>
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Task Log</h5>
-        <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">All tasks logged by normal-role users.</p>
+        <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">All tasks logged by contingent worker users.</p>
     </div>
     <a href="{{ route('outcome.report.export', request()->query()) }}" class="btn btn-outline">
         <i class="bi bi-download"></i>Export CSV

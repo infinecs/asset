@@ -49,7 +49,7 @@
             </div>
 
             <div class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-3">
-                @if(auth()->user()->isNormal())
+                @if(auth()->user()->isContingentWorker())
                 <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Main</div>
                 <a href="{{ route('outcome.index') }}" class="sidebar-link {{ request()->routeIs('outcome.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
                     <i class="bi bi-check2-square"></i><span x-show="!sidebarCollapsed || mobileOpen">Outcome Based</span>
@@ -139,7 +139,7 @@
                     </div>
                     <div class="min-w-0 text-xs" x-show="!sidebarCollapsed || mobileOpen">
                         <div class="truncate font-semibold text-white">{{ auth()->user()->name }}</div>
-                        <div class="text-slate-400">{{ ucfirst(auth()->user()->role) }}</div>
+                        <div class="text-slate-400">{{ auth()->user()->roleLabel() }}</div>
                     </div>
                 </div>
                 <a href="{{ route('settings.edit') }}" class="btn btn-outline mb-2 w-full !border-slate-700 !text-slate-200 hover:!bg-slate-800" :class="{ '!px-2': sidebarCollapsed && !mobileOpen }">

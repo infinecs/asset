@@ -44,7 +44,7 @@
                             <select name="role" class="field-input" required>
                                 <option value="staff" {{ old('role', $user->role) == 'staff' ? 'selected' : '' }}>Staff</option>
                                 <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Admin</option>
-                                <option value="normal" {{ old('role', $user->role) == 'normal' ? 'selected' : '' }}>Normal</option>
+                                <option value="contingent_worker" {{ old('role', $user->role) == 'contingent_worker' ? 'selected' : '' }}>Contingent Worker</option>
                                 <option value="manager" {{ old('role', $user->role) == 'manager' ? 'selected' : '' }}>Manager</option>
                                 <option value="superadmin" {{ old('role', $user->role) == 'superadmin' ? 'selected' : '' }}>Super Admin</option>
                             </select>
