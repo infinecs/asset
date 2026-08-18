@@ -307,7 +307,12 @@ class AssetController extends Controller
                 'by' => $history->user?->name ?? 'System',
                 'notes' => $history->notes,
                 'changes' => $changes,
-                'icon' => $history->action == 'created' ? 'plus' : ($history->action == 'status_changed' ? 'arrow-repeat' : 'pencil'),
+                'icon' => match ($history->action) {
+                    'created' => 'plus',
+                    'status_changed' => 'arrow-repeat',
+                    'reclaimed' => 'box-arrow-in-left',
+                    default => 'pencil',
+                },
             ];
         })->sortByDesc('at')->take(15)->values();
 

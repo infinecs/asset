@@ -86,14 +86,25 @@
 
     <div class="lg:col-span-8">
         <!-- Assets Section -->
+        @php $canReclaim = auth()->user()->isAdmin() && $employee->status === 'resigned' && $employee->assets->isNotEmpty(); @endphp
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header flex items-center justify-between">
                 <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-laptop me-2 text-slate-400"></i>Assigned Assets ({{ $employee->assets->count() }})</h6>
+                @if($canReclaim)
+                <span class="badge badge-warning"><i class="bi bi-exclamation-triangle me-1"></i>Needs reclaim</span>
+                @endif
             </div>
+            @if($canReclaim)
+            <form method="POST" action="{{ route('employees.reclaim-assets', $employee) }}" onsubmit="return confirm('Reclaim the selected assets from {{ $employee->name }}?')">
+                @csrf
+            @endif
             <div class="overflow-x-auto">
                 <table class="table-clean">
                     <thead>
                         <tr>
+                            @if($canReclaim)
+                            <th class="w-8"><input type="checkbox" onclick="document.querySelectorAll('.reclaim-checkbox').forEach(c => c.checked = this.checked)" checked></th>
+                            @endif
                             <th>Asset Tag</th>
                             <th>Name</th>
                             <th>Category</th>
@@ -104,6 +115,9 @@
                     <tbody>
                         @forelse($employee->assets as $asset)
                         <tr>
+                            @if($canReclaim)
+                            <td><input type="checkbox" name="asset_ids[]" value="{{ $asset->id }}" class="reclaim-checkbox" checked></td>
+                            @endif
                             <td><code class="text-primary-600 dark:text-primary-400">{{ $asset->asset_tag ?? '-' }}</code></td>
                             <td class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->name }}</td>
                             <td class="text-slate-500 dark:text-slate-400">{{ $asset->category?->name ?? '-' }}</td>
@@ -112,7 +126,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="py-8 text-center text-slate-500 dark:text-slate-400">
+                            <td colspan="{{ $canReclaim ? 6 : 5 }}" class="py-8 text-center text-slate-500 dark:text-slate-400">
                                 <i class="bi bi-laptop mb-2 block text-2xl"></i>
                                 No assets assigned
                             </td>
@@ -121,6 +135,19 @@
                     </tbody>
                 </table>
             </div>
+            @if($canReclaim)
+                <div class="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400">Reclaim selected and set status to</span>
+                    <select name="status" class="field-input w-auto">
+                        <option value="available">Available</option>
+                        <option value="under_maintenance">Under Maintenance</option>
+                        <option value="retired">Retired</option>
+                        <option value="lost">Lost</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-box-arrow-in-left"></i>Reclaim Selected</button>
+                </div>
+            </form>
+            @endif
         </div>
 
         <!-- Assigned Digital Products -->

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Asset;
+use App\Models\AssetHistory;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Location;
@@ -174,6 +176,46 @@ class EmployeeController extends Controller
         }
 
         return redirect()->back()->with('success', 'Employee status updated.');
+    }
+
+    public function reclaimAssets(Request $request, Employee $employee)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'asset_ids' => 'required|array|min:1',
+            'asset_ids.*' => 'integer|exists:assets,id',
+            'status' => 'required|in:available,under_maintenance,retired,lost',
+        ]);
+
+        $assets = Asset::where('assigned_to', $employee->id)
+            ->whereIn('id', $validated['asset_ids'])
+            ->get();
+
+        foreach ($assets as $asset) {
+            $oldStatus = $asset->status;
+
+            $asset->update([
+                'assigned_to' => null,
+                'status' => $validated['status'],
+                'last_seen_at' => now(),
+            ]);
+
+            AssetHistory::create([
+                'asset_id' => $asset->id,
+                'user_id' => auth()->id(),
+                'action' => 'reclaimed',
+                'notes' => 'Reclaimed from ' . $employee->name . ' (' . $employee->status_label . ')',
+                'changes' => [
+                    'assigned_to' => ['old' => $employee->id, 'new' => null],
+                    'status' => ['old' => $oldStatus, 'new' => $validated['status']],
+                ],
+            ]);
+        }
+
+        return redirect()->route('employees.show', $employee)->with('success', $assets->count() . ' asset(s) reclaimed.');
     }
 
     public function destroy(Employee $employee)
