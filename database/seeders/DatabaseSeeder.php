@@ -35,6 +35,24 @@ class DatabaseSeeder extends Seeder
             'phone' => '+1-555-0101',
         ]);
 
+        User::create([
+            'name' => 'Outcome Super Admin',
+            'email' => 'superadmin@itasset.local',
+            'password' => Hash::make('password'),
+            'role' => 'superadmin',
+            'department' => 'IT Department',
+            'phone' => '+1-555-0103',
+        ]);
+
+        User::create([
+            'name' => 'Outcome Manager',
+            'email' => 'manager@itasset.local',
+            'password' => Hash::make('password'),
+            'role' => 'manager',
+            'department' => 'IT Department',
+            'phone' => '+1-555-0104',
+        ]);
+
         $users = collect([
             ['name' => 'Alice Johnson', 'email' => 'alice@itasset.local', 'department' => 'Finance'],
             ['name' => 'Bob Smith', 'email' => 'bob@itasset.local', 'department' => 'HR'],

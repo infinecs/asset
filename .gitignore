@@ -24,3 +24,5 @@ Thumbs.db
 /public/css/bootstrap.min.css
 /public/css/bootstrap-icons.min.css
 /public/css/fonts/
+/.claude
+*.zip

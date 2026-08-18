@@ -12,6 +12,8 @@ use App\Http\Controllers\DigitalProductController;
 use App\Http\Controllers\GiftCardController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\OutcomeAdminController;
+use App\Http\Controllers\OutcomeController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,28 @@ Route::middleware('auth')->group(function () {
     Route::resource('directory-contacts', DirectoryContactController::class)->except(['index', 'show']);
     Route::get('/settings', [UserController::class, 'settings'])->name('settings.edit');
     Route::put('/settings', [UserController::class, 'updateSettings'])->name('settings.update');
+
+    // Outcome Based (normal role)
+    Route::get('/outcome-based', [OutcomeController::class, 'index'])->name('outcome.index');
+    Route::post('/outcome-based', [OutcomeController::class, 'store'])->name('outcome.store');
+    Route::patch('/outcome-based/{outcomeTask}/toggle', [OutcomeController::class, 'toggle'])->name('outcome.toggle');
+
+    // Outcome Based admin (superadmin/manager only)
+    Route::prefix('outcome-based')->name('outcome.')->group(function () {
+        Route::get('/categories', [OutcomeAdminController::class, 'categories'])->name('categories.index');
+        Route::post('/categories', [OutcomeAdminController::class, 'storeCategory'])->name('categories.store');
+        Route::patch('/categories/{outcomeCategory}', [OutcomeAdminController::class, 'updateCategory'])->name('categories.update');
+        Route::delete('/categories/{outcomeCategory}', [OutcomeAdminController::class, 'destroyCategory'])->name('categories.destroy');
+
+        Route::get('/departments', [OutcomeAdminController::class, 'departments'])->name('departments.index');
+        Route::post('/departments', [OutcomeAdminController::class, 'storeDepartment'])->name('departments.store');
+        Route::patch('/departments/{outcomeDepartment}', [OutcomeAdminController::class, 'updateDepartment'])->name('departments.update');
+        Route::delete('/departments/{outcomeDepartment}', [OutcomeAdminController::class, 'destroyDepartment'])->name('departments.destroy');
+
+        Route::get('/report', [OutcomeAdminController::class, 'report'])->name('report');
+        Route::get('/summary', [OutcomeAdminController::class, 'summary'])->name('summary');
+        Route::get('/summary/export', [OutcomeAdminController::class, 'exportSummary'])->name('summary.export');
+    });
 
     // Assets
     Route::get('/assets/export', [AssetController::class, 'export'])->name('assets.export');

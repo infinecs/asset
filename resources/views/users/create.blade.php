@@ -34,6 +34,9 @@
                             <select name="role" class="field-input" required>
                                 <option value="staff" {{ old('role') == 'staff' ? 'selected' : '' }}>Staff</option>
                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                                <option value="normal" {{ old('role') == 'normal' ? 'selected' : '' }}>Normal</option>
+                                <option value="manager" {{ old('role') == 'manager' ? 'selected' : '' }}>Manager</option>
+                                <option value="superadmin" {{ old('role') == 'superadmin' ? 'selected' : '' }}>Super Admin</option>
                             </select>
                         </div>
                         <div>

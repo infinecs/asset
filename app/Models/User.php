@@ -34,11 +34,31 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return in_array($this->role, ['admin', 'superadmin'], true);
     }
 
     public function isStaff(): bool
     {
-        return $this->role === 'admin';
+        return in_array($this->role, ['admin', 'superadmin'], true);
+    }
+
+    public function isNormal(): bool
+    {
+        return $this->role === 'normal';
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'superadmin';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    public function canManageOutcome(): bool
+    {
+        return in_array($this->role, ['superadmin', 'manager'], true);
     }
 }

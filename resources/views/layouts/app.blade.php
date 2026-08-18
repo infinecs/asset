@@ -49,6 +49,15 @@
             </div>
 
             <div class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-3">
+                @if(auth()->user()->isNormal())
+                <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Main</div>
+                <a href="{{ route('outcome.index') }}" class="sidebar-link {{ request()->routeIs('outcome.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-check2-square"></i><span x-show="!sidebarCollapsed || mobileOpen">Outcome Based</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Outcome Based</span>
+                </a>
+                @elseif(auth()->user()->isManager())
+                @include('outcome.admin._sidebar-links')
+                @else
                 <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Main</div>
                 <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
                     <i class="bi bi-speedometer2"></i><span x-show="!sidebarCollapsed || mobileOpen">Dashboard</span>
@@ -115,6 +124,11 @@
                     <i class="bi bi-people"></i><span x-show="!sidebarCollapsed || mobileOpen">Users</span>
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Users</span>
                 </a>
+                @endif
+
+                @if(auth()->user()->canManageOutcome())
+                @include('outcome.admin._sidebar-links')
+                @endif
                 @endif
             </div>
 

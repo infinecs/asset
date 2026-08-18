@@ -24,6 +24,9 @@
                     <option value="">All Roles</option>
                     <option value="admin" {{ request('role') === 'admin' ? 'selected' : '' }}>Admin</option>
                     <option value="staff" {{ request('role') === 'staff' ? 'selected' : '' }}>Staff</option>
+                    <option value="normal" {{ request('role') === 'normal' ? 'selected' : '' }}>Normal</option>
+                    <option value="manager" {{ request('role') === 'manager' ? 'selected' : '' }}>Manager</option>
+                    <option value="superadmin" {{ request('role') === 'superadmin' ? 'selected' : '' }}>Super Admin</option>
                 </select>
             </div>
             <div class="md:col-span-2">
@@ -62,8 +65,16 @@
                     </td>
                     <td class="text-slate-500 dark:text-slate-400">{{ $user->email }}</td>
                     <td>
-                        <span class="badge badge-{{ $user->role == 'admin' ? 'danger' : 'warning' }}">
-                            {{ ucfirst($user->role) }}
+                        @php
+                            $roleBadge = match($user->role) {
+                                'admin', 'superadmin' => 'danger',
+                                'manager' => 'primary',
+                                'normal' => 'secondary',
+                                default => 'warning',
+                            };
+                        @endphp
+                        <span class="badge badge-{{ $roleBadge }}">
+                            {{ $user->role === 'superadmin' ? 'Super Admin' : ucfirst($user->role) }}
                         </span>
                     </td>
                     <td class="text-slate-500 dark:text-slate-400">{{ $user->department ?? '-' }}</td>
