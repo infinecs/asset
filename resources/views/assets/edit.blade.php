@@ -29,9 +29,10 @@
                             elseif (str_starts_with($asset->asset_tag, 'ISSBS')) $currentType = 'smartphone';
                             elseif (str_starts_with($asset->asset_tag, 'ISSBT')) $currentType = 'tablet';
                             elseif (str_starts_with($asset->asset_tag, 'ISSBM')) $currentType = 'monitor';
+                            elseif (str_starts_with($asset->asset_tag, 'ISSBP')) $currentType = 'speakerphone';
                             else                                                    $currentType = 'laptop';
                         }
-                        $editPrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT','monitor'=>'ISSBM'];
+                        $editPrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT','monitor'=>'ISSBM','speakerphone'=>'ISSBP'];
                         $currentPrefix = $editPrefixMap[$currentType] ?? 'ISSBL';
                         $currentSuffix = old('asset_tag_suffix', Str::after($asset->asset_tag, $currentPrefix));
                     @endphp
@@ -44,6 +45,7 @@
                                 <option value="smartphone" {{ $currentType === 'smartphone' ? 'selected' : '' }}>Smartphone</option>
                                 <option value="tablet"     {{ $currentType === 'tablet'     ? 'selected' : '' }}>Tablet</option>
                                 <option value="monitor"    {{ $currentType === 'monitor'    ? 'selected' : '' }}>Monitor</option>
+                                <option value="speakerphone" {{ $currentType === 'speakerphone' ? 'selected' : '' }}>Speakerphone</option>
                             </select>
                             @error('type')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
@@ -312,19 +314,21 @@
         const categorySelect = document.getElementById('asset_category');
 
         const prefixMap = {
-            laptop:     'ISSBL',
-            desktop:    'ISSBD',
-            smartphone: 'ISSBS',
-            tablet:     'ISSBT',
-            monitor:    'ISSBM',
+            laptop:       'ISSBL',
+            desktop:      'ISSBD',
+            smartphone:   'ISSBS',
+            tablet:       'ISSBT',
+            monitor:      'ISSBM',
+            speakerphone: 'ISSBP',
         };
 
         const categoryMap = {
-            laptop:     'Laptop',
-            desktop:    'Desktop',
-            smartphone: 'Mobile Device',
-            tablet:     'Mobile Device',
-            monitor:    'Monitor',
+            laptop:       'Laptop',
+            desktop:      'Desktop',
+            smartphone:   'Mobile Device',
+            tablet:       'Mobile Device',
+            monitor:      'Monitor',
+            speakerphone: 'Peripherals',
         };
 
         typeSelect.addEventListener('change', function () {

@@ -23,6 +23,7 @@
                                 <option value="smartphone" {{ old('type') === 'smartphone' ? 'selected' : '' }}>Smartphone</option>
                                 <option value="tablet"     {{ old('type') === 'tablet'     ? 'selected' : '' }}>Tablet</option>
                                 <option value="monitor"    {{ old('type') === 'monitor'    ? 'selected' : '' }}>Monitor</option>
+                                <option value="speakerphone" {{ old('type') === 'speakerphone' ? 'selected' : '' }}>Speakerphone</option>
                             </select>
                             @error('type')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
@@ -30,7 +31,7 @@
                             <label class="field-label">Asset Tag <span class="text-red-500">*</span></label>
                             <div class="flex">
                                 @php
-                                    $newTypePrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT','monitor'=>'ISSBM'];
+                                    $newTypePrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT','monitor'=>'ISSBM','speakerphone'=>'ISSBP'];
                                 @endphp
                                 <span id="asset_tag_prefix" class="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $newTypePrefixMap[old('type')] ?? '—' }}</span>
                                 <input type="text" id="asset_tag_suffix" name="asset_tag_suffix"
@@ -265,27 +266,30 @@
         const categorySelect = document.getElementById('asset_category');
 
         const prefixMap = {
-            laptop:     'ISSBL',
-            desktop:    'ISSBD',
-            smartphone: 'ISSBS',
-            tablet:     'ISSBT',
-            monitor:    'ISSBM',
+            laptop:       'ISSBL',
+            desktop:      'ISSBD',
+            smartphone:   'ISSBS',
+            tablet:       'ISSBT',
+            monitor:      'ISSBM',
+            speakerphone: 'ISSBP',
         };
 
         const categoryMap = {
-            laptop:     'Laptop',
-            desktop:    'Desktop',
-            smartphone: 'Mobile Device',
-            tablet:     'Mobile Device',
-            monitor:    'Monitor',
+            laptop:       'Laptop',
+            desktop:      'Desktop',
+            smartphone:   'Mobile Device',
+            tablet:       'Mobile Device',
+            monitor:      'Monitor',
+            speakerphone: 'Peripherals',
         };
 
         const nameLabelMap = {
-            laptop:     '',
-            desktop:    'Desktop',
-            smartphone: 'Smartphone',
-            tablet:     'Tablet',
-            monitor:    'Monitor',
+            laptop:       '',
+            desktop:      'Desktop',
+            smartphone:   'Smartphone',
+            tablet:       'Tablet',
+            monitor:      'Monitor',
+            speakerphone: 'Speakerphone',
         };
 
         function updateAssetName() {

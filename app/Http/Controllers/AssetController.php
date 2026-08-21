@@ -178,16 +178,17 @@ class AssetController extends Controller
         }
 
         $typePrefix = match($request->input('type')) {
-            'desktop'    => 'ISSBD',
-            'smartphone' => 'ISSBS',
-            'tablet'     => 'ISSBT',
-            'monitor'    => 'ISSBM',
-            default      => 'ISSBL',
+            'desktop'      => 'ISSBD',
+            'smartphone'   => 'ISSBS',
+            'tablet'       => 'ISSBT',
+            'monitor'      => 'ISSBM',
+            'speakerphone' => 'ISSBP',
+            default        => 'ISSBL',
         };
         $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
 
         $validated = $request->validate([
-            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor',
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor,speakerphone',
             'asset_tag' => 'required|string|max:255|unique:assets,asset_tag',
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
@@ -353,16 +354,17 @@ class AssetController extends Controller
         }
 
         $typePrefix = match($request->input('type')) {
-            'desktop'    => 'ISSBD',
-            'smartphone' => 'ISSBS',
-            'tablet'     => 'ISSBT',
-            'monitor'    => 'ISSBM',
-            default      => 'ISSBL',
+            'desktop'      => 'ISSBD',
+            'smartphone'   => 'ISSBS',
+            'tablet'       => 'ISSBT',
+            'monitor'      => 'ISSBM',
+            'speakerphone' => 'ISSBP',
+            default        => 'ISSBL',
         };
         $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
 
         $validated = $request->validate([
-            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor',
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor,speakerphone',
             'asset_tag' => 'required|string|max:255|unique:assets,asset_tag,' . $asset->id,
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
