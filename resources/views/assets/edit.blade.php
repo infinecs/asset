@@ -94,6 +94,10 @@
                             <input type="text" name="serial_number" class="field-input" value="{{ old('serial_number', $asset->serial_number) }}">
                         </div>
                         <div>
+                            <label class="field-label">Service Tag <span class="text-slate-400 font-normal">(optional)</span></label>
+                            <input type="text" name="service_tag" class="field-input" value="{{ old('service_tag', $asset->service_tag) }}" placeholder="e.g. Dell Service Tag">
+                        </div>
+                        <div>
                             <label class="field-label">Category</label>
                             <select id="asset_category" name="category_id" class="field-input">
                                 <option value="">Select Category</option>
@@ -262,19 +266,6 @@
                             @endif
                             <input type="file" name="photo" class="field-input @error('photo') is-invalid @enderror" accept="image/*">
                             @error('photo')<p class="field-error">{{ $message }}</p>@enderror
-                        </div>
-                        <div class="sm:col-span-2 lg:col-span-3">
-                            <label class="field-label">Signed Document</label>
-                            @if($asset->signed_document_path)
-                            <div class="mb-2">
-                                <a href="{{ asset('storage/' . $asset->signed_document_path) }}" target="_blank" class="text-sm text-primary-600 hover:underline dark:text-primary-400">
-                                    <i class="bi bi-file-earmark-text"></i> View current document
-                                </a>
-                            </div>
-                            @endif
-                            <input type="file" name="signed_document" class="field-input @error('signed_document') is-invalid @enderror" accept=".pdf,.doc,.docx">
-                            <p class="field-hint">Signed handover/acceptance document (PDF or Word, max 10MB). Uploading a new file replaces the current one.</p>
-                            @error('signed_document')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
                         <div class="sm:col-span-2 lg:col-span-3">
                             <label class="field-label">Notes</label>

@@ -23,7 +23,7 @@
 </div>
 
 <!-- Filters -->
-<div class="card mb-6" x-data="{ advanced: {{ request()->hasAny(['cpu','ram','storage','display']) ? 'true' : 'false' }} }">
+<div class="card mb-6" x-data="{ advanced: {{ request()->hasAny(['cpu','ram','storage','display','agreement']) ? 'true' : 'false' }} }">
     <div class="card-body">
         <form method="GET" class="grid grid-cols-1 gap-3 md:grid-cols-12">
             <div class="md:col-span-4">
@@ -67,7 +67,7 @@
             <div class="md:col-span-12">
                 <button type="button" class="btn btn-sm btn-outline" @click="advanced = !advanced">
                     <i class="bi bi-sliders"></i> Advanced Filter
-                    @if(request()->hasAny(['cpu','ram','storage','display']))
+                    @if(request()->hasAny(['cpu','ram','storage','display','agreement']))
                     <span class="badge badge-primary">active</span>
                     @endif
                 </button>
@@ -112,6 +112,19 @@
                                 @foreach($filterDisplays as $opt)
                                 <option value="{{ $opt }}" {{ request('display') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
                                 @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <p class="mb-2 mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400"><i class="bi bi-file-earmark-text me-1"></i>Assignment Agreement</p>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="field-label">Agreement Status</label>
+                            <select name="agreement" class="field-input">
+                                <option value="">All</option>
+                                <option value="not_sent" {{ request('agreement') === 'not_sent' ? 'selected' : '' }}>Not Sent Yet</option>
+                                <option value="pending" {{ request('agreement') === 'pending' ? 'selected' : '' }}>Pending Signature</option>
+                                <option value="signed" {{ request('agreement') === 'signed' ? 'selected' : '' }}>Signed</option>
                             </select>
                         </div>
                     </div>
@@ -213,6 +226,20 @@
                             <a href="{{ route('assets.edit', $asset) }}?return={{ $returnTo }}" class="btn btn-sm btn-outline btn-icon" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            @if($asset->assigned_to)
+                                @if($asset->agreement_signed_at)
+                                <a href="{{ route('agreements.show', $asset->agreement_token) }}" target="_blank" class="btn btn-sm btn-outline-primary btn-icon text-green-600" title="View / print document — signed on {{ $asset->agreement_signed_at->format('d M Y') }}">
+                                    <i class="bi bi-check2-circle"></i>
+                                </a>
+                                @else
+                                <form method="POST" action="{{ route('assets.agreement.send', $asset) }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline-primary btn-icon" title="{{ $asset->agreement_sent_at ? 'Resend agreement (pending signature)' : 'Send agreement to sign' }}">
+                                        <i class="bi {{ $asset->agreement_sent_at ? 'bi-hourglass-split' : 'bi-envelope' }}"></i>
+                                    </button>
+                                </form>
+                                @endif
+                            @endif
                             @endif
                         </div>
                     </td>

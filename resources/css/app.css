@@ -23,6 +23,9 @@
 @layer base {
     [x-cloak] { display: none !important; }
 
+    :root { color-scheme: light; }
+    .dark { color-scheme: dark; }
+
     body {
         @apply bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200;
     }
@@ -103,15 +106,22 @@
     .alert-danger { @apply border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300; }
 
     /* Tom Select (searchable dropdown) */
-    .ts-wrapper.single .ts-control {
+    .ts-wrapper.single .ts-control,
+    .ts-wrapper.single.input-active .ts-control {
         @apply flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100;
         min-height: 2.375rem;
+        background-image: none !important;
     }
-    .ts-wrapper .ts-control { @apply !border-slate-300 dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-100; }
+    .ts-wrapper .ts-control { @apply !border-slate-300 dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-100; background-image: none !important; }
+    .ts-wrapper .ts-control input { @apply dark:!text-slate-100; }
+    .ts-wrapper .ts-control .item { @apply dark:!text-slate-100; }
     .ts-wrapper.focus .ts-control { @apply !border-primary-500 !ring-1 !ring-primary-500; }
     .ts-wrapper.multi .ts-control { @apply rounded-lg; }
     .ts-wrapper.multi .ts-control .item { @apply !rounded-md !bg-primary-100 !text-primary-700 dark:!bg-primary-900/40 dark:!text-primary-300; }
-    .ts-dropdown { @apply !border-slate-200 !text-slate-800 dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-100; }
-    .ts-dropdown .active { @apply !bg-primary-50 dark:!bg-primary-900/40; }
-    .ts-dropdown .optgroup-header { @apply !text-slate-500 dark:!text-slate-400; }
+    .ts-dropdown { @apply !border-slate-200 !bg-white !text-slate-800 dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-100; }
+    .ts-dropdown .ts-dropdown-content { @apply dark:!bg-slate-900; }
+    .ts-dropdown [data-selectable] { @apply dark:!text-slate-100; }
+    .ts-dropdown .active { @apply !bg-primary-50 !text-primary-700 dark:!bg-primary-900/40 dark:!text-primary-200; }
+    .ts-dropdown .optgroup-header { @apply !bg-white !text-slate-500 dark:!bg-slate-900 dark:!text-slate-400; }
+    .ts-dropdown .no-results { @apply dark:!text-slate-400; }
 }

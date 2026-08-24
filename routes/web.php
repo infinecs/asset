@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AssetAgreementController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\Auth\LoginController;
@@ -25,6 +26,10 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Public asset agreement e-signature (no login required — accessed via emailed link)
+Route::get('/agreements/{token}', [AssetAgreementController::class, 'show'])->name('agreements.show');
+Route::post('/agreements/{token}', [AssetAgreementController::class, 'store'])->name('agreements.store');
 
 // Authenticated routes
 Route::middleware('auth')->group(function () {
@@ -62,6 +67,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/assets/live', [AssetController::class, 'live'])->name('assets.live');
     Route::get('/assets/{asset}/label', [AssetController::class, 'label'])->name('assets.label');
     Route::patch('/assets/{asset}/status', [AssetController::class, 'updateStatus'])->name('assets.update-status');
+    Route::post('/assets/{asset}/agreement/send', [AssetController::class, 'sendAgreement'])->name('assets.agreement.send');
     Route::delete('/assets/bulk-delete', [AssetController::class, 'bulkDestroy'])->name('assets.bulk-destroy');
     Route::delete('/assets/delete-all', [AssetController::class, 'destroyAll'])->name('assets.destroy-all');
     Route::resource('assets', AssetController::class);

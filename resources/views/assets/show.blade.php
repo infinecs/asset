@@ -43,6 +43,10 @@
                         <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->serial_number ?? '-' }}</div>
                     </div>
                     <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Service Tag</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->service_tag ?? '-' }}</div>
+                    </div>
+                    <div>
                         <label class="text-sm text-slate-500 dark:text-slate-400">Brand</label>
                         <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->brand_label }}</div>
                     </div>
@@ -169,21 +173,49 @@
             </div>
         </div>
 
-        <!-- Signed Document -->
+        <!-- Assignment Agreement -->
+        @if(auth()->user()->isStaff())
         <div class="card mb-4">
             <div class="card-header">
-                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Signed Document</h6>
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Assignment Agreement</h6>
             </div>
-            <div class="card-body text-center">
-                @if($asset->signed_document_path)
-                <a href="{{ asset('storage/' . $asset->signed_document_path) }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-file-earmark-text"></i>View / Download
+            <div class="card-body">
+                @if(!$asset->assigned_to)
+                <div class="py-4 text-center text-sm text-slate-400">Assign this asset to an employee to send an e-signature agreement.</div>
+                @elseif($asset->agreement_signed_at)
+                <div class="mb-3 flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <i class="bi bi-check2-circle"></i>
+                    Signed by {{ $asset->agreement_signed_name }} on {{ $asset->agreement_signed_at->format('d M Y, h:i A') }}
+                </div>
+                @if($asset->agreement_signature_path)
+                <img src="{{ asset('storage/' . $asset->agreement_signature_path) }}" alt="Signature" class="mb-3 max-h-20 rounded border border-slate-200 bg-white p-2 dark:border-slate-700">
+                @endif
+                <a href="{{ route('agreements.show', $asset->agreement_token) }}" target="_blank" class="btn btn-outline-primary btn-sm w-full mb-2">
+                    <i class="bi bi-file-earmark-text"></i>View / Print / Download Document
                 </a>
+                <form method="POST" action="{{ route('assets.agreement.send', $asset) }}" onsubmit="return confirm('Send a new agreement to sign? This will replace the current signed agreement.')">
+                    @csrf
+                    <button class="btn btn-outline btn-sm w-full">
+                        <i class="bi bi-envelope"></i>Send New Agreement
+                    </button>
+                </form>
                 @else
-                <div class="py-8 text-sm text-slate-400">No document uploaded.</div>
+                @if($asset->agreement_sent_at)
+                <div class="mb-3 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                    <i class="bi bi-hourglass-split"></i>
+                    Pending signature — sent {{ $asset->agreement_sent_at->diffForHumans() }}
+                </div>
+                @endif
+                <form method="POST" action="{{ route('assets.agreement.send', $asset) }}">
+                    @csrf
+                    <button class="btn btn-primary btn-sm w-full">
+                        <i class="bi bi-envelope"></i>{{ $asset->agreement_sent_at ? 'Resend Agreement' : 'Send Agreement to Sign' }}
+                    </button>
+                </form>
                 @endif
             </div>
         </div>
+        @endif
 
         <!-- Quick Status Update -->
         @if(auth()->user()->isStaff())

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AssetAgreementMail;
 use App\Models\Asset;
 use App\Models\AssetHistory;
 use App\Models\Brand;
@@ -10,6 +11,7 @@ use App\Models\Location;
 use App\Models\Employee;
 use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -30,6 +32,7 @@ class AssetController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('asset_tag', 'like', "%{$search}%")
                   ->orWhere('serial_number', 'like', "%{$search}%")
+                  ->orWhere('service_tag', 'like', "%{$search}%")
                   ->orWhere('brand', 'like', "%{$search}%")
                                     ->orWhere('model', 'like', "%{$search}%")
                                     ->orWhereHas('brand', function ($brandQuery) use ($search) {
@@ -64,6 +67,20 @@ class AssetController extends Controller
 
         if ($request->filled('display')) {
             $query->where('display', $request->display);
+        }
+
+        if ($request->filled('agreement')) {
+            switch ($request->agreement) {
+                case 'not_sent':
+                    $query->whereNotNull('assigned_to')->whereNull('agreement_sent_at');
+                    break;
+                case 'pending':
+                    $query->whereNotNull('agreement_sent_at')->whereNull('agreement_signed_at');
+                    break;
+                case 'signed':
+                    $query->whereNotNull('agreement_signed_at');
+                    break;
+            }
         }
 
         $sortable = ['asset_tag', 'name', 'category', 'location', 'assigned_to', 'status', 'last_seen_at'];
@@ -123,7 +140,7 @@ class AssetController extends Controller
         $callback = function () use ($assets) {
             $h = fopen('php://output', 'w');
             fputcsv($h, [
-                'Asset Tag', 'Name', 'Type', 'Brand', 'Model', 'Serial Number',
+                'Asset Tag', 'Name', 'Type', 'Brand', 'Model', 'Serial Number', 'Service Tag',
                 'Category', 'Location', 'Assigned To', 'Status',
                 'CPU', 'RAM', 'Storage', 'Display',
                 'Purchase Date', 'Purchase Cost', 'Warranty Expiry', 'Last Seen',
@@ -137,6 +154,7 @@ class AssetController extends Controller
                     $asset->brand_label,
                     $asset->model,
                     $asset->serial_number,
+                    $asset->service_tag,
                     $asset->category?->name,
                     $asset->location?->name,
                     $asset->assignedEmployee?->name,
@@ -195,6 +213,7 @@ class AssetController extends Controller
             'brand' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'serial_number' => 'nullable|string|max:255',
+            'service_tag' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
             'assigned_to' => 'nullable|exists:employees,id',
@@ -204,7 +223,6 @@ class AssetController extends Controller
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
-            'signed_document' => 'nullable|mimes:pdf,doc,docx|max:10240',
             'cpu' => 'nullable|string|max:100',
             'ram' => 'nullable|string|max:50',
             'storage' => 'nullable|string|max:100',
@@ -217,10 +235,6 @@ class AssetController extends Controller
 
         if ($request->hasFile('photo')) {
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
-        }
-
-        if ($request->hasFile('signed_document')) {
-            $validated['signed_document_path'] = $request->file('signed_document')->store('assets/documents', 'public');
         }
 
         $asset = Asset::create($validated);
@@ -259,7 +273,7 @@ class AssetController extends Controller
 
         $activityTimeline = $asset->histories->map(function ($history) use ($relationNameMaps, $dateFields) {
             $changes = collect($history->changes ?? [])
-                ->reject(fn ($change, $field) => in_array($field, ['photo', 'signed_document'], true))
+                ->reject(fn ($change, $field) => $field === 'photo')
                 ->map(function ($change, $field) use ($relationNameMaps, $dateFields) {
                     $old = $change['old'] ?? null;
                     $new = $change['new'] ?? null;
@@ -280,7 +294,7 @@ class AssetController extends Controller
                     } elseif (in_array($field, $dateFields, true)) {
                         $old = $old ? \Carbon\Carbon::parse($old)->format('M d, Y') : null;
                         $new = $new ? \Carbon\Carbon::parse($new)->format('M d, Y') : null;
-                    } elseif (in_array($field, ['photo_path', 'signed_document_path'], true)) {
+                    } elseif ($field === 'photo_path') {
                         $old = $old ? basename($old) : null;
                         $new = $new ? basename($new) : null;
                     }
@@ -291,7 +305,6 @@ class AssetController extends Controller
                         'brand_id' => 'Brand',
                         'assigned_to' => 'Assigned To',
                         'photo_path' => 'Photo',
-                        'signed_document_path' => 'Signed Document',
                     ];
 
                     return [
@@ -312,6 +325,8 @@ class AssetController extends Controller
                     'created' => 'plus',
                     'status_changed' => 'arrow-repeat',
                     'reclaimed' => 'box-arrow-in-left',
+                    'agreement_sent' => 'envelope',
+                    'agreement_signed' => 'check2-circle',
                     default => 'pencil',
                 },
             ];
@@ -371,6 +386,7 @@ class AssetController extends Controller
             'brand' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'serial_number' => 'nullable|string|max:255',
+            'service_tag' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
             'assigned_to' => 'nullable|exists:employees,id',
@@ -381,7 +397,6 @@ class AssetController extends Controller
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
-            'signed_document' => 'nullable|mimes:pdf,doc,docx|max:10240',
             'cpu' => 'nullable|string|max:100',
             'ram' => 'nullable|string|max:50',
             'storage' => 'nullable|string|max:100',
@@ -402,17 +417,18 @@ class AssetController extends Controller
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
         }
 
-        if ($request->hasFile('signed_document')) {
-            if ($asset->signed_document_path && Storage::disk('public')->exists($asset->signed_document_path)) {
-                Storage::disk('public')->delete($asset->signed_document_path);
-            }
-            $validated['signed_document_path'] = $request->file('signed_document')->store('assets/documents', 'public');
-        }
-
-        foreach (collect($validated)->except(['photo', 'signed_document']) as $key => $value) {
+        foreach (collect($validated)->except(['photo']) as $key => $value) {
             if ($asset->$key != $value) {
                 $changes[$key] = ['old' => $asset->$key, 'new' => $value];
             }
+        }
+
+        if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] != $asset->assigned_to) {
+            $validated['agreement_token'] = null;
+            $validated['agreement_sent_at'] = null;
+            $validated['agreement_signed_at'] = null;
+            $validated['agreement_signature_path'] = null;
+            $validated['agreement_signed_name'] = null;
         }
 
         $asset->update($validated);
@@ -444,10 +460,6 @@ class AssetController extends Controller
 
         if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
             Storage::disk('public')->delete($asset->photo_path);
-        }
-
-        if ($asset->signed_document_path && Storage::disk('public')->exists($asset->signed_document_path)) {
-            Storage::disk('public')->delete($asset->signed_document_path);
         }
 
         $asset->delete();
@@ -511,6 +523,40 @@ class AssetController extends Controller
         }
 
         return redirect()->route('assets.show', $asset)->with('success', 'Asset status updated.');
+    }
+
+    public function sendAgreement(Asset $asset)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        if (!$asset->assigned_to || !$asset->assignedEmployee) {
+            return redirect()->back()->with('error', 'Assign this asset to an employee before sending an agreement.');
+        }
+
+        if (!$asset->assignedEmployee->email) {
+            return redirect()->back()->with('error', 'The assigned employee has no email address on file.');
+        }
+
+        $asset->update([
+            'agreement_token' => Str::random(48),
+            'agreement_sent_at' => now(),
+            'agreement_signed_at' => null,
+            'agreement_signature_path' => null,
+            'agreement_signed_name' => null,
+        ]);
+
+        Mail::to($asset->assignedEmployee->email)->send(new AssetAgreementMail($asset));
+
+        AssetHistory::create([
+            'asset_id' => $asset->id,
+            'user_id' => auth()->id(),
+            'action' => 'agreement_sent',
+            'notes' => 'Agreement sent to ' . $asset->assignedEmployee->name . ' for e-signature',
+        ]);
+
+        return redirect()->back()->with('success', 'Agreement sent to ' . $asset->assignedEmployee->name . ' for signature.');
     }
 
     public function live()
