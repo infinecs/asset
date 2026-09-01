@@ -233,6 +233,11 @@ class AssetController extends Controller
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
         }
 
+        // Assigning an employee to an available asset marks it as in use.
+        if (!empty($validated['assigned_to']) && $validated['status'] === 'available') {
+            $validated['status'] = 'in_use';
+        }
+
         if ($request->hasFile('photo')) {
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
         }
@@ -408,6 +413,15 @@ class AssetController extends Controller
         $validated['brand'] = null;
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
+        }
+
+        // Keep status in sync with assignment: assigning an employee to an available
+        // asset marks it in use; clearing the assignment frees it back to available.
+        $newAssignedTo = $validated['assigned_to'] ?? null;
+        if ($newAssignedTo && $validated['status'] === 'available') {
+            $validated['status'] = 'in_use';
+        } elseif (!$newAssignedTo && $validated['status'] === 'in_use') {
+            $validated['status'] = 'available';
         }
 
         if ($request->hasFile('photo')) {
