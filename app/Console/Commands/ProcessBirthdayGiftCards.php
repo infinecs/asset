@@ -72,7 +72,12 @@ class ProcessBirthdayGiftCards extends Command
             $hasCode = filled($giftCard->gift_card_code);
 
             if ($daysUntil === 0 && $hasCode) {
-                Mail::to($employee->email)->send(new BirthdayGiftCardMail($employee, $giftCard));
+                $picEmails = $pics->pluck('email')->filter()->values()->all();
+                $mail = Mail::to($employee->email);
+                if (!empty($picEmails)) {
+                    $mail->cc($picEmails);
+                }
+                $mail->send(new BirthdayGiftCardMail($employee, $giftCard));
                 $giftCard->status = 'sent';
                 $giftCard->sent_at = now();
                 $giftCard->save();
