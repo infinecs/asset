@@ -7,7 +7,7 @@
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div>
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Organization Directory</h5>
-        <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">Centralized internal contact list for all staff</p>
+        <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">Centralized internal contact list — system users, employees, and additional contacts</p>
     </div>
     @if(auth()->user()->isAdmin())
     <a href="{{ route('directory-contacts.create') }}" class="btn btn-primary">
@@ -42,44 +42,50 @@
 </div>
 
 <div class="card">
+    <div class="card-header">
+        <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">People</h6>
+        <span class="text-sm text-slate-500 dark:text-slate-400">System users & employees</span>
+    </div>
     <div class="overflow-x-auto">
         <table class="table-clean">
             <thead>
                 <tr>
-                    <th>Name (System User)</th>
+                    <th>Name</th>
                     <th>Email</th>
-                    <th>Department</th>
+                    <th>Department / Location</th>
                     <th>Phone</th>
-                    <th>Role</th>
+                    <th>Source</th>
                     <th class="text-right">Action</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($users as $user)
+                @forelse($directory as $entry)
                 <tr>
                     <td>
                         <div class="flex items-center gap-2">
                             <div class="flex items-center justify-center rounded-full bg-primary-600" style="width:30px;height:30px;">
-                                <span class="text-xs font-bold text-white">{{ substr($user->name, 0, 1) }}</span>
+                                <span class="text-xs font-bold text-white">{{ strtoupper(substr($entry['name'], 0, 1)) }}</span>
                             </div>
                             <div>
-                                <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $user->name }}</div>
-                                @if($user->id === auth()->id())
+                                <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $entry['name'] }}</div>
+                                @if($entry['is_you'])
                                 <div class="text-xs text-slate-500 dark:text-slate-400">You</div>
                                 @endif
                             </div>
                         </div>
                     </td>
-                    <td>{{ $user->email }}</td>
-                    <td>{{ $user->department ?? '-' }}</td>
-                    <td>{{ $user->phone ?? '-' }}</td>
+                    <td>{{ $entry['email'] }}</td>
+                    <td>{{ $entry['meta'] }}</td>
+                    <td>{{ $entry['phone'] }}</td>
                     <td>
-                        <span class="badge badge-{{ $user->role === 'admin' ? 'danger' : 'warning' }}">{{ $user->roleLabel() }}</span>
+                        <span class="badge badge-{{ $entry['badge_class'] }}">{{ $entry['badge_label'] }}</span>
                     </td>
                     <td class="text-right">
-                        <button type="button" class="btn btn-sm btn-outline copy-email-btn" data-email="{{ $user->email }}" title="Copy email">
+                        @if($entry['email'] !== '-')
+                        <button type="button" class="btn btn-sm btn-outline copy-email-btn" data-email="{{ $entry['email'] }}" title="Copy email">
                             <i class="bi bi-clipboard"></i>Copy Email
                         </button>
+                        @endif
                     </td>
                 </tr>
                 @empty
@@ -93,9 +99,9 @@
             </tbody>
         </table>
     </div>
-    @if($users->hasPages())
+    @if($directory->hasPages())
     <div class="card-footer">
-        {{ $users->links() }}
+        {{ $directory->links() }}
     </div>
     @endif
 </div>
@@ -103,7 +109,7 @@
 <div class="card mt-6">
     <div class="card-header">
         <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Additional Directory Contacts</h6>
-        <span class="text-sm text-slate-500 dark:text-slate-400">Non-user contacts</span>
+        <span class="text-sm text-slate-500 dark:text-slate-400">Distribution lists & non-individual contacts</span>
     </div>
     <div class="overflow-x-auto">
         <table class="table-clean">
