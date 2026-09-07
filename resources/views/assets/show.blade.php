@@ -143,6 +143,51 @@
             </div>
         </div>
         @endif
+
+        <!-- History -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-clock-history me-2 text-slate-400"></i>Activity History</h6>
+            </div>
+            <div class="card-body">
+                @forelse($activityTimeline as $activity)
+                <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/40">
+                            <i class="bi bi-{{ $activity->icon }} text-sm text-primary-600 dark:text-primary-400"></i>
+                        </div>
+                        @if(!$loop->last)
+                        <div class="mt-1 w-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                        @endif
+                    </div>
+                    <div class="min-w-0 flex-1 pb-5 last:pb-0">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $activity->title }}</div>
+                            <div class="text-xs text-slate-400 dark:text-slate-500">{{ $activity->at->diffForHumans() }}</div>
+                        </div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">by {{ $activity->by }}</div>
+                        @if($activity->notes)
+                        <div class="mt-1 text-sm text-slate-500 dark:text-slate-400 break-words">{{ $activity->notes }}</div>
+                        @endif
+                        @if(!empty($activity->changes))
+                        <div class="mt-2 space-y-1.5 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+                            @foreach($activity->changes as $change)
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                <span class="font-semibold text-slate-600 dark:text-slate-300">{{ $change['label'] }}:</span>
+                                <span class="text-slate-500 dark:text-slate-400">{{ $change['old'] }}</span>
+                                <i class="bi bi-arrow-right text-slate-400"></i>
+                                <span class="font-medium text-slate-700 dark:text-slate-200">{{ $change['new'] }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @empty
+                <div class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">No history</div>
+                @endforelse
+            </div>
+        </div>
     </div>
 
     <!-- Sidebar -->
@@ -246,43 +291,6 @@
             </div>
         </div>
         @endif
-
-        <!-- History -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Activity History</h6>
-            </div>
-            <div>
-                @forelse($activityTimeline as $activity)
-                <div class="flex gap-2 border-b border-slate-100 p-3 last:border-b-0 dark:border-slate-800">
-                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/40">
-                        <i class="bi bi-{{ $activity->icon }} text-sm text-slate-500 dark:text-slate-400"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $activity->title }}</div>
-                        <div class="text-xs text-slate-500 dark:text-slate-400">
-                            {{ $activity->by }} · {{ $activity->at->diffForHumans() }}
-                        </div>
-                        @if($activity->notes)
-                        <div class="text-sm text-slate-500 dark:text-slate-400 break-words">{{ $activity->notes }}</div>
-                        @endif
-                        @if(!empty($activity->changes))
-                        <ul class="mt-1 list-none space-y-0.5 p-0">
-                            @foreach($activity->changes as $change)
-                            <li class="text-xs text-slate-500 dark:text-slate-400 break-words">
-                                <span class="font-semibold">{{ $change['label'] }}:</span>
-                                {{ $change['old'] }} <i class="bi bi-arrow-right mx-1"></i> {{ $change['new'] }}
-                            </li>
-                            @endforeach
-                        </ul>
-                        @endif
-                    </div>
-                </div>
-                @empty
-                <div class="p-4 text-center text-sm text-slate-500 dark:text-slate-400">No history</div>
-                @endforelse
-            </div>
-        </div>
     </div>
 </div>
 @endsection
