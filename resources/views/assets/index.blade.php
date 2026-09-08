@@ -140,7 +140,7 @@
     <div class="card-header">
         <span class="text-sm text-slate-500 dark:text-slate-400"><span data-bulk-count>0</span> selected</span>
         <div class="flex gap-2">
-            <form method="POST" action="{{ route('assets.bulk-destroy') }}" data-bulk-form onsubmit="return confirm('Delete selected assets?')">
+            <form method="POST" action="{{ route('assets.bulk-destroy') }}" data-bulk-form data-confirm-delete data-confirm-title="Delete Selected Assets" data-confirm-message="You are about to permanently delete {count} selected asset(s). This cannot be undone.">
                 @csrf
                 @method('DELETE')
                 <span data-bulk-inputs></span>
@@ -148,7 +148,7 @@
                     <i class="bi bi-trash"></i>Delete Selected
                 </button>
             </form>
-            <form method="POST" action="{{ route('assets.destroy-all') }}" onsubmit="return confirm('Delete all assets? This cannot be undone.')">
+            <form method="POST" action="{{ route('assets.destroy-all') }}" data-confirm-delete data-confirm-title="Delete All Assets" data-confirm-message="You are about to permanently delete ALL assets. This cannot be undone.">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger btn-sm">

@@ -192,6 +192,38 @@
         </div>
     </div>
 
+    <x-ui.modal id="confirmDeleteModal" maxWidth="max-w-md">
+        <div class="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+            <h5 class="text-base font-semibold text-slate-900 dark:text-white" id="confirmDeleteTitle">Confirm Deletion</h5>
+        </div>
+        <div class="px-6 py-4" x-data="{ typed: '' }" x-on:reset-delete-confirm.window="typed = ''">
+            <p class="text-sm text-slate-600 dark:text-slate-300" id="confirmDeleteMessage"></p>
+            <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                Type <span class="font-semibold text-red-600 dark:text-red-400">DELETE</span> below to confirm.
+            </p>
+            <input
+                type="text"
+                id="confirmDeleteInput"
+                x-model="typed"
+                autocomplete="off"
+                spellcheck="false"
+                class="field-input mt-2"
+                placeholder="Type DELETE to confirm"
+            >
+            <div class="mt-4 flex justify-end gap-2">
+                <button type="button" class="btn btn-outline btn-sm" @click="open = false; typed = ''">Cancel</button>
+                <button
+                    type="button"
+                    class="btn btn-danger btn-sm"
+                    :disabled="typed !== 'DELETE'"
+                    @click="open = false; typed = ''; window.__submitPendingDeleteForm()"
+                >
+                    <i class="bi bi-trash"></i>Confirm Delete
+                </button>
+            </div>
+        </div>
+    </x-ui.modal>
+
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -238,6 +270,35 @@
                     select.dataset.inlineSearchReady = '1';
                 });
 
+                const creatableSearchableNames = [
+                    'cpu'
+                ];
+
+                const creatableSelector = creatableSearchableNames
+                    .map(function (name) { return 'select[name="' + name + '"]'; })
+                    .join(',');
+
+                document.querySelectorAll(creatableSelector).forEach(function (select) {
+                    if (select.dataset.inlineSearchReady === '1') {
+                        return;
+                    }
+
+                    new TomSelect(select, {
+                        create: true,
+                        createOnBlur: true,
+                        maxItems: 1,
+                        allowEmptyOption: true,
+                        searchField: ['text'],
+                        placeholder: 'Select or type a CPU...',
+                        sortField: [
+                            { field: '$score' },
+                            { field: '$order' }
+                        ]
+                    });
+
+                    select.dataset.inlineSearchReady = '1';
+                });
+
                 const multiSearchableNames = [
                     'employee_ids[]',
                     'person_in_charge_ids[]'
@@ -267,6 +328,38 @@
             };
 
             initInlineDropdownSearch();
+
+            let pendingDeleteForm = null;
+
+            window.__submitPendingDeleteForm = function () {
+                if (pendingDeleteForm) {
+                    const form = pendingDeleteForm;
+                    pendingDeleteForm = null;
+                    form.submit();
+                }
+            };
+
+            document.querySelectorAll('form[data-confirm-delete]').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    pendingDeleteForm = form;
+
+                    let message = form.dataset.confirmMessage || 'This action cannot be undone.';
+                    if (message.indexOf('{count}') !== -1) {
+                        const count = form.querySelectorAll('input[name="ids[]"]').length;
+                        message = message.replace('{count}', count);
+                    }
+
+                    document.getElementById('confirmDeleteTitle').textContent = form.dataset.confirmTitle || 'Confirm Deletion';
+                    document.getElementById('confirmDeleteMessage').textContent = message;
+
+                    window.dispatchEvent(new CustomEvent('reset-delete-confirm'));
+                    window.dispatchEvent(new CustomEvent('open-modal', { detail: 'confirmDeleteModal' }));
+                    setTimeout(function () {
+                        document.getElementById('confirmDeleteInput').focus();
+                    }, 50);
+                });
+            });
 
             document.querySelectorAll('[data-bulk-container]').forEach(function (container) {
                 const selectAll = container.querySelector('[data-bulk-select-all]');

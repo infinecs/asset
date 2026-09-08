@@ -159,9 +159,8 @@
 
                         <div class="sm:col-span-2">
                             <label class="field-label">CPU</label>
-                            <select name="cpu" class="field-input">
-                                <option value="">— Select CPU —</option>
-                                @foreach([
+                            @php
+                                $cpuGroups = [
                                     'Intel Core Ultra (14th Gen)' => [
                                         'Intel Core Ultra 5 125U','Intel Core Ultra 5 125H', 'Intel Core Ultra 5 135U',
                                         'Intel Core Ultra 7 155U','Intel Core Ultra 7 155H','Intel Core Ultra 7 165H',
@@ -220,10 +219,19 @@
                                         'Apple M2','Apple M2 Pro','Apple M2 Max',
                                         'Apple M3','Apple M3 Pro','Apple M3 Max',
                                     ],
-                                ] as $group => $cpus)
+                                ];
+                                $currentCpu = old('cpu', $asset->cpu);
+                                $cpuIsCustom = $currentCpu && !collect($cpuGroups)->flatten()->contains($currentCpu);
+                            @endphp
+                            <select name="cpu" class="field-input">
+                                <option value="">— Select CPU —</option>
+                                @if($cpuIsCustom)
+                                <option value="{{ $currentCpu }}" selected>{{ $currentCpu }}</option>
+                                @endif
+                                @foreach($cpuGroups as $group => $cpus)
                                 <optgroup label="{{ $group }}">
                                     @foreach($cpus as $cpu)
-                                    <option value="{{ $cpu }}" {{ old('cpu', $asset->cpu) === $cpu ? 'selected' : '' }}>{{ $cpu }}</option>
+                                    <option value="{{ $cpu }}" {{ $currentCpu === $cpu ? 'selected' : '' }}>{{ $cpu }}</option>
                                     @endforeach
                                 </optgroup>
                                 @endforeach

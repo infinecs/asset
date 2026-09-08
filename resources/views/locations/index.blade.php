@@ -10,7 +10,7 @@
     <div class="card-header">
         <span class="text-sm text-slate-500 dark:text-slate-400"><span data-bulk-count>0</span> selected</span>
         <div class="flex gap-2">
-            <form method="POST" action="{{ route('locations.bulk-destroy') }}" data-bulk-form onsubmit="return confirm('Delete selected locations?')">
+            <form method="POST" action="{{ route('locations.bulk-destroy') }}" data-bulk-form data-confirm-delete data-confirm-title="Delete Selected Locations" data-confirm-message="You are about to permanently delete {count} selected location(s). This cannot be undone.">
                 @csrf
                 @method('DELETE')
                 <span data-bulk-inputs></span>
@@ -18,7 +18,7 @@
                     <i class="bi bi-trash"></i>Delete Selected
                 </button>
             </form>
-            <form method="POST" action="{{ route('locations.destroy-all') }}" onsubmit="return confirm('Delete all locations? This cannot be undone.')">
+            <form method="POST" action="{{ route('locations.destroy-all') }}" data-confirm-delete data-confirm-title="Delete All Locations" data-confirm-message="You are about to permanently delete ALL locations. This cannot be undone.">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger btn-sm">
