@@ -4,47 +4,51 @@
 @section('page-title', 'Add New Asset')
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 pt-4 px-4">
-                <h5 class="fw-semibold mb-0">New Asset</h5>
+<div class="flex justify-center">
+    <div class="w-full max-w-4xl">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="text-base font-semibold text-slate-900 dark:text-white">New Asset</h5>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body">
                 <form method="POST" action="{{ route('assets.store') }}" enctype="multipart/form-data">
                     @csrf
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
-                            <select id="asset_type" name="type" class="form-select @error('type') is-invalid @enderror" required>
-                                <option value="laptop"     {{ old('type', 'laptop') === 'laptop'     ? 'selected' : '' }}>Laptop</option>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                            <label class="field-label">Type <span class="text-red-500">*</span></label>
+                            <select id="asset_type" name="type" class="field-input @error('type') is-invalid @enderror" required>
+                                <option value="" disabled {{ old('type') ? '' : 'selected' }}>Choose</option>
+                                <option value="laptop"     {{ old('type') === 'laptop'     ? 'selected' : '' }}>Laptop</option>
                                 <option value="desktop"    {{ old('type') === 'desktop'    ? 'selected' : '' }}>Desktop</option>
                                 <option value="smartphone" {{ old('type') === 'smartphone' ? 'selected' : '' }}>Smartphone</option>
                                 <option value="tablet"     {{ old('type') === 'tablet'     ? 'selected' : '' }}>Tablet</option>
                                 <option value="monitor"    {{ old('type') === 'monitor'    ? 'selected' : '' }}>Monitor</option>
+                                <option value="speakerphone" {{ old('type') === 'speakerphone' ? 'selected' : '' }}>Speakerphone</option>
                             </select>
-                            @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('type')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Asset Tag <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span id="asset_tag_prefix" class="input-group-text fw-semibold">{{ old('type','laptop') === 'desktop' ? 'ISSB-D' :(old('type') === 'smartphone' ? 'ISSB-S' :(old('type') === 'tablet' ? 'ISSB-T' :(old('type') === 'monitor' ? 'ISSB-M' : 'ISSB-L'))) }}
-                                </span>
+                        <div>
+                            <label class="field-label">Asset Tag <span class="text-red-500">*</span></label>
+                            <div class="flex">
+                                @php
+                                    $newTypePrefixMap = ['laptop'=>'ISSBL','desktop'=>'ISSBD','smartphone'=>'ISSBS','tablet'=>'ISSBT','monitor'=>'ISSBM','speakerphone'=>'ISSBP'];
+                                @endphp
+                                <span id="asset_tag_prefix" class="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $newTypePrefixMap[old('type')] ?? '—' }}</span>
                                 <input type="text" id="asset_tag_suffix" name="asset_tag_suffix"
-                                       class="form-control @error('asset_tag') is-invalid @enderror"
+                                       class="field-input rounded-l-none @error('asset_tag') is-invalid @enderror"
                                        value="{{ old('asset_tag_suffix') }}" placeholder="023" required>
-                                @error('asset_tag')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
+                            @error('asset_tag')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Asset Name <span class="text-danger">*</span></label>
-                            <input type="text" id="asset_name" name="name" class="form-control @error('name') is-invalid @enderror"
+                        <div>
+                            <label class="field-label">Asset Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="asset_name" name="name" class="field-input @error('name') is-invalid @enderror"
                                    value="{{ old('name') }}" placeholder="Auto-filled from tag" required>
-                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('name')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
-                            <select name="status" class="form-select @error('status') is-invalid @enderror" required>
+                        <div>
+                            <label class="field-label">Status <span class="text-red-500">*</span></label>
+                            <select name="status" class="field-input @error('status') is-invalid @enderror" required>
                                 <option value="available" {{ old('status') == 'available' ? 'selected' : '' }}>Available</option>
                                 <option value="in_use" {{ old('status') == 'in_use' ? 'selected' : '' }}>In Use</option>
                                 <option value="under_maintenance" {{ old('status') == 'under_maintenance' ? 'selected' : '' }}>Under Maintenance</option>
@@ -52,88 +56,91 @@
                                 <option value="lost" {{ old('status') == 'lost' ? 'selected' : '' }}>Lost</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Brand</label>
-                            <select name="brand_id" class="form-select">
+                        <div>
+                            <label class="field-label">Brand</label>
+                            <select name="brand_id" class="field-input">
                                 <option value="">Select Brand</option>
                                 @foreach($brands as $brand)
                                 <option value="{{ $brand->id }}" {{ old('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Model</label>
-                            <input type="text" name="model" class="form-control" value="{{ old('model') }}" placeholder="e.g. XPS 15 9530">
+                        <div>
+                            <label class="field-label">Model</label>
+                            <input type="text" name="model" class="field-input" value="{{ old('model') }}" placeholder="e.g. XPS 15 9530">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Serial Number</label>
-                            <input type="text" name="serial_number" class="form-control" value="{{ old('serial_number') }}" placeholder="Manufacturer serial">
+                        <div>
+                            <label class="field-label">Serial Number</label>
+                            <input type="text" name="serial_number" class="field-input" value="{{ old('serial_number') }}" placeholder="Manufacturer serial">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Category</label>
-                            <select name="category_id" class="form-select">
+                        <div>
+                            <label class="field-label">Service Tag <span class="text-slate-400 font-normal">(optional)</span></label>
+                            <input type="text" name="service_tag" class="field-input" value="{{ old('service_tag') }}" placeholder="e.g. Dell Service Tag">
+                        </div>
+                        <div>
+                            <label class="field-label">Category</label>
+                            <select id="asset_category" name="category_id" class="field-input">
                                 <option value="">Select Category</option>
                                 @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Location</label>
-                            <select name="location_id" class="form-select">
+                        <div>
+                            <label class="field-label">Location</label>
+                            <select name="location_id" class="field-input">
                                 <option value="">Select Location</option>
                                 @foreach($locations as $loc)
                                 <option value="{{ $loc->id }}" {{ old('location_id') == $loc->id ? 'selected' : '' }}>{{ $loc->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Assigned To</label>
-                            <select name="assigned_to" class="form-select">
+                        <div>
+                            <label class="field-label">Assigned To</label>
+                            <select name="assigned_to" class="field-input">
                                 <option value="">Not Assigned</option>
                                 @foreach($employees as $employee)
                                 <option value="{{ $employee->id }}" {{ old('assigned_to') == $employee->id ? 'selected' : '' }}>
-                                    {{ $employee->name }} &lt;{{ $employee->id_number }}&gt;
+                                    {{ $employee->name }} <{{ $employee->id_number }}>
                                 </option>
                                 @endforeach
                             </select>
                         </div>
 
-                        <div class="col-12"><hr class="my-1"><p class="text-muted small mb-0">Purchase Information</p></div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Purchase Date</label>
-                            <input type="date" name="purchase_date" class="form-control" value="{{ old('purchase_date') }}">
+                        <div class="sm:col-span-2 lg:col-span-3">
+                            <hr class="my-1 border-slate-200 dark:border-slate-800">
+                            <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">Purchase Information</p>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Purchase Cost</label>
-                            <div class="input-group">
-                                <span class="input-group-text">MYR</span>
-                                <input type="number" name="purchase_cost" class="form-control" value="{{ old('purchase_cost') }}" step="0.01" min="0">
+
+                        <div>
+                            <label class="field-label">Purchase Date</label>
+                            <input type="date" name="purchase_date" class="field-input" value="{{ old('purchase_date') }}">
+                        </div>
+                        <div>
+                            <label class="field-label">Purchase Cost</label>
+                            <div class="flex">
+                                <span class="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">MYR</span>
+                                <input type="number" name="purchase_cost" class="field-input rounded-l-none" value="{{ old('purchase_cost') }}" step="0.01" min="0">
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Warranty Expiry</label>
-                            <input type="date" name="warranty_expiry" class="form-control" value="{{ old('warranty_expiry') }}">
+                        <div>
+                            <label class="field-label">Warranty Expiry</label>
+                            <input type="date" name="warranty_expiry" class="field-input" value="{{ old('warranty_expiry') }}">
                         </div>
-                        <div class="col-12"><hr class="my-1"><p class="text-muted small mb-0">Technical Details</p></div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">CPU</label>
-                            <select name="cpu" class="form-select">
-                                <option value="">— Select CPU —</option>
-                                @foreach([
-                                    'Intel Core Ultra Series 2 (Arrow Lake/Lunar Lake)' => [
-                                        'Intel Core Ultra 5 225H',
-                                    ],
-                                    'Intel Core Ultra Series 1 (Meteor Lake)' => [
-                                        'Intel Core Ultra 5 120U','Intel Core Ultra 5 125U','Intel Core Ultra 5 125H', 'Intel Core Ultra 5 135U',
+
+                        <div class="sm:col-span-2 lg:col-span-3">
+                            <hr class="my-1 border-slate-200 dark:border-slate-800">
+                            <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">Technical Details</p>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="field-label">CPU</label>
+                            @php
+                                $cpuGroups = [
+                                    'Intel Core Ultra (14th Gen)' => [
+                                        'Intel Core Ultra 5 125U','Intel Core Ultra 5 125H', 'Intel Core Ultra 5 135U',
                                         'Intel Core Ultra 7 155U','Intel Core Ultra 7 155H','Intel Core Ultra 7 165H',
                                         'Intel Core Ultra 9 185H',
-                                    ],
-                                    'Intel 14th Gen (Raptor Lake Refresh)' => [
-                                        'Intel Core i5-14500HX',
-                                        'Intel Core i7-14700HX',
-                                        'Intel Core i9-14900HX',
                                     ],
                                     'Intel 13th Gen (Raptor Lake)' => [
                                         'Intel Core i3-1305U','Intel Core i3-1315U',
@@ -143,15 +150,15 @@
                                     ],
                                     'Intel 12th Gen (Alder Lake)' => [
                                         'Intel Core i3-1215U','Intel Core i3-1220P',
-                                        'Intel Core i5-1235U','Intel Core i5-1240P','Intel Core i5-1245U','Intel Core i5-1250P',
+                                        'Intel Core i5-1235U','Intel Core i5-1240P','Intel Core i5-1250P',
                                         'Intel Core i5-12450H','Intel Core i5-12450HX','Intel Core i5-12500H','Intel Core i5-12600H',
                                         'Intel Core i7-1260P','Intel Core i7-1270P',
                                         'Intel Core i7-12700H','Intel Core i7-12800H','Intel Core i7-12800HX',
                                         'Intel Core i9-12900H','Intel Core i9-12900HK',
                                     ],
-                                    'Intel 11th Gen (Rocket/Tiger Lake)' => [
+                                    'Intel 11th Gen (Tiger Lake)' => [
                                         'Intel Core i3-1115G4','Intel Core i3-1125G4',
-                                        'Intel Core i5-1135G7','Intel Core i5-1145G7','Intel Core i5-1155G7',
+                                        'Intel Core i5-1135G7','Intel Core i5-1155G7',
                                         'Intel Core i5-11300H','Intel Core i5-11400H',
                                         'Intel Core i7-1165G7','Intel Core i7-1185G7',
                                         'Intel Core i7-11370H','Intel Core i7-11800H',
@@ -161,31 +168,6 @@
                                         'Intel Core i3-10110U','Intel Core i3-1005G1',
                                         'Intel Core i5-10210U','Intel Core i5-10310U','Intel Core i5-10500H',
                                         'Intel Core i7-10510U','Intel Core i7-10750H','Intel Core i7-10850H',
-                                    ],
-                                    'Intel 9th Gen (Coffee Lake Refresh)' => [
-                                        'Intel Core i5-9300H',
-                                        'Intel Core i7-9750H',
-                                        'Intel Core i9-9880H','Intel Core i9-9980HK',
-                                    ],
-                                    'Intel 8th Gen (Coffee/Kaby Lake)' => [
-                                        'Intel Core i3-8145U',
-                                        'Intel Core i5-8250U','Intel Core i5-8265U','Intel Core i5-8300H',
-                                        'Intel Core i7-8550U','Intel Core i7-8565U','Intel Core i7-8750H','Intel Core i7-8850H',
-                                        'Intel Core i9-8950HK',
-                                    ],
-                                    'Intel 7th Gen (Kaby Lake)' => [
-                                        'Intel Core i3-7100U','Intel Core i3-7130U',
-                                        'Intel Core i5-7200U','Intel Core i5-7300HQ','Intel Core i5-7440HQ',
-                                        'Intel Core i7-7500U','Intel Core i7-7600U','Intel Core i7-7700HQ','Intel Core i7-7820HQ',
-                                    ],
-                                    'AMD Ryzen AI 300 Series' => [
-                                        'AMD Ryzen AI 7 350',
-                                        'AMD Ryzen AI 9 365','AMD Ryzen AI 9 HX 370',
-                                    ],
-                                    'AMD Ryzen 8000 Series' => [
-                                        'AMD Ryzen 5 8540U','AMD Ryzen 5 8640U',
-                                        'AMD Ryzen 7 8840U','AMD Ryzen 7 8840HS',
-                                        'AMD Ryzen 9 8945HS',
                                     ],
                                     'AMD Ryzen 7000 Series' => [
                                         'AMD Ryzen 3 7330U',
@@ -212,69 +194,68 @@
                                         'Apple M1','Apple M1 Pro','Apple M1 Max',
                                         'Apple M2','Apple M2 Pro','Apple M2 Max',
                                         'Apple M3','Apple M3 Pro','Apple M3 Max',
-                                        'Apple M4','Apple M4 Pro','Apple M4 Max',
                                     ],
-                                ] as $group => $cpus)
+                                ];
+                                $currentCpu = old('cpu');
+                                $cpuIsCustom = $currentCpu && !collect($cpuGroups)->flatten()->contains($currentCpu);
+                            @endphp
+                            <select name="cpu" class="field-input">
+                                <option value="">— Select CPU —</option>
+                                @if($cpuIsCustom)
+                                <option value="{{ $currentCpu }}" selected>{{ $currentCpu }}</option>
+                                @endif
+                                @foreach($cpuGroups as $group => $cpus)
                                 <optgroup label="{{ $group }}">
                                     @foreach($cpus as $cpu)
-                                    <option value="{{ $cpu }}" {{ old('cpu') === $cpu ? 'selected' : '' }}>{{ $cpu }}</option>
+                                    <option value="{{ $cpu }}" {{ $currentCpu === $cpu ? 'selected' : '' }}>{{ $cpu }}</option>
                                     @endforeach
                                 </optgroup>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">RAM</label>
-                            <select name="ram" class="form-select">
+                        <div>
+                            <label class="field-label">RAM</label>
+                            <select name="ram" class="field-input">
                                 <option value="">— Select RAM —</option>
                                 @foreach(['4 GB','8 GB','16 GB','32 GB','64 GB'] as $opt)
                                 <option value="{{ $opt }}" {{ old('ram') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Storage</label>
-                            <select name="storage" class="form-select">
+                        <div>
+                            <label class="field-label">Storage</label>
+                            <select name="storage" class="field-input">
                                 <option value="">— Select Storage —</option>
                                 @foreach(['128 GB SSD','256 GB SSD','512 GB SSD','1 TB SSD','2 TB SSD','256 GB HDD','512 GB HDD','1 TB HDD','2 TB HDD','512 GB SSD + 1 TB HDD','1 TB SSD + 1 TB HDD'] as $opt)
                                 <option value="{{ $opt }}" {{ old('storage') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Display</label>
-                            <select name="display" class="form-select">
+                        <div>
+                            <label class="field-label">Display</label>
+                            <select name="display" class="field-input">
                                 <option value="">— Select Display —</option>
-                                @foreach(['11.6"','13.0"','13.3"','13.6"','14.0"','14.2"','15.6"','16.0"','17.3"'] as $opt)
+                                @foreach(['11.6"','13.3"','13.6"','14.0"','14.2"','15.6"','16.0"','17.3"'] as $opt)
                                 <option value="{{ $opt }}" {{ old('display') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
                                 @endforeach
                             </select>
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Asset Photo</label>
-                            <div class="mb-2">
-                                <img id="photo_preview" src="" alt="Photo preview" class="rounded border d-none" style="width: 120px; height: 120px; object-fit: cover;">
-                            </div>
-                            <input type="file" name="photo" id="photo_input" class="form-control @error('photo') is-invalid @enderror" accept="image/*">
-                            @error('photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="sm:col-span-2 lg:col-span-3">
+                            <label class="field-label">Asset Photo</label>
+                            <input type="file" name="photo" class="field-input @error('photo') is-invalid @enderror" accept="image/*">
+                            @error('photo')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Signed Document</label>
-                            <input type="file" name="signed_document" class="form-control @error('signed_document') is-invalid @enderror" accept=".pdf,.doc,.docx">
-                            <div class="form-text">Signed handover/acceptance document (PDF or Word, max 10MB).</div>
-                            @error('signed_document')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Notes</label>
-                            <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes...">{{ old('notes') }}</textarea>
+                        <div class="sm:col-span-2 lg:col-span-3">
+                            <label class="field-label">Notes</label>
+                            <textarea name="notes" class="field-input" rows="3" placeholder="Additional notes...">{{ old('notes') }}</textarea>
                         </div>
                     </div>
-                    <div class="d-flex gap-2 mt-4">
+                    <div class="mt-6 flex gap-2">
                         <button type="submit" class="btn btn-primary px-4">
-                            <i class="bi bi-check-lg me-2"></i>Create Asset
+                            <i class="bi bi-check-lg"></i>Create Asset
                         </button>
-                        <a href="{{ route('assets.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                        <a href="{{ route('assets.index') }}" class="btn btn-outline px-4">Cancel</a>
                     </div>
                 </form>
             </div>
@@ -284,64 +265,70 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const typeSelect   = document.getElementById('asset_type');
-        const prefixLabel  = document.getElementById('asset_tag_prefix');
-        const suffixInput  = document.getElementById('asset_tag_suffix');
-        const nameInput    = document.getElementById('asset_name');
-        const photoInput   = document.getElementById('photo_input');
-        const photoPreview = document.getElementById('photo_preview');
+        const typeSelect     = document.getElementById('asset_type');
+        const prefixLabel    = document.getElementById('asset_tag_prefix');
+        const suffixInput    = document.getElementById('asset_tag_suffix');
+        const nameInput      = document.getElementById('asset_name');
+        const categorySelect = document.getElementById('asset_category');
 
         const prefixMap = {
-            laptop:     'ISSB-L',
-            desktop:    'ISSB-D',
-            smartphone: 'ISSB-S',
-            tablet:     'ISSB-T',
-            monitor:    'ISSB-M',
+            laptop:       'ISSBL',
+            desktop:      'ISSBD',
+            smartphone:   'ISSBS',
+            tablet:       'ISSBT',
+            monitor:      'ISSBM',
+            speakerphone: 'ISSBP',
         };
 
-        const namePrefixMap = {
-            laptop:     'InfinecsL',
-            desktop:    'InfinecsD',
-            smartphone: 'InfinecsS',
-            tablet:     'InfinecsT',
-            monitor:    'InfinecsM',
+        const categoryMap = {
+            laptop:       'Laptop',
+            desktop:      'Desktop',
+            smartphone:   'Mobile Device',
+            tablet:       'Mobile Device',
+            monitor:      'Monitor',
+            speakerphone: 'Peripherals',
         };
 
-        function updatePrefix() {
-            prefixLabel.textContent = prefixMap[typeSelect.value] || 'ISSB-L';
-        }
+        const nameLabelMap = {
+            laptop:       '',
+            desktop:      'Desktop',
+            smartphone:   'Smartphone',
+            tablet:       'Tablet',
+            monitor:      'Monitor',
+            speakerphone: 'Speakerphone',
+        };
 
-        function updateName() {
+        function updateAssetName() {
             const suffix = suffixInput.value.trim();
-            const prefix = namePrefixMap[typeSelect.value] || 'InfinecsL';
-            nameInput.value = suffix ? prefix + suffix : prefix;
+            if (!suffix) {
+                nameInput.value = '';
+                return;
+            }
+            const num = parseInt(suffix, 10);
+            const suffixPart = isNaN(num) ? suffix : num;
+            const label = nameLabelMap[typeSelect.value] || '';
+            nameInput.value = 'Infinecs' + label + suffixPart;
         }
 
         typeSelect.addEventListener('change', function () {
-            updatePrefix();
-            updateName();
-        });
+            prefixLabel.textContent = prefixMap[this.value] || '—';
 
-        suffixInput.addEventListener('input', updateName);
-
-        photoInput.addEventListener('change', function () {
-            const file = this.files[0];
-            if (!file) {
-                photoPreview.classList.add('d-none');
-                return;
+            const categoryName = categoryMap[this.value];
+            if (categoryName && categorySelect) {
+                const match = Array.from(categorySelect.options).find(opt => opt.text.trim() === categoryName);
+                if (match) {
+                    if (categorySelect.tomselect) {
+                        categorySelect.tomselect.setValue(match.value);
+                    } else {
+                        categorySelect.value = match.value;
+                    }
+                }
             }
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                photoPreview.src = e.target.result;
-                photoPreview.classList.remove('d-none');
-            };
-            reader.readAsDataURL(file);
+
+            updateAssetName();
         });
 
-        if (!nameInput.value) {
-            updatePrefix();
-            updateName();
-        }
+        suffixInput.addEventListener('input', updateAssetName);
     });
 </script>
 @endpush

@@ -2,21 +2,21 @@
 @section('title', 'Add Department')
 @section('page-title', 'Add Department')
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 pt-4 px-4"><h5 class="fw-semibold mb-0">New Department</h5></div>
-            <div class="card-body p-4">
+<div class="flex justify-center">
+    <div class="w-full max-w-lg">
+        <div class="card">
+            <div class="card-header"><h5 class="text-base font-semibold text-slate-900 dark:text-white">New Department</h5></div>
+            <div class="card-body">
                 <form method="POST" action="{{ route('departments.store') }}">
                     @csrf
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Department Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
-                        @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <label class="field-label">Department Name <span class="text-red-500">*</span></label>
+                        <input type="text" name="name" class="field-input @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
+                        @error('name')<p class="field-error">{{ $message }}</p>@enderror
                     </div>
-                    <div class="d-flex gap-2 mt-4">
-                        <button class="btn btn-primary px-4"><i class="bi bi-check-lg me-2"></i>Create</button>
-                        <a href="{{ route('departments.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                    <div class="mt-4 flex gap-2">
+                        <button class="btn btn-primary px-4"><i class="bi bi-check-lg"></i>Create</button>
+                        <a href="{{ route('departments.index') }}" class="btn btn-outline px-4">Cancel</a>
                     </div>
                 </form>
             </div>

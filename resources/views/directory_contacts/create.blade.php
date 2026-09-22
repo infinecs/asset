@@ -4,43 +4,43 @@
 @section('page-title', 'Add Directory Contact')
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-lg-7">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="fw-semibold mb-0">New Directory Contact</h5>
-                <a href="{{ route('directory.index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+<div class="flex justify-center">
+    <div class="w-full max-w-3xl">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="text-base font-semibold text-slate-900 dark:text-white">New Directory Contact</h5>
+                <a href="{{ route('directory.index') }}" class="btn btn-sm btn-outline"><i class="bi bi-arrow-left"></i>Back</a>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body">
                 <form method="POST" action="{{ route('directory-contacts.store') }}">
                     @csrf
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
-                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="field-label">Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" class="field-input @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
+                            @error('name')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
-                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email') }}" required>
-                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div>
+                            <label class="field-label">Email <span class="text-red-500">*</span></label>
+                            <input type="email" name="email" class="field-input @error('email') is-invalid @enderror" value="{{ old('email') }}" required>
+                            @error('email')<p class="field-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Department</label>
-                            <select name="department" class="form-select">
+                        <div>
+                            <label class="field-label">Department</label>
+                            <select name="department" class="field-input">
                                 <option value="">Select Department</option>
                                 @foreach($departments as $department)
                                 <option value="{{ $department->name }}" {{ old('department') == $department->name ? 'selected' : '' }}>{{ $department->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Phone</label>
-                            <input type="text" name="phone" class="form-control" value="{{ old('phone') }}">
+                        <div>
+                            <label class="field-label">Phone</label>
+                            <input type="text" name="phone" class="field-input" value="{{ old('phone') }}">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Location</label>
-                            <select name="location_id" class="form-select">
+                        <div>
+                            <label class="field-label">Location</label>
+                            <select name="location_id" class="field-input">
                                 <option value="">Select Location</option>
                                 @foreach($locations as $location)
                                 <option value="{{ $location->id }}" {{ old('location_id') == $location->id ? 'selected' : '' }}>{{ $location->name }}</option>
@@ -48,9 +48,9 @@
                             </select>
                         </div>
                     </div>
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-lg me-2"></i>Create Contact</button>
-                        <a href="{{ route('directory.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                    <div class="mt-4 flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-lg"></i>Create Contact</button>
+                        <a href="{{ route('directory.index') }}" class="btn btn-outline px-4">Cancel</a>
                     </div>
                 </form>
             </div>

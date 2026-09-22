@@ -4,71 +4,76 @@
 @section('page-title', 'Asset Details')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
+@php $safeReturn = request('return') && str_starts_with(request('return'), '/assets') ? request('return') : null; @endphp
+<div class="mb-6 flex items-center justify-between">
     <div>
-        <h5 class="mb-1">{{ $asset->name }}</h5>
-        <code class="text-muted">{{ $asset->asset_tag }}</code>
+        <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">{{ $asset->name }}</h5>
+        <code class="text-slate-500 dark:text-slate-400">{{ $asset->asset_tag ?? '-' }}</code>
     </div>
-    <div class="d-flex gap-2">
-@if(auth()->user()->isStaff())
-        <a href="{{ route('assets.edit', $asset) }}" class="btn btn-primary btn-sm">
-            <i class="bi bi-pencil me-1"></i>Edit
+    <div class="flex gap-2">
+        @if(auth()->user()->isStaff())
+        <a href="{{ route('assets.edit', $asset) }}{{ $safeReturn ? '?return=' . urlencode($safeReturn) : '' }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-pencil"></i>Edit
         </a>
         @endif
-        <a href="{{ route('assets.index') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i>Back
+        <a href="{{ $safeReturn ? url($safeReturn) : route('assets.index') }}" class="btn btn-outline btn-sm">
+            <i class="bi bi-arrow-left"></i>Back
         </a>
     </div>
 </div>
 
-<div class="row g-4">
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
     <!-- Asset Details -->
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-semibold">Asset Information</h6>
-                <span class="badge bg-{{ $asset->status_badge }} px-3 py-2">
-                    <span class="status-dot {{ $asset->status }} me-1"></span>{{ $asset->status_label }}
+    <div class="lg:col-span-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Asset Information</h6>
+                <span class="badge badge-{{ $asset->status_badge }} px-3 py-1.5">
+                    <span class="status-dot {{ $asset->status }}"></span>{{ $asset->status_label }}
                 </span>
             </div>
             <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="text-muted small">Asset Tag</label>
-                        <div class="fw-semibold"><code>{{ $asset->asset_tag }}</code></div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Asset Tag</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100"><code>{{ $asset->asset_tag ?? '-' }}</code></div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Serial Number</label>
-                        <div class="fw-semibold">{{ $asset->serial_number ?? '-' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Serial Number</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->serial_number ?? '-' }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Brand</label>
-                        <div class="fw-semibold">{{ $asset->brand_label }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Service Tag</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->service_tag ?? '-' }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Model</label>
-                        <div class="fw-semibold">{{ $asset->model ?? '-' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Brand</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->brand_label }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Category</label>
-                        <div class="fw-semibold">{{ $asset->category?->name ?? '-' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Model</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->model ?? '-' }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Location</label>
-                        <div class="fw-semibold">{{ $asset->location?->name ?? '-' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Category</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->category?->name ?? '-' }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Assigned To</label>
-                        <div class="fw-semibold">{{ $asset->assignedEmployee?->name ?? 'Unassigned' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Location</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->location?->name ?? '-' }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Last Seen</label>
-                        <div class="fw-semibold">{{ $asset->last_seen_at ? $asset->last_seen_at->format('d M Y H:i') : 'Never' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Assigned To</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->assignedEmployee?->name ?? 'Unassigned' }}</div>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Last Seen</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->last_seen_at ? $asset->last_seen_at->format('d M Y H:i') : 'Never' }}</div>
                     </div>
                     @if($asset->notes)
-                    <div class="col-12">
-                        <label class="text-muted small">Notes</label>
-                        <div>{{ $asset->notes }}</div>
+                    <div class="sm:col-span-2">
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Notes</label>
+                        <div class="text-slate-700 dark:text-slate-300">{{ $asset->notes }}</div>
                     </div>
                     @endif
                 </div>
@@ -76,33 +81,33 @@
         </div>
 
         <!-- Purchase Info -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="mb-0 fw-semibold">Purchase Information</h6>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Purchase Information</h6>
             </div>
             <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="text-muted small">Purchase Date</label>
-                        <div class="fw-semibold">{{ $asset->purchase_date ? $asset->purchase_date->format('d M Y') : '-' }}</div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Purchase Date</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->purchase_date ? $asset->purchase_date->format('d M Y') : '-' }}</div>
                     </div>
-                    <div class="col-md-4">
-                        <label class="text-muted small">Purchase Cost</label>
-                        <div class="fw-semibold">{{ $asset->purchase_cost ? 'MYR ' . number_format($asset->purchase_cost, 2) : '-' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Purchase Cost</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->purchase_cost ? 'MYR ' . number_format($asset->purchase_cost, 2) : '-' }}</div>
                     </div>
-                    <div class="col-md-4">
-                        <label class="text-muted small">Warranty Expiry</label>
-                        <div class="fw-semibold">
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Warranty Expiry</label>
+                        <div class="font-semibold">
                             @if($asset->warranty_expiry)
                                 @if($asset->isWarrantyExpired())
-                                    <span class="text-danger"><i class="bi bi-x-circle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }} (Expired)</span>
+                                    <span class="text-red-600 dark:text-red-400"><i class="bi bi-x-circle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }} (Expired)</span>
                                 @elseif($asset->isWarrantyExpiringSoon())
-                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }} (Expiring soon)</span>
+                                    <span class="text-amber-600 dark:text-amber-400"><i class="bi bi-exclamation-triangle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }} (Expiring soon)</span>
                                 @else
-                                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }}</span>
+                                    <span class="text-green-600 dark:text-green-400"><i class="bi bi-check-circle me-1"></i>{{ $asset->warranty_expiry->format('d M Y') }}</span>
                                 @endif
                             @else
-                                -
+                                <span class="text-slate-800 dark:text-slate-100">-</span>
                             @endif
                         </div>
                     </div>
@@ -112,78 +117,163 @@
 
         <!-- Technical Details -->
         @if($asset->cpu || $asset->ram || $asset->storage || $asset->display)
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="mb-0 fw-semibold"><i class="bi bi-cpu me-2 text-muted"></i>Technical Details</h6>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-cpu me-2 text-slate-400"></i>Technical Details</h6>
             </div>
             <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="text-muted small">CPU</label>
-                        <div class="fw-semibold">{{ $asset->cpu ?? '-' }}</div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">CPU</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->cpu ?? '-' }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">RAM</label>
-                        <div class="fw-semibold">{{ $asset->ram ?? '-' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">RAM</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->ram ?? '-' }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Storage</label>
-                        <div class="fw-semibold">{{ $asset->storage ?? '-' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Storage</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->storage ?? '-' }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Display</label>
-                        <div class="fw-semibold">{{ $asset->display ?? '-' }}</div>
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Display</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->display ?? '-' }}</div>
                     </div>
                 </div>
             </div>
         </div>
         @endif
 
+        <!-- History -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-clock-history me-2 text-slate-400"></i>Activity History</h6>
+            </div>
+            <div class="card-body">
+                @forelse($activityTimeline as $activity)
+                <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/40">
+                            <i class="bi bi-{{ $activity->icon }} text-sm text-primary-600 dark:text-primary-400"></i>
+                        </div>
+                        @if(!$loop->last)
+                        <div class="mt-1 w-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                        @endif
+                    </div>
+                    <div class="min-w-0 flex-1 pb-5 last:pb-0">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $activity->title }}</div>
+                            <div class="text-xs text-slate-400 dark:text-slate-500">{{ $activity->at->diffForHumans() }}</div>
+                        </div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">by {{ $activity->by }}</div>
+                        @if($activity->notes)
+                        <div class="mt-1 text-sm text-slate-500 dark:text-slate-400 break-words">{{ $activity->notes }}</div>
+                        @endif
+                        @if(!empty($activity->changes))
+                        <div class="mt-2 space-y-1.5 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+                            @foreach($activity->changes as $change)
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                <span class="font-semibold text-slate-600 dark:text-slate-300">{{ $change['label'] }}:</span>
+                                <span class="text-slate-500 dark:text-slate-400">{{ $change['old'] }}</span>
+                                <i class="bi bi-arrow-right text-slate-400"></i>
+                                <span class="font-medium text-slate-700 dark:text-slate-200">{{ $change['new'] }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @empty
+                <div class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">No history</div>
+                @endforelse
+            </div>
+        </div>
     </div>
 
     <!-- Sidebar -->
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="mb-0 fw-semibold">Asset Photo</h6>
+    <div class="lg:col-span-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Asset Photo</h6>
             </div>
             <div class="card-body text-center">
                 @if($asset->photo_path)
-                <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->name }}" class="img-fluid rounded border" style="max-height: 240px; object-fit: cover; width: 100%;">
+                <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->name }}" class="mx-auto max-h-60 w-full rounded-lg border border-slate-200 object-cover dark:border-slate-700">
                 @else
-                <div class="text-muted small py-4">No photo uploaded.</div>
+                <div class="py-8 text-sm text-slate-400">No photo uploaded.</div>
                 @endif
             </div>
         </div>
 
-        <!-- Signed Document -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="mb-0 fw-semibold">Signed Document</h6>
+        <!-- QR Code -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Asset QR Code</h6>
             </div>
-            <div class="card-body text-center">
-                @if($asset->signed_document_path)
-                <a href="{{ asset('storage/' . $asset->signed_document_path) }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-file-earmark-text me-1"></i>View / Download
+            <div class="card-body flex flex-col items-center gap-3 text-center">
+                <div class="rounded-lg bg-white p-2">{!! $qrCode !!}</div>
+                <a href="{{ route('assets.label', $asset) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-printer"></i>Print Label
                 </a>
+            </div>
+        </div>
+
+        <!-- Assignment Agreement -->
+        @if(auth()->user()->isStaff())
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Assignment Agreement</h6>
+            </div>
+            <div class="card-body">
+                @if(!$asset->assigned_to)
+                <div class="py-4 text-center text-sm text-slate-400">Assign this asset to an employee to send an e-signature agreement.</div>
+                @elseif($asset->agreement_signed_at)
+                <div class="mb-3 flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <i class="bi bi-check2-circle"></i>
+                    Signed by {{ $asset->agreement_signed_name }} on {{ $asset->agreement_signed_at->format('d M Y, h:i A') }}
+                </div>
+                @if($asset->agreement_signature_path)
+                <img src="{{ asset('storage/' . $asset->agreement_signature_path) }}" alt="Signature" class="mb-3 max-h-20 rounded border border-slate-200 bg-white p-2 dark:border-slate-700">
+                @endif
+                <a href="{{ route('agreements.show', $asset->agreement_token) }}" target="_blank" class="btn btn-outline-primary btn-sm w-full mb-2">
+                    <i class="bi bi-file-earmark-text"></i>View / Print / Download Document
+                </a>
+                <form method="POST" action="{{ route('assets.agreement.send', $asset) }}" onsubmit="return confirm('Send a new agreement to sign? This will replace the current signed agreement.')">
+                    @csrf
+                    <button class="btn btn-outline btn-sm w-full">
+                        <i class="bi bi-envelope"></i>Send New Agreement
+                    </button>
+                </form>
                 @else
-                <div class="text-muted small py-4">No document uploaded.</div>
+                @if($asset->agreement_sent_at)
+                <div class="mb-3 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                    <i class="bi bi-hourglass-split"></i>
+                    Pending signature — sent {{ $asset->agreement_sent_at->diffForHumans() }}
+                </div>
+                @endif
+                <form method="POST" action="{{ route('assets.agreement.send', $asset) }}">
+                    @csrf
+                    <button class="btn btn-primary btn-sm w-full">
+                        <i class="bi bi-envelope"></i>{{ $asset->agreement_sent_at ? 'Resend Agreement' : 'Send Agreement to Sign' }}
+                    </button>
+                </form>
                 @endif
             </div>
         </div>
+        @endif
 
         <!-- Quick Status Update -->
         @if(auth()->user()->isStaff())
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="mb-0 fw-semibold">Update Status</h6>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Update Status</h6>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ route('assets.update-status', $asset) }}">
                     @csrf
                     @method('PATCH')
                     <div class="mb-3">
-                        <select name="status" class="form-select">
+                        <select name="status" class="field-input">
                             @foreach(['available', 'in_use', 'under_maintenance', 'retired', 'lost'] as $s)
                             <option value="{{ $s }}" {{ $asset->status == $s ? 'selected' : '' }}>
                                 {{ ucwords(str_replace('_', ' ', $s)) }}
@@ -192,52 +282,15 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Update notes..."></textarea>
+                        <textarea name="notes" class="field-input" rows="2" placeholder="Update notes..."></textarea>
                     </div>
-                    <button class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-repeat me-1"></i>Update Status
+                    <button class="btn btn-primary w-full">
+                        <i class="bi bi-arrow-repeat"></i>Update Status
                     </button>
                 </form>
             </div>
         </div>
         @endif
-
-        <!-- History -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 pt-3">
-                <h6 class="mb-0 fw-semibold">Activity History</h6>
-            </div>
-            <div class="card-body p-0">
-                @forelse($activityTimeline as $activity)
-                <div class="d-flex gap-2 p-3 border-bottom">
-                    <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
-                        <i class="bi bi-{{ $activity->icon }} small text-muted"></i>
-                    </div>
-                    <div>
-                        <div class="small fw-semibold">{{ $activity->title }}</div>
-                        <div class="text-muted" style="font-size:.75rem;">
-                            {{ $activity->by }} · {{ $activity->at->diffForHumans() }}
-                        </div>
-                        @if($activity->notes)
-                        <div class="text-muted small">{{ $activity->notes }}</div>
-                        @endif
-                        @if(!empty($activity->changes))
-                        <ul class="list-unstyled mb-0 mt-1">
-                            @foreach($activity->changes as $change)
-                            <li class="text-muted" style="font-size:.72rem;">
-                                <span class="fw-semibold">{{ $change['label'] }}:</span>
-                                {{ $change['old'] }} <i class="bi bi-arrow-right mx-1"></i> {{ $change['new'] }}
-                            </li>
-                            @endforeach
-                        </ul>
-                        @endif
-                    </div>
-                </div>
-                @empty
-                <div class="p-3 text-center text-muted small">No history</div>
-                @endforelse
-            </div>
-        </div>
     </div>
 </div>
 @endsection

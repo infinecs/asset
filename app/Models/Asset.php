@@ -10,11 +10,13 @@ use App\Models\Employee;
 class Asset extends Model
 {
     protected $fillable = [
-        'type', 'asset_tag', 'name', 'brand', 'model', 'serial_number',
+        'type', 'asset_tag', 'name', 'brand', 'model', 'serial_number', 'service_tag',
         'brand_id', 'category_id', 'location_id', 'assigned_to', 'status',
         'purchase_date', 'purchase_cost', 'warranty_expiry',
-        'notes', 'photo_path', 'signed_document_path', 'last_seen_at',
+        'notes', 'photo_path', 'last_seen_at',
         'cpu', 'ram', 'storage', 'display',
+        'agreement_token', 'agreement_sent_at', 'agreement_signed_at',
+        'agreement_signature_path', 'agreement_signed_name',
     ];
 
     protected $casts = [
@@ -22,6 +24,8 @@ class Asset extends Model
         'warranty_expiry' => 'date',
         'last_seen_at' => 'datetime',
         'purchase_cost' => 'decimal:2',
+        'agreement_sent_at' => 'datetime',
+        'agreement_signed_at' => 'datetime',
     ];
 
     public function category(): BelongsTo
