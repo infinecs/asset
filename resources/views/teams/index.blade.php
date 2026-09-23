@@ -10,13 +10,20 @@
     <div class="overflow-x-auto">
         <table class="table-clean">
             <thead>
-                <tr><th>Name</th><th>Manager</th><th>Employees</th><th class="text-right">Actions</th></tr>
+                <tr><th>Name</th><th>Type</th><th>Manager</th><th>Employees</th><th class="text-right">Actions</th></tr>
             </thead>
             <tbody>
                 @forelse($teams as $team)
                 <tr>
                     <td class="font-semibold text-slate-800 dark:text-slate-100">
                         <a href="{{ route('teams.show', $team) }}" class="hover:underline">{{ $team->name }}</a>
+                    </td>
+                    <td>
+                        @if($team->type === 'client_placement')
+                        <span class="badge badge-warning"><i class="bi bi-briefcase me-1"></i>{{ $team->client->name ?? 'Client Placement' }}</span>
+                        @else
+                        <span class="badge badge-secondary">Internal</span>
+                        @endif
                     </td>
                     <td class="text-slate-500 dark:text-slate-400">
                         @if($team->manager)
@@ -38,7 +45,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="4" class="py-8 text-center text-slate-500 dark:text-slate-400">No teams yet. <a href="{{ route('teams.create') }}" class="text-primary-600 hover:underline dark:text-primary-400">Add one</a></td></tr>
+                <tr><td colspan="5" class="py-8 text-center text-slate-500 dark:text-slate-400">No teams yet. <a href="{{ route('teams.create') }}" class="text-primary-600 hover:underline dark:text-primary-400">Add one</a></td></tr>
                 @endforelse
             </tbody>
         </table>

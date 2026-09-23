@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\Client;
 use App\Models\Employee;
 use App\Models\Team;
 use Illuminate\Http\Request;
@@ -12,14 +13,14 @@ class TeamController extends Controller
     public function index()
     {
         $this->authorizeAdmin();
-        $teams = Team::with('manager')->withCount('employees')->orderBy('name')->get();
+        $teams = Team::with(['manager', 'client'])->withCount('employees')->orderBy('name')->get();
         return view('teams.index', compact('teams'));
     }
 
     public function show(Team $team)
     {
         $this->authorizeAdmin();
-        $team->load('manager.role');
+        $team->load(['manager.role', 'client']);
         $employees = $team->employees()->with('role')->orderBy('name')->get();
 
         $memberIds = $employees->pluck('id');
@@ -38,7 +39,8 @@ class TeamController extends Controller
     {
         $this->authorizeAdmin();
         $managers = Employee::where('is_manager', true)->orderBy('name')->get();
-        return view('teams.create', compact('managers'));
+        $clients = Client::orderBy('name')->get();
+        return view('teams.create', compact('managers', 'clients'));
     }
 
     public function store(Request $request)
@@ -48,7 +50,11 @@ class TeamController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:teams,name',
             'manager_id' => 'nullable|exists:employees,id',
+            'type' => 'required|in:internal,client_placement',
+            'client_id' => 'required_if:type,client_placement|nullable|exists:clients,id',
         ]);
+        // A client only makes sense for a client-placement team.
+        $validated['client_id'] = $validated['type'] === 'client_placement' ? $validated['client_id'] : null;
 
         Team::create($validated);
         return redirect()->route('teams.index')->with('success', 'Team created successfully.');
@@ -58,7 +64,8 @@ class TeamController extends Controller
     {
         $this->authorizeAdmin();
         $managers = Employee::where('is_manager', true)->orderBy('name')->get();
-        return view('teams.edit', compact('team', 'managers'));
+        $clients = Client::orderBy('name')->get();
+        return view('teams.edit', compact('team', 'managers', 'clients'));
     }
 
     public function update(Request $request, Team $team)
@@ -68,7 +75,10 @@ class TeamController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:teams,name,' . $team->id,
             'manager_id' => 'nullable|exists:employees,id',
+            'type' => 'required|in:internal,client_placement',
+            'client_id' => 'required_if:type,client_placement|nullable|exists:clients,id',
         ]);
+        $validated['client_id'] = $validated['type'] === 'client_placement' ? $validated['client_id'] : null;
 
         $team->update($validated);
         return redirect()->route('teams.index')->with('success', 'Team updated successfully.');

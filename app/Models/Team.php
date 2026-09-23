@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Team extends Model
 {
-    protected $fillable = ['name', 'manager_id'];
+    protected $fillable = ['name', 'manager_id', 'type', 'client_id'];
 
     public function manager(): BelongsTo
     {
@@ -18,5 +18,18 @@ class Team extends Model
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'client_placement' => 'Client Placement',
+            default => 'Internal',
+        };
     }
 }

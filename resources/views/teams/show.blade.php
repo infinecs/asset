@@ -4,7 +4,14 @@
 @section('content')
 <div class="mb-6 flex items-center justify-between">
     <div>
-        <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">{{ $team->name }}</h5>
+        <div class="mb-1 flex items-center gap-2">
+            <h5 class="text-lg font-semibold text-slate-900 dark:text-white">{{ $team->name }}</h5>
+            @if($team->type === 'client_placement')
+            <span class="badge badge-warning"><i class="bi bi-briefcase me-1"></i>{{ $team->client->name ?? 'Client Placement' }}</span>
+            @else
+            <span class="badge badge-secondary">Internal</span>
+            @endif
+        </div>
         <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">{{ $employees->count() + ($team->manager ? 1 : 0) }} member(s)</p>
     </div>
     <div class="flex gap-2">

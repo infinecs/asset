@@ -7,12 +7,32 @@
         <div class="card">
             <div class="card-header"><h5 class="text-base font-semibold text-slate-900 dark:text-white">New Team</h5></div>
             <div class="card-body">
-                <form method="POST" action="{{ route('teams.store') }}">
+                <form method="POST" action="{{ route('teams.store') }}" x-data="{ type: '{{ old('type', 'internal') }}' }">
                     @csrf
                     <div class="mb-3">
                         <label class="field-label">Team Name <span class="text-red-500">*</span></label>
-                        <input type="text" name="name" class="field-input @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="e.g. HR Team, IT & Facility Team" required>
+                        <input type="text" name="name" class="field-input @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="e.g. HR Team, Intel - Firmware Project" required>
                         @error('name')<p class="field-error">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="field-label">Team Type <span class="text-red-500">*</span></label>
+                        <select name="type" x-model="type" class="field-input @error('type') is-invalid @enderror">
+                            <option value="internal" {{ old('type', 'internal') === 'internal' ? 'selected' : '' }}>Internal</option>
+                            <option value="client_placement" {{ old('type') === 'client_placement' ? 'selected' : '' }}>Client Placement</option>
+                        </select>
+                        <p class="field-hint">Client Placement is for contingent workers placed at an external client (e.g. Intel).</p>
+                        @error('type')<p class="field-error">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="mb-3" x-show="type === 'client_placement'" x-cloak>
+                        <label class="field-label">Client <span class="text-red-500">*</span></label>
+                        <select name="client_id" class="field-input @error('client_id') is-invalid @enderror">
+                            <option value="">— Select Client —</option>
+                            @foreach($clients as $client)
+                            <option value="{{ $client->id }}" {{ (string) old('client_id') === (string) $client->id ? 'selected' : '' }}>{{ $client->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="field-hint">No client yet? <a href="{{ route('clients.create') }}" class="text-primary-600 hover:underline dark:text-primary-400">Add one</a>.</p>
+                        @error('client_id')<p class="field-error">{{ $message }}</p>@enderror
                     </div>
                     <div class="mb-3">
                         <label class="field-label">Manager</label>
