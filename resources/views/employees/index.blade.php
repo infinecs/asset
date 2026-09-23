@@ -13,6 +13,9 @@
             <i class="bi bi-diagram-3"></i>Org Chart
         </a>
         @if(auth()->user()->isAdmin())
+        <a href="{{ route('employees.bulk-edit-org') }}" class="btn btn-outline">
+            <i class="bi bi-diagram-3"></i>Bulk Edit Org Structure
+        </a>
         <a href="{{ route('employees.bulk-edit-birthdays') }}" class="btn btn-outline">
             <i class="bi bi-calendar-heart"></i>Bulk Edit Birthdays
         </a>

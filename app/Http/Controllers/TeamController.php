@@ -15,6 +15,14 @@ class TeamController extends Controller
         return view('teams.index', compact('teams'));
     }
 
+    public function show(Team $team)
+    {
+        $this->authorizeAdmin();
+        $team->load('manager');
+        $employees = $team->employees()->with('role')->orderBy('name')->get();
+        return view('teams.show', compact('team', 'employees'));
+    }
+
     public function create()
     {
         $this->authorizeAdmin();

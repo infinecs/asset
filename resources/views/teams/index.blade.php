@@ -15,7 +15,9 @@
             <tbody>
                 @forelse($teams as $team)
                 <tr>
-                    <td class="font-semibold text-slate-800 dark:text-slate-100">{{ $team->name }}</td>
+                    <td class="font-semibold text-slate-800 dark:text-slate-100">
+                        <a href="{{ route('teams.show', $team) }}" class="hover:underline">{{ $team->name }}</a>
+                    </td>
                     <td class="text-slate-500 dark:text-slate-400">
                         @if($team->manager)
                         <a href="{{ route('employees.show', $team->manager) }}" class="text-primary-600 hover:underline dark:text-primary-400">{{ $team->manager->name }}</a>
@@ -26,6 +28,7 @@
                     <td class="text-slate-500 dark:text-slate-400">{{ $team->employees_count }}</td>
                     <td class="text-right">
                         <div class="inline-flex gap-1">
+                            <a href="{{ route('teams.show', $team) }}" class="btn btn-sm btn-outline-primary btn-icon"><i class="bi bi-eye"></i></a>
                             <a href="{{ route('teams.edit', $team) }}" class="btn btn-sm btn-outline btn-icon"><i class="bi bi-pencil"></i></a>
                             <form method="POST" action="{{ route('teams.destroy', $team) }}" onsubmit="return confirm('Delete this team?')">
                                 @csrf @method('DELETE')

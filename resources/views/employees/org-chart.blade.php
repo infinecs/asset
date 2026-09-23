@@ -2,15 +2,18 @@
 @section('title', 'Org Chart')
 @section('page-title', 'Organization Chart')
 @section('content')
-<div class="mb-6 flex items-center justify-between">
+<div class="mb-6 flex items-center justify-between print:hidden">
     <div>
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Organization Chart</h5>
         <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">Visual reporting structure of active employees</p>
     </div>
-    <a href="{{ route('employees.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
+    <div class="flex gap-2">
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.print()"><i class="bi bi-printer"></i>Print / Export PDF</button>
+        <a href="{{ route('employees.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
+    </div>
 </div>
 
-<div class="card">
+<div class="card print-plain">
     <div class="card-body overflow-x-auto">
         @forelse($roots as $root)
         <div class="mb-8 flex justify-[safe_center] last:mb-0">

@@ -104,6 +104,11 @@ class Employee extends Model
         return $this->hasMany(GiftCard::class);
     }
 
+    public function histories(): HasMany
+    {
+        return $this->hasMany(EmployeeHistory::class);
+    }
+
     /**
      * The next upcoming occurrence of this employee's birthday (today or later).
      */

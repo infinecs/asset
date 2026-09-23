@@ -1,0 +1,71 @@
+@extends('layouts.app')
+@section('title', $team->name)
+@section('page-title', 'Team')
+@section('content')
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">{{ $team->name }}</h5>
+        <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">{{ $employees->count() }} member(s)</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="{{ route('teams.edit', $team) }}" class="btn btn-outline btn-sm"><i class="bi bi-pencil"></i>Edit</a>
+        <a href="{{ route('teams.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+    <div class="lg:col-span-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-person-arms-up me-2 text-slate-400"></i>Manager</h6>
+            </div>
+            <div class="card-body">
+                @if($team->manager)
+                <a href="{{ route('employees.show', $team->manager) }}" class="flex items-center gap-3 no-underline">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-600">
+                        <span class="text-xs font-bold text-white">{{ substr($team->manager->name, 0, 1) }}</span>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $team->manager->name }}</span>
+                </a>
+                @else
+                <span class="text-sm text-slate-500 dark:text-slate-400">No manager assigned.</span>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="lg:col-span-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-people me-2 text-slate-400"></i>Team Members</h6>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table-clean">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>ID Number</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($employees as $employee)
+                        <tr>
+                            <td class="font-semibold text-slate-800 dark:text-slate-100">{{ $employee->name }}</td>
+                            <td><code class="text-primary-600 dark:text-primary-400">{{ $employee->id_number }}</code></td>
+                            <td class="text-slate-500 dark:text-slate-400">{{ $employee->role->name ?? '-' }}</td>
+                            <td><span class="badge badge-{{ $employee->status_badge }}">{{ $employee->status_label }}</span></td>
+                            <td class="text-right"><a href="{{ route('employees.show', $employee) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="py-8 text-center text-slate-500 dark:text-slate-400">No members in this team yet.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

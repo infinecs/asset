@@ -33,7 +33,7 @@
 
         <!-- Sidebar -->
         <nav
-            class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col bg-slate-900 transition-all duration-200 lg:translate-x-0"
+            class="print:hidden fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col bg-slate-900 transition-all duration-200 lg:translate-x-0"
             :class="{ 'translate-x-0': mobileOpen, 'lg:!w-[78px]': sidebarCollapsed }"
         >
             <div class="flex h-[68px] shrink-0 items-center justify-between border-b border-slate-800 px-4">
@@ -165,8 +165,8 @@
         </nav>
 
         <!-- Main Content -->
-        <div class="flex min-h-full min-w-0 flex-1 flex-col transition-all duration-200" :class="sidebarCollapsed ? 'lg:pl-[78px]' : 'lg:pl-64'">
-            <header class="sticky top-0 z-30 flex h-[68px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+        <div class="flex min-h-full min-w-0 flex-1 flex-col transition-all duration-200 print:pl-0" :class="sidebarCollapsed ? 'lg:pl-[78px]' : 'lg:pl-64'">
+            <header class="print:hidden sticky top-0 z-30 flex h-[68px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
                 <div class="flex items-center gap-3">
                     <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden" @click="mobileOpen = true">
                         <i class="bi bi-list fs-5"></i>

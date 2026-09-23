@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\AssetHistory;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Models\EmployeeHistory;
 use App\Models\Location;
 use App\Models\Role;
 use App\Models\Team;
@@ -95,6 +96,108 @@ class EmployeeController extends Controller
         return redirect()->back()->with('success', "{$updated} birthday(s) updated.");
     }
 
+    public function bulkEditOrgStructure(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $query = Employee::where('status', 'active');
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('id_number', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->input('unassigned') === '1') {
+            $query->whereNull('manager_id');
+        }
+
+        $employees = $query->orderByRaw('CAST(SUBSTRING(id_number, 4) AS UNSIGNED) ASC')->paginate(50)->withQueryString();
+
+        $roles = Role::orderBy('name')->get();
+        $teams = Team::orderBy('name')->get();
+        $managers = Employee::where('is_manager', true)->orderBy('name')->get();
+
+        return view('employees.bulk-edit-org', compact('employees', 'roles', 'teams', 'managers'));
+    }
+
+    public function updateOrgStructure(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'rows' => 'nullable|array',
+            'rows.*.role_id' => 'nullable|exists:roles,id',
+            'rows.*.team_id' => 'nullable|exists:teams,id',
+            'rows.*.manager_id' => 'nullable|exists:employees,id',
+            'rows.*.is_manager' => 'nullable|boolean',
+        ]);
+
+        $rows = $validated['rows'] ?? [];
+        $employees = Employee::whereIn('id', array_keys($rows))->get()->keyBy('id');
+
+        $updated = 0;
+        $skipped = [];
+
+        foreach ($rows as $employeeId => $row) {
+            $employee = $employees->get((int) $employeeId);
+            if (!$employee) {
+                continue;
+            }
+
+            $newManagerId = $row['manager_id'] ?? null;
+            if ($newManagerId && $employee->wouldCreateCycle((int) $newManagerId)) {
+                $skipped[] = $employee->name . ' (would create a reporting loop)';
+                continue;
+            }
+
+            $isManager = !empty($row['is_manager']);
+            $newValues = [
+                'role_id' => $row['role_id'] ?? null,
+                'manager_id' => $newManagerId,
+                'is_manager' => $isManager,
+                // A manager's team is expressed via the teams they lead, not personal membership.
+                'team_id' => $isManager ? null : ($row['team_id'] ?? null),
+            ];
+
+            $changes = [];
+            foreach ($newValues as $key => $value) {
+                if ($employee->$key != $value) {
+                    $changes[$key] = ['old' => $employee->$key, 'new' => $value];
+                }
+            }
+
+            if (empty($changes)) {
+                continue;
+            }
+
+            $employee->update($newValues);
+
+            EmployeeHistory::create([
+                'employee_id' => $employee->id,
+                'user_id' => auth()->id(),
+                'action' => 'updated',
+                'notes' => 'Bulk org structure update',
+                'changes' => $changes,
+            ]);
+
+            $updated++;
+        }
+
+        $msg = "{$updated} employee(s) updated.";
+        if (!empty($skipped)) {
+            $msg .= ' Skipped — ' . implode('; ', $skipped) . '.';
+        }
+
+        return redirect()->back()->with('success', $msg);
+    }
+
     public function create()
     {
         $locations = Location::orderBy('name')->get();
@@ -143,13 +246,77 @@ class EmployeeController extends Controller
         $this->syncSubordinates($employee, $subordinateIds);
         $this->syncManagedTeams($employee, $managedTeamIds);
 
+        EmployeeHistory::create([
+            'employee_id' => $employee->id,
+            'user_id' => auth()->id(),
+            'action' => 'created',
+            'notes' => 'Employee added',
+        ]);
+
         return redirect()->route('employees.index')->with('success', 'Employee added successfully.');
     }
 
     public function show(Employee $employee)
     {
-        $employee->load(['assets.category', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates', 'managedTeams']);
-        return view('employees.show', compact('employee'));
+        $employee->load(['assets.category', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates', 'managedTeams', 'histories.user']);
+
+        $relationNameMaps = [
+            'role_id' => Role::pluck('name', 'id'),
+            'team_id' => Team::pluck('name', 'id'),
+            'manager_id' => Employee::pluck('name', 'id'),
+        ];
+        $labels = [
+            'name' => 'Name',
+            'id_number' => 'ID Number',
+            'work_location' => 'Work Location',
+            'email' => 'Email',
+            'status' => 'Status',
+            'date_of_birth' => 'Date of Birth',
+            'role_id' => 'Role',
+            'team_id' => 'Team',
+            'manager_id' => 'Manager',
+            'is_manager' => 'Is Manager',
+            'gift_card_opt_out' => 'Gift Card Opt-Out',
+        ];
+
+        $activityTimeline = $employee->histories->map(function ($history) use ($relationNameMaps, $labels) {
+            $changes = collect($history->changes ?? [])->map(function ($change, $field) use ($relationNameMaps, $labels) {
+                $old = $change['old'] ?? null;
+                $new = $change['new'] ?? null;
+
+                if (isset($relationNameMaps[$field])) {
+                    $old = $old ? ($relationNameMaps[$field][$old] ?? $old) : '—';
+                    $new = $new ? ($relationNameMaps[$field][$new] ?? $new) : '—';
+                } elseif (is_bool($old) || is_bool($new)) {
+                    $old = $old ? 'Yes' : 'No';
+                    $new = $new ? 'Yes' : 'No';
+                } else {
+                    $old = $old ?? '—';
+                    $new = $new ?? '—';
+                }
+
+                return [
+                    'label' => $labels[$field] ?? ucwords(str_replace('_', ' ', $field)),
+                    'old' => $old,
+                    'new' => $new,
+                ];
+            })->values();
+
+            return (object) [
+                'at' => $history->created_at,
+                'title' => ucwords(str_replace('_', ' ', $history->action)),
+                'by' => $history->user?->name ?? 'System',
+                'notes' => $history->notes,
+                'changes' => $changes,
+                'icon' => match ($history->action) {
+                    'created' => 'plus',
+                    'status_changed' => 'arrow-repeat',
+                    default => 'pencil',
+                },
+            ];
+        })->sortByDesc('at')->take(15)->values();
+
+        return view('employees.show', compact('employee', 'activityTimeline'));
     }
 
     public function edit(Employee $employee)
@@ -202,10 +369,27 @@ class EmployeeController extends Controller
             }
         }
 
+        $changes = [];
+        foreach ($validated as $key => $value) {
+            if ($employee->$key != $value) {
+                $changes[$key] = ['old' => $employee->$key, 'new' => $value];
+            }
+        }
+
         $employee->update($validated);
 
         $this->syncSubordinates($employee, $subordinateIds);
         $this->syncManagedTeams($employee, $managedTeamIds);
+
+        if (!empty($changes)) {
+            EmployeeHistory::create([
+                'employee_id' => $employee->id,
+                'user_id' => auth()->id(),
+                'action' => 'updated',
+                'notes' => 'Employee information updated',
+                'changes' => $changes,
+            ]);
+        }
 
         $returnTo = $request->input('return');
         $redirectUrl = ($returnTo && str_starts_with($returnTo, '/employees'))
@@ -282,6 +466,17 @@ class EmployeeController extends Controller
         $validated = $request->validate([
             'status' => 'required|in:active,resigned',
         ]);
+
+        if ($employee->status !== $validated['status']) {
+            EmployeeHistory::create([
+                'employee_id' => $employee->id,
+                'user_id' => auth()->id(),
+                'action' => 'status_changed',
+                'changes' => [
+                    'status' => ['old' => $employee->status, 'new' => $validated['status']],
+                ],
+            ]);
+        }
 
         $employee->update($validated);
 
