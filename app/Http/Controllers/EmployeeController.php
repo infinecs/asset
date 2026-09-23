@@ -258,7 +258,7 @@ class EmployeeController extends Controller
 
     public function show(Employee $employee)
     {
-        $employee->load(['assets.category', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates', 'managedTeams', 'histories.user']);
+        $employee->load(['assets.category', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates.team', 'managedTeams', 'histories.user']);
 
         $relationNameMaps = [
             'role_id' => Role::pluck('name', 'id'),

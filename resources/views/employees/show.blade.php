@@ -90,13 +90,19 @@
                 <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Direct Reports ({{ $employee->subordinates->count() }})</h6>
             </div>
             <div>
-                @forelse($employee->subordinates as $subordinate)
-                <a href="{{ route('employees.show', $subordinate) }}" class="flex items-center gap-3 border-b border-slate-100 px-6 py-3 last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60">
-                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
-                        <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
-                    </div>
-                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $subordinate->name }}</span>
-                </a>
+                @php $groupedSubordinates = $employee->subordinates->groupBy(fn ($s) => $s->team->name ?? 'No Team')->sortKeys(); @endphp
+                @forelse($groupedSubordinates as $teamName => $members)
+                <div class="border-b-2 border-slate-200 last:border-b-0 dark:border-slate-700">
+                    <div class="bg-slate-50 px-6 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">{{ $teamName }}</div>
+                    @foreach($members as $subordinate)
+                    <a href="{{ route('employees.show', $subordinate) }}" class="flex items-center gap-3 border-t border-slate-100 px-6 py-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60">
+                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
+                            <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
+                        </div>
+                        <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $subordinate->name }}</span>
+                    </a>
+                    @endforeach
+                </div>
                 @empty
                 <div class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No direct reports yet.</div>
                 @endforelse

@@ -5,7 +5,7 @@
 <div class="mb-6 flex items-center justify-between">
     <div>
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">{{ $team->name }}</h5>
-        <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">{{ $employees->count() }} member(s)</p>
+        <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">{{ $employees->count() + ($team->manager ? 1 : 0) }} member(s)</p>
     </div>
     <div class="flex gap-2">
         <a href="{{ route('teams.edit', $team) }}" class="btn btn-outline btn-sm"><i class="bi bi-pencil"></i>Edit</a>
@@ -51,6 +51,18 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @if($team->manager)
+                        <tr class="bg-primary-50/50 dark:bg-primary-900/10">
+                            <td class="font-semibold text-slate-800 dark:text-slate-100">
+                                {{ $team->manager->name }}
+                                <span class="badge badge-secondary ms-1"><i class="bi bi-star-fill me-1"></i>Manager</span>
+                            </td>
+                            <td><code class="text-primary-600 dark:text-primary-400">{{ $team->manager->id_number }}</code></td>
+                            <td class="text-slate-500 dark:text-slate-400">{{ $team->manager->role->name ?? '-' }}</td>
+                            <td><span class="badge badge-{{ $team->manager->status_badge }}">{{ $team->manager->status_label }}</span></td>
+                            <td class="text-right"><a href="{{ route('employees.show', $team->manager) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                        </tr>
+                        @endif
                         @forelse($employees as $employee)
                         <tr>
                             <td class="font-semibold text-slate-800 dark:text-slate-100">{{ $employee->name }}</td>
@@ -60,7 +72,9 @@
                             <td class="text-right"><a href="{{ route('employees.show', $employee) }}" class="btn btn-sm btn-outline-primary">View</a></td>
                         </tr>
                         @empty
+                        @if(!$team->manager)
                         <tr><td colspan="5" class="py-8 text-center text-slate-500 dark:text-slate-400">No members in this team yet.</td></tr>
+                        @endif
                         @endforelse
                     </tbody>
                 </table>
