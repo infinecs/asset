@@ -123,6 +123,7 @@ class EmployeeController extends Controller
             'status'           => 'required|in:active,resigned',
             'date_of_birth'    => 'nullable|date',
             'role_id'          => 'nullable|exists:roles,id',
+            'team_id'          => 'nullable|exists:teams,id',
             'manager_id'       => 'nullable|exists:employees,id',
             'subordinate_ids'   => 'nullable|array',
             'subordinate_ids.*' => 'integer|exists:employees,id',
@@ -133,6 +134,8 @@ class EmployeeController extends Controller
         $validated['is_manager'] = $request->boolean('is_manager');
         $subordinateIds = $validated['is_manager'] ? ($validated['subordinate_ids'] ?? []) : [];
         $managedTeamIds = $validated['is_manager'] ? ($validated['managed_team_ids'] ?? []) : [];
+        // A manager's team is expressed via the teams they lead (Teams Managed), not personal membership.
+        $validated['team_id'] = $validated['is_manager'] ? null : ($validated['team_id'] ?? null);
         unset($validated['subordinate_ids'], $validated['managed_team_ids']);
 
         $employee = Employee::create($validated);
@@ -173,6 +176,7 @@ class EmployeeController extends Controller
             'status'           => 'required|in:active,resigned',
             'date_of_birth'    => 'nullable|date',
             'role_id'          => 'nullable|exists:roles,id',
+            'team_id'          => 'nullable|exists:teams,id',
             'manager_id'       => 'nullable|exists:employees,id',
             'subordinate_ids'   => 'nullable|array',
             'subordinate_ids.*' => 'integer|exists:employees,id',
@@ -183,6 +187,8 @@ class EmployeeController extends Controller
         $validated['is_manager'] = $request->boolean('is_manager');
         $subordinateIds = $validated['is_manager'] ? ($validated['subordinate_ids'] ?? []) : [];
         $managedTeamIds = $validated['is_manager'] ? ($validated['managed_team_ids'] ?? []) : [];
+        // A manager's team is expressed via the teams they lead (Teams Managed), not personal membership.
+        $validated['team_id'] = $validated['is_manager'] ? null : ($validated['team_id'] ?? null);
         unset($validated['subordinate_ids'], $validated['managed_team_ids']);
 
         if ($employee->wouldCreateCycle($validated['manager_id'] ?? null)) {

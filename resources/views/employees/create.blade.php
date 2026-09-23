@@ -62,6 +62,18 @@
                     @error('role_id')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
 
+                <div x-show="!isManager" x-cloak>
+                    <label class="field-label">Team</label>
+                    <select name="team_id" class="field-input @error('team_id') is-invalid @enderror">
+                        <option value="">— Select Team —</option>
+                        @foreach($teams as $team)
+                        <option value="{{ $team->id }}" {{ (string) old('team_id') === (string) $team->id ? 'selected' : '' }}>{{ $team->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="field-hint">Which team this employee belongs to.</p>
+                    @error('team_id')<p class="field-error">{{ $message }}</p>@enderror
+                </div>
+
                 <div>
                     <label class="field-label">Manager</label>
                     <select name="manager_id" class="field-input @error('manager_id') is-invalid @enderror">
