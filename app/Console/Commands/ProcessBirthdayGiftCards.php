@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Mail\BirthdayGiftCardMail;
 use App\Mail\GiftCardReminderMail;
+use App\Mail\ManagerBirthdayReminderMail;
 use App\Models\Employee;
 use App\Models\GiftCard;
 use App\Models\GiftCardSetting;
@@ -25,7 +26,7 @@ class ProcessBirthdayGiftCards extends Command
      *
      * @var string
      */
-    protected $description = 'Send birthday gift cards to employees when due, and remind the person in charge daily starting 7 days before if the gift card code is still empty';
+    protected $description = 'Send birthday gift cards to employees when due, remind the person in charge daily starting 7 days before if the gift card code is still empty, and notify managers 3 and 2 days before a direct report\'s birthday';
 
     /**
      * Execute the console command.
@@ -42,6 +43,7 @@ class ProcessBirthdayGiftCards extends Command
 
         $sent = 0;
         $reminded = 0;
+        $managersNotified = 0;
 
         foreach ($employees as $employee) {
             $occurrence = $employee->nextBirthdayOccurrence();
@@ -63,6 +65,10 @@ class ProcessBirthdayGiftCards extends Command
                 $giftCard->birthday_date = $occurrence;
                 $giftCard->status = 'pending';
                 $giftCard->reminder_count = 0;
+            }
+
+            if ($this->notifyManagerOfUpcomingBirthday($employee, $giftCard, $daysUntil)) {
+                $managersNotified++;
             }
 
             if ($giftCard->status === 'sent') {
@@ -110,8 +116,37 @@ class ProcessBirthdayGiftCards extends Command
             }
         }
 
-        $this->info("Done. {$sent} gift card(s) sent, {$reminded} reminder(s) sent.");
+        $this->info("Done. {$sent} gift card(s) sent, {$reminded} reminder(s) sent, {$managersNotified} manager notification(s) sent.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Notify an employee's manager 3 days and again 2 days before the employee's birthday.
+     * Tracked on the gift card row so each checkpoint is only sent once per occasion.
+     */
+    private function notifyManagerOfUpcomingBirthday(Employee $employee, GiftCard $giftCard, int $daysUntil): bool
+    {
+        if (!in_array($daysUntil, [3, 2], true)) {
+            return false;
+        }
+
+        $column = $daysUntil === 3 ? 'manager_notified_3d_at' : 'manager_notified_2d_at';
+        if ($giftCard->{$column}) {
+            return false;
+        }
+
+        $manager = $employee->manager;
+        if (!$manager || !$manager->email) {
+            return false;
+        }
+
+        Mail::to($manager->email)->send(new ManagerBirthdayReminderMail($employee, $manager, $daysUntil));
+        $giftCard->{$column} = now();
+        $giftCard->save();
+
+        $this->info("Notified {$manager->name} that {$employee->name}'s birthday is in {$daysUntil} day(s).");
+
+        return true;
     }
 }
