@@ -10,7 +10,7 @@
 
 <div class="card max-w-[600px]">
     <div class="card-body">
-        <form method="POST" action="{{ route('employees.update', $employee) }}">
+        <form method="POST" action="{{ route('employees.update', $employee) }}" x-data="{ isManager: {{ old('is_manager', $employee->is_manager) ? 'true' : 'false' }} }">
             @csrf @method('PUT')
             <input type="hidden" name="return" value="{{ $safeReturn }}">
 
@@ -48,6 +48,39 @@
             </div>
 
             <div class="mb-3">
+                <label class="field-label">Role</label>
+                <select name="role_id" class="field-input @error('role_id') is-invalid @enderror">
+                    <option value="">— Select Role —</option>
+                    @foreach($roles as $role)
+                    <option value="{{ $role->id }}" {{ (string) old('role_id', $employee->role_id) === (string) $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
+                    @endforeach
+                </select>
+                @error('role_id')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="field-label">Team</label>
+                <select name="team_id" class="field-input @error('team_id') is-invalid @enderror">
+                    <option value="">— Select Team —</option>
+                    @foreach($teams as $team)
+                    <option value="{{ $team->id }}" {{ (string) old('team_id', $employee->team_id) === (string) $team->id ? 'selected' : '' }}>{{ $team->name }}</option>
+                    @endforeach
+                </select>
+                @error('team_id')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="field-label">Manager</label>
+                <select name="manager_id" class="field-input @error('manager_id') is-invalid @enderror">
+                    <option value="">— No Manager —</option>
+                    @foreach($managers as $manager)
+                    <option value="{{ $manager->id }}" {{ (string) old('manager_id', $employee->manager_id) === (string) $manager->id ? 'selected' : '' }}>{{ $manager->name }}</option>
+                    @endforeach
+                </select>
+                @error('manager_id')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="mb-3">
                 <label class="field-label">Email <span class="text-red-500">*</span></label>
                 <input type="email" name="email" class="field-input @error('email') is-invalid @enderror"
                        value="{{ old('email', $employee->email) }}" required>
@@ -77,6 +110,46 @@
                     <option value="resigned" {{ old('status', $employee->status) === 'resigned' ? 'selected' : '' }}>Resigned</option>
                 </select>
                 @error('status')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input type="checkbox" name="is_manager" value="1" x-model="isManager" class="h-4 w-4 rounded border-slate-300 accent-primary-600" {{ old('is_manager', $employee->is_manager) ? 'checked' : '' }}>
+                    This employee is a manager
+                </label>
+                <p class="field-hint">Enable to choose which employees report to them.</p>
+            </div>
+
+            @php $currentSubordinateIds = old('subordinate_ids', $employee->subordinates->pluck('id')->all()); @endphp
+            <div class="mb-4 card !shadow-none" x-show="isManager" x-cloak>
+                <div class="card-header">
+                    <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Subordinates</h6>
+                </div>
+                <div class="card-body">
+                    <select name="subordinate_ids[]" multiple class="field-input @error('subordinate_ids') is-invalid @enderror">
+                        @foreach($employees as $person)
+                        <option value="{{ $person->id }}" {{ in_array($person->id, $currentSubordinateIds) ? 'selected' : '' }}>{{ $person->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="field-hint">Selected employees will report to this manager.</p>
+                    @error('subordinate_ids')<p class="field-error">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            @php $currentManagedTeamIds = old('managed_team_ids', $employee->managedTeams->pluck('id')->all()); @endphp
+            <div class="mb-4 card !shadow-none" x-show="isManager" x-cloak>
+                <div class="card-header">
+                    <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-people me-2 text-slate-400"></i>Teams Managed</h6>
+                </div>
+                <div class="card-body">
+                    <select name="managed_team_ids[]" multiple class="field-input @error('managed_team_ids') is-invalid @enderror">
+                        @foreach($teams as $team)
+                        <option value="{{ $team->id }}" {{ in_array($team->id, $currentManagedTeamIds) ? 'selected' : '' }}>{{ $team->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="field-hint">A manager can lead more than one team — select all that apply.</p>
+                    @error('managed_team_ids')<p class="field-error">{{ $message }}</p>@enderror
+                </div>
             </div>
 
             <div class="flex gap-2">

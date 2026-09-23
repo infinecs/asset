@@ -23,7 +23,18 @@
                 </div>
                 <h5 class="mb-1 font-semibold text-slate-900 dark:text-white">{{ $employee->name }}</h5>
                 <p class="mb-2 text-sm text-slate-500 dark:text-slate-400">{{ $employee->email }}</p>
-                <span class="badge badge-{{ $employee->status_badge }} px-3 py-1">{{ $employee->status_label }}</span>
+                <div class="flex flex-wrap items-center justify-center gap-1.5">
+                    <span class="badge badge-{{ $employee->status_badge }} px-3 py-1">{{ $employee->status_label }}</span>
+                    @if($employee->role)
+                    <span class="badge badge-primary px-3 py-1">{{ $employee->role->name }}</span>
+                    @endif
+                    @if($employee->team)
+                    <span class="badge badge-secondary px-3 py-1">{{ $employee->team->name }}</span>
+                    @endif
+                    @if($employee->is_manager)
+                    <span class="badge badge-secondary px-3 py-1"><i class="bi bi-diagram-3 me-1"></i>Manager</span>
+                    @endif
+                </div>
             </div>
             <div class="border-t border-slate-200 px-6 py-3 dark:border-slate-800">
                 <div class="flex items-center justify-between py-2">
@@ -35,11 +46,63 @@
                     <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->work_location ?? '-' }}</span>
                 </div>
                 <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-people me-2"></i>Team</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->team->name ?? '-' }}</span>
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-person-arms-up me-2"></i>Manager</span>
+                    @if($employee->manager)
+                    <a href="{{ route('employees.show', $employee->manager) }}" class="text-sm font-semibold text-primary-600 hover:underline dark:text-primary-400">{{ $employee->manager->name }}</a>
+                    @else
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">-</span>
+                    @endif
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
                     <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-calendar3 me-2"></i>Added</span>
                     <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->created_at->format('d M Y') }}</span>
                 </div>
             </div>
         </div>
+
+        @if($employee->is_manager && $employee->managedTeams->isNotEmpty())
+        <!-- Teams Managed Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-people me-2 text-slate-400"></i>Teams Managed ({{ $employee->managedTeams->count() }})</h6>
+            </div>
+            <div>
+                @foreach($employee->managedTeams as $managedTeam)
+                <div class="flex items-center gap-3 border-b border-slate-100 px-6 py-3 last:border-b-0 dark:border-slate-800">
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-500">
+                        <i class="bi bi-people text-xs text-white"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $managedTeam->name }}</span>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        @if($employee->is_manager)
+        <!-- Direct Reports Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Direct Reports ({{ $employee->subordinates->count() }})</h6>
+            </div>
+            <div>
+                @forelse($employee->subordinates as $subordinate)
+                <a href="{{ route('employees.show', $subordinate) }}" class="flex items-center gap-3 border-b border-slate-100 px-6 py-3 last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60">
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
+                        <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $subordinate->name }}</span>
+                </a>
+                @empty
+                <div class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No direct reports yet.</div>
+                @endforelse
+            </div>
+        </div>
+        @endif
 
         <!-- HR Documents Upload Card -->
         <div class="card mt-4">

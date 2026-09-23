@@ -27,7 +27,7 @@
         toggleSidebar() { this.sidebarCollapsed = !this.sidebarCollapsed; localStorage.setItem('sidebarSimplified', this.sidebarCollapsed ? '1' : '0'); },
         toggleTheme() { this.dark = !this.dark; document.documentElement.classList.toggle('dark', this.dark); localStorage.setItem('theme', this.dark ? 'dark' : 'light'); }
     }">
-    <div class="flex min-h-full">
+    <div class="flex min-h-full overflow-x-hidden">
         <!-- Mobile overlay -->
         <div x-show="mobileOpen" x-cloak x-transition.opacity class="fixed inset-0 z-40 bg-slate-900/50 lg:hidden" @click="mobileOpen = false"></div>
 
@@ -96,6 +96,16 @@
                     <i class="bi bi-building"></i><span x-show="!sidebarCollapsed || mobileOpen">Departments</span>
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Departments</span>
                 </a>
+                @if(auth()->user()->isAdmin())
+                <a href="{{ route('roles.index') }}" class="sidebar-link {{ request()->routeIs('roles.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-person-badge"></i><span x-show="!sidebarCollapsed || mobileOpen">Roles</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Roles</span>
+                </a>
+                <a href="{{ route('teams.index') }}" class="sidebar-link {{ request()->routeIs('teams.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-people"></i><span x-show="!sidebarCollapsed || mobileOpen">Teams</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Teams</span>
+                </a>
+                @endif
                 <a href="{{ route('brands.index') }}" class="sidebar-link {{ request()->routeIs('brands.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
                     <i class="bi bi-award"></i><span x-show="!sidebarCollapsed || mobileOpen">Brands</span>
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Brands</span>
@@ -155,7 +165,7 @@
         </nav>
 
         <!-- Main Content -->
-        <div class="flex min-h-full flex-1 flex-col transition-all duration-200" :class="sidebarCollapsed ? 'lg:pl-[78px]' : 'lg:pl-64'">
+        <div class="flex min-h-full min-w-0 flex-1 flex-col transition-all duration-200" :class="sidebarCollapsed ? 'lg:pl-[78px]' : 'lg:pl-64'">
             <header class="sticky top-0 z-30 flex h-[68px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
                 <div class="flex items-center gap-3">
                     <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden" @click="mobileOpen = true">
@@ -171,7 +181,7 @@
                 </div>
             </header>
 
-            <main class="flex-1 p-4 sm:p-6">
+            <main class="min-w-0 flex-1 p-4 sm:p-6">
                 @if(session('success'))
                 <div x-data="{ show: true }" x-show="show" x-transition class="alert alert-success mb-4">
                     <i class="bi bi-check-circle mt-0.5"></i>
@@ -243,7 +253,9 @@
                     'assigned_to',
                     'user_id',
                     'requested_by',
-                    'lessee_id'
+                    'lessee_id',
+                    'role_id',
+                    'manager_id'
                 ];
 
                 const selector = searchableNames
@@ -301,7 +313,9 @@
 
                 const multiSearchableNames = [
                     'employee_ids[]',
-                    'person_in_charge_ids[]'
+                    'person_in_charge_ids[]',
+                    'subordinate_ids[]',
+                    'managed_team_ids[]'
                 ];
 
                 const multiSelector = multiSearchableNames

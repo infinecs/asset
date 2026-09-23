@@ -125,4 +125,32 @@
     .ts-dropdown .active { @apply !bg-primary-50 !text-primary-700 dark:!bg-primary-900/40 dark:!text-primary-200; }
     .ts-dropdown .optgroup-header { @apply !bg-white !text-slate-500 dark:!bg-slate-900 dark:!text-slate-400; }
     .ts-dropdown .no-results { @apply dark:!text-slate-400; }
+
+    /* Org chart tree */
+    .org-tree, .org-tree ul, .org-tree li {
+        @apply relative m-0 list-none p-0;
+    }
+    .org-tree { @apply inline-flex pt-5; justify-content: safe center; }
+    .org-tree ul { @apply flex pt-5; }
+    .org-tree li { @apply flex flex-col items-center px-2.5 pt-5; }
+    .org-tree li::before,
+    .org-tree li::after {
+        content: '';
+        right: 50%;
+        @apply absolute top-0 h-5 w-1/2 border-t-2 border-slate-300 dark:border-slate-700;
+    }
+    .org-tree li::after { left: 50%; right: auto; @apply border-l-2; }
+    .org-tree li:only-child { @apply pt-0; }
+    .org-tree li:only-child::before, .org-tree li:only-child::after { @apply hidden; }
+    .org-tree li:first-child::before, .org-tree li:last-child::after { @apply border-transparent; }
+    .org-tree li:last-child::before { @apply rounded-tr-md border-r-2 border-slate-300 dark:border-slate-700; }
+    .org-tree li:first-child::after { @apply rounded-tl-md; }
+    .org-tree ul::before {
+        content: '';
+        left: 50%;
+        @apply absolute top-0 h-5 w-0 border-l-2 border-slate-300 dark:border-slate-700;
+    }
+    .org-tree .org-node {
+        @apply inline-flex min-w-[160px] flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_6px_-2px_rgba(15,23,42,0.08)] transition-colors hover:border-primary-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-primary-800;
+    }
 }

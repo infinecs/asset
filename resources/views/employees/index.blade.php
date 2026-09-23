@@ -8,8 +8,11 @@
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Employees</h5>
         <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">Manage and track all employees</p>
     </div>
-    @if(auth()->user()->isAdmin())
     <div class="flex gap-2">
+        <a href="{{ route('employees.org-chart') }}" class="btn btn-outline">
+            <i class="bi bi-diagram-3"></i>Org Chart
+        </a>
+        @if(auth()->user()->isAdmin())
         <a href="{{ route('employees.bulk-edit-birthdays') }}" class="btn btn-outline">
             <i class="bi bi-calendar-heart"></i>Bulk Edit Birthdays
         </a>
@@ -17,8 +20,8 @@
             <i class="bi bi-upload"></i>Import Excel
         </button>
         <a href="{{ route('employees.create') }}" class="btn btn-primary"><i class="bi bi-person-plus"></i>Add Employee</a>
+        @endif
     </div>
-    @endif
 </div>
 
 <div class="card mb-6">
@@ -52,6 +55,8 @@
                 <tr>
                     <th>Name</th>
                     <th>ID Number</th>
+                    <th>Role</th>
+                    <th>Team</th>
                     <th>Work Location</th>
                     <th>Email</th>
                     <th>Status</th>
@@ -72,6 +77,19 @@
                         </div>
                     </td>
                     <td><code class="text-primary-600 dark:text-primary-400">{{ $employee->id_number }}</code></td>
+                    <td class="text-slate-500 dark:text-slate-400">
+                        @if($employee->role)
+                        <span class="badge badge-primary">{{ $employee->role->name }}</span>
+                        @if($employee->is_manager)
+                        <span class="badge badge-secondary"><i class="bi bi-diagram-3 me-1"></i>Manager</span>
+                        @endif
+                        @elseif($employee->is_manager)
+                        <span class="badge badge-secondary"><i class="bi bi-diagram-3 me-1"></i>Manager</span>
+                        @else
+                        -
+                        @endif
+                    </td>
+                    <td class="text-slate-500 dark:text-slate-400">{{ $employee->team->name ?? '-' }}</td>
                     <td class="text-slate-500 dark:text-slate-400">{{ $employee->work_location ?? '-' }}</td>
                     <td class="text-slate-500 dark:text-slate-400">{{ $employee->email }}</td>
                     <td>
@@ -107,7 +125,7 @@
                     @endif
                 </tr>
                 @empty
-                <tr><td colspan="{{ auth()->user()->isAdmin() ? 6 : 5 }}" class="py-8 text-center text-slate-500 dark:text-slate-400">No employees found.</td></tr>
+                <tr><td colspan="{{ auth()->user()->isAdmin() ? 8 : 7 }}" class="py-8 text-center text-slate-500 dark:text-slate-400">No employees found.</td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -15,7 +15,9 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\OutcomeAdminController;
 use App\Http\Controllers\OutcomeController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -76,6 +78,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('digital-products', DigitalProductController::class);
 
     // Employees
+    Route::get('/employees/org-chart', [EmployeeController::class, 'orgChart'])->name('employees.org-chart');
     Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
     Route::get('/employees/bulk-edit-birthdays', [EmployeeController::class, 'bulkEditBirthdays'])->name('employees.bulk-edit-birthdays');
     Route::post('/employees/bulk-edit-birthdays', [EmployeeController::class, 'updateBirthdays'])->name('employees.update-birthdays');
@@ -97,6 +100,8 @@ Route::middleware('auth')->group(function () {
 
     // Staff/Admin routes
     Route::resource('departments', DepartmentController::class);
+    Route::resource('roles', RoleController::class);
+    Route::resource('teams', TeamController::class);
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');

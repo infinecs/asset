@@ -7,6 +7,8 @@ use App\Models\AssetHistory;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Location;
+use App\Models\Role;
+use App\Models\Team;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +17,7 @@ class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Employee::query();
+        $query = Employee::with(['role', 'team']);
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
@@ -96,7 +98,12 @@ class EmployeeController extends Controller
     public function create()
     {
         $locations = Location::orderBy('name')->get();
-        return view('employees.create', compact('locations'));
+        $roles = Role::orderBy('name')->get();
+        $teams = Team::orderBy('name')->get();
+        $managers = Employee::where('is_manager', true)->orderBy('name')->get();
+        $employees = Employee::orderBy('name')->get();
+
+        return view('employees.create', compact('locations', 'roles', 'teams', 'managers', 'employees'));
     }
 
     private function buildIdNumber(string $suffix): string
@@ -109,30 +116,50 @@ class EmployeeController extends Controller
         $request->merge(['id_number' => $this->buildIdNumber($request->input('id_number_suffix', ''))]);
 
         $validated = $request->validate([
-            'name'          => 'required|string|max:255',
-            'id_number'     => 'required|string|max:50|unique:employees,id_number',
-            'work_location' => 'nullable|string|max:255',
-            'email'         => 'required|email|unique:employees,email',
-            'status'        => 'required|in:active,resigned',
-            'date_of_birth' => 'nullable|date',
+            'name'             => 'required|string|max:255',
+            'id_number'        => 'required|string|max:50|unique:employees,id_number',
+            'work_location'    => 'nullable|string|max:255',
+            'email'            => 'required|email|unique:employees,email',
+            'status'           => 'required|in:active,resigned',
+            'date_of_birth'    => 'nullable|date',
+            'role_id'          => 'nullable|exists:roles,id',
+            'team_id'          => 'nullable|exists:teams,id',
+            'manager_id'       => 'nullable|exists:employees,id',
+            'subordinate_ids'   => 'nullable|array',
+            'subordinate_ids.*' => 'integer|exists:employees,id',
+            'managed_team_ids'   => 'nullable|array',
+            'managed_team_ids.*' => 'integer|exists:teams,id',
         ]);
         $validated['gift_card_opt_out'] = $request->boolean('gift_card_opt_out');
+        $validated['is_manager'] = $request->boolean('is_manager');
+        $subordinateIds = $validated['is_manager'] ? ($validated['subordinate_ids'] ?? []) : [];
+        $managedTeamIds = $validated['is_manager'] ? ($validated['managed_team_ids'] ?? []) : [];
+        unset($validated['subordinate_ids'], $validated['managed_team_ids']);
 
-        Employee::create($validated);
+        $employee = Employee::create($validated);
+
+        $this->syncSubordinates($employee, $subordinateIds);
+        $this->syncManagedTeams($employee, $managedTeamIds);
 
         return redirect()->route('employees.index')->with('success', 'Employee added successfully.');
     }
 
     public function show(Employee $employee)
     {
-        $employee->load(['assets.category', 'documents', 'digitalProducts.brand']);
+        $employee->load(['assets.category', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates', 'managedTeams']);
         return view('employees.show', compact('employee'));
     }
 
     public function edit(Employee $employee)
     {
         $locations = Location::orderBy('name')->get();
-        return view('employees.edit', compact('employee', 'locations'));
+        $roles = Role::orderBy('name')->get();
+        $teams = Team::orderBy('name')->get();
+        $managers = Employee::where('is_manager', true)->where('id', '!=', $employee->id)->orderBy('name')->get();
+        $employees = Employee::where('id', '!=', $employee->id)->orderBy('name')->get();
+        $employee->load(['subordinates', 'managedTeams']);
+
+        return view('employees.edit', compact('employee', 'locations', 'roles', 'teams', 'managers', 'employees'));
     }
 
     public function update(Request $request, Employee $employee)
@@ -140,16 +167,41 @@ class EmployeeController extends Controller
         $request->merge(['id_number' => $this->buildIdNumber($request->input('id_number_suffix', ''))]);
 
         $validated = $request->validate([
-            'name'          => 'required|string|max:255',
-            'id_number'     => 'required|string|max:50|unique:employees,id_number,' . $employee->id,
-            'work_location' => 'nullable|string|max:255',
-            'email'         => 'required|email|unique:employees,email,' . $employee->id,
-            'status'        => 'required|in:active,resigned',
-            'date_of_birth' => 'nullable|date',
+            'name'             => 'required|string|max:255',
+            'id_number'        => 'required|string|max:50|unique:employees,id_number,' . $employee->id,
+            'work_location'    => 'nullable|string|max:255',
+            'email'            => 'required|email|unique:employees,email,' . $employee->id,
+            'status'           => 'required|in:active,resigned',
+            'date_of_birth'    => 'nullable|date',
+            'role_id'          => 'nullable|exists:roles,id',
+            'team_id'          => 'nullable|exists:teams,id',
+            'manager_id'       => 'nullable|exists:employees,id',
+            'subordinate_ids'   => 'nullable|array',
+            'subordinate_ids.*' => 'integer|exists:employees,id',
+            'managed_team_ids'   => 'nullable|array',
+            'managed_team_ids.*' => 'integer|exists:teams,id',
         ]);
         $validated['gift_card_opt_out'] = $request->boolean('gift_card_opt_out');
+        $validated['is_manager'] = $request->boolean('is_manager');
+        $subordinateIds = $validated['is_manager'] ? ($validated['subordinate_ids'] ?? []) : [];
+        $managedTeamIds = $validated['is_manager'] ? ($validated['managed_team_ids'] ?? []) : [];
+        unset($validated['subordinate_ids'], $validated['managed_team_ids']);
+
+        if ($employee->wouldCreateCycle($validated['manager_id'] ?? null)) {
+            return back()->withErrors(['manager_id' => 'Invalid manager selection: this would create a reporting loop.'])->withInput();
+        }
+
+        foreach ($subordinateIds as $subordinateId) {
+            $candidate = Employee::find($subordinateId);
+            if ($candidate && $candidate->wouldCreateCycle($employee->id)) {
+                return back()->withErrors(['subordinate_ids' => 'One of the selected subordinates would create a reporting loop.'])->withInput();
+            }
+        }
 
         $employee->update($validated);
+
+        $this->syncSubordinates($employee, $subordinateIds);
+        $this->syncManagedTeams($employee, $managedTeamIds);
 
         $returnTo = $request->input('return');
         $redirectUrl = ($returnTo && str_starts_with($returnTo, '/employees'))
@@ -157,6 +209,64 @@ class EmployeeController extends Controller
             : route('employees.index');
 
         return redirect($redirectUrl)->with('success', 'Employee updated successfully.');
+    }
+
+    /**
+     * Assign the given employees as direct reports of $employee, and release any previous
+     * direct reports that are no longer selected.
+     */
+    private function syncSubordinates(Employee $employee, array $subordinateIds): void
+    {
+        Employee::where('manager_id', $employee->id)
+            ->whereNotIn('id', $subordinateIds)
+            ->update(['manager_id' => null]);
+
+        if (!empty($subordinateIds)) {
+            Employee::whereIn('id', $subordinateIds)
+                ->where('id', '!=', $employee->id)
+                ->update(['manager_id' => $employee->id]);
+        }
+    }
+
+    /**
+     * Assign the given teams to be managed by $employee, and release any previously managed
+     * teams that are no longer selected. An employee can manage several teams at once.
+     */
+    private function syncManagedTeams(Employee $employee, array $teamIds): void
+    {
+        Team::where('manager_id', $employee->id)
+            ->whereNotIn('id', $teamIds)
+            ->update(['manager_id' => null]);
+
+        if (!empty($teamIds)) {
+            Team::whereIn('id', $teamIds)->update(['manager_id' => $employee->id]);
+        }
+    }
+
+    public function orgChart()
+    {
+        $employees = Employee::with(['role', 'team'])->where('status', 'active')->orderBy('name')->get();
+
+        // Employees whose role is flagged as top-level (e.g. CEO) always sit at the very top of
+        // the chart, above every other manager — regardless of their manager_id.
+        $topLevel = $employees->filter(fn (Employee $employee) => (bool) $employee->role?->is_top_level)->sortBy('name');
+        $topLevelIds = $topLevel->pluck('id');
+        $chiefId = $topLevel->first()?->id;
+
+        $byManager = $employees->groupBy(function (Employee $employee) use ($topLevelIds, $chiefId) {
+            if ($topLevelIds->contains($employee->id)) {
+                return null;
+            }
+
+            if (is_null($employee->manager_id) && $chiefId) {
+                return $chiefId;
+            }
+
+            return $employee->manager_id;
+        });
+        $roots = $byManager->get(null, collect());
+
+        return view('employees.org-chart', compact('roots', 'byManager'));
     }
 
     public function updateStatus(Request $request, Employee $employee)
