@@ -221,7 +221,9 @@
                                     ],
                                 ];
                                 $currentCpu = old('cpu', $asset->cpu);
-                                $cpuIsCustom = $currentCpu && !collect($cpuGroups)->flatten()->contains($currentCpu);
+                                $knownCpus = collect($cpuGroups)->flatten();
+                                $cpuIsCustom = $currentCpu && !$knownCpus->contains($currentCpu);
+                                $extraCpus = $customCpus->reject(fn ($cpu) => $knownCpus->contains($cpu) || $cpu === $currentCpu)->values();
                             @endphp
                             <select name="cpu" class="field-input">
                                 <option value="">— Select CPU —</option>
@@ -235,6 +237,13 @@
                                     @endforeach
                                 </optgroup>
                                 @endforeach
+                                @if($extraCpus->isNotEmpty())
+                                <optgroup label="Previously Used">
+                                    @foreach($extraCpus as $cpu)
+                                    <option value="{{ $cpu }}">{{ $cpu }}</option>
+                                    @endforeach
+                                </optgroup>
+                                @endif
                             </select>
                         </div>
                         <div>

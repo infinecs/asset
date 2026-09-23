@@ -186,7 +186,8 @@ class AssetController extends Controller
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
         $employees = Employee::orderBy('name')->get();
-        return view('assets.create', compact('brands', 'categories', 'locations', 'employees'));
+        $customCpus = Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu');
+        return view('assets.create', compact('brands', 'categories', 'locations', 'employees', 'customCpus'));
     }
 
     public function store(Request $request)
@@ -364,7 +365,8 @@ class AssetController extends Controller
         $locations = Location::orderBy('name')->get();
         $employees = Employee::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
-        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments'));
+        $customCpus = Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu');
+        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments', 'customCpus'));
     }
 
     public function update(Request $request, Asset $asset)
