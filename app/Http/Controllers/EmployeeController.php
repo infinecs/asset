@@ -16,9 +16,9 @@ use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
-    public function index(Request $request)
+    private function filteredEmployeesQuery(Request $request)
     {
-        $query = Employee::with(['role', 'team']);
+        $query = Employee::with(['role', 'team', 'manager']);
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
@@ -34,9 +34,51 @@ class EmployeeController extends Controller
             $query->where('status', $request->status);
         }
 
-        $employees = $query->orderByRaw('CAST(SUBSTRING(id_number, 4) AS UNSIGNED) ASC')->paginate(15)->withQueryString();
+        return $query->orderByRaw('CAST(SUBSTRING(id_number, 4) AS UNSIGNED) ASC');
+    }
+
+    public function index(Request $request)
+    {
+        $employees = $this->filteredEmployeesQuery($request)->paginate(15)->withQueryString();
 
         return view('employees.index', compact('employees'));
+    }
+
+    public function export(Request $request)
+    {
+        $employees = $this->filteredEmployeesQuery($request)->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="employees_' . now()->format('Y-m-d_His') . '.csv"',
+        ];
+
+        $callback = function () use ($employees) {
+            $h = fopen('php://output', 'w');
+            fputcsv($h, [
+                'ID Number', 'Name', 'Email', 'Work Location', 'Role', 'Team',
+                'Manager', 'Is Manager', 'Status', 'Date of Birth',
+            ]);
+
+            foreach ($employees as $employee) {
+                fputcsv($h, [
+                    $employee->id_number,
+                    $employee->name,
+                    $employee->email,
+                    $employee->work_location,
+                    $employee->role?->name,
+                    $employee->team?->name,
+                    $employee->manager?->name,
+                    $employee->is_manager ? 'Yes' : 'No',
+                    $employee->status_label,
+                    $employee->date_of_birth?->format('Y-m-d'),
+                ]);
+            }
+
+            fclose($h);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function bulkEditBirthdays(Request $request)
@@ -525,6 +567,27 @@ class EmployeeController extends Controller
         }
 
         return redirect()->route('employees.show', $employee)->with('success', $assets->count() . ' asset(s) reclaimed.');
+    }
+
+    public function revokeDigitalProducts(Employee $employee)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $count = $employee->digitalProducts()->count();
+        $employee->digitalProducts()->detach();
+
+        if ($count > 0) {
+            EmployeeHistory::create([
+                'employee_id' => $employee->id,
+                'user_id' => auth()->id(),
+                'action' => 'updated',
+                'notes' => "Revoked {$count} digital product license(s) as part of offboarding",
+            ]);
+        }
+
+        return redirect()->route('employees.show', $employee)->with('success', $count . ' digital product license(s) revoked.');
     }
 
     public function destroy(Employee $employee)

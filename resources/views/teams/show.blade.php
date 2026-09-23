@@ -82,4 +82,38 @@
         </div>
     </div>
 </div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-laptop me-2 text-slate-400"></i>Team Assets ({{ $assets->count() }})</h6>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="table-clean">
+            <thead>
+                <tr>
+                    <th>Asset Tag</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Assigned To</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($assets as $asset)
+                <tr>
+                    <td><code class="text-primary-600 dark:text-primary-400">{{ $asset->asset_tag ?? '-' }}</code></td>
+                    <td class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->name }}</td>
+                    <td class="text-slate-500 dark:text-slate-400">{{ $asset->category?->name ?? '-' }}</td>
+                    <td class="text-slate-500 dark:text-slate-400">{{ $asset->assignedEmployee?->name ?? '-' }}</td>
+                    <td><span class="badge badge-{{ $asset->status_badge }}">{{ $asset->status_label }}</span></td>
+                    <td class="text-right"><a href="{{ route('assets.show', $asset) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                </tr>
+                @empty
+                <tr><td colspan="6" class="py-8 text-center text-slate-500 dark:text-slate-400">No assets assigned to this team's members yet.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
 @endsection

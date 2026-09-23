@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Asset;
 use App\Models\Employee;
 use App\Models\Team;
 use Illuminate\Http\Request;
@@ -20,7 +21,17 @@ class TeamController extends Controller
         $this->authorizeAdmin();
         $team->load('manager.role');
         $employees = $team->employees()->with('role')->orderBy('name')->get();
-        return view('teams.show', compact('team', 'employees'));
+
+        $memberIds = $employees->pluck('id');
+        if ($team->manager_id) {
+            $memberIds->push($team->manager_id);
+        }
+        $assets = Asset::whereIn('assigned_to', $memberIds)
+            ->with(['category', 'assignedEmployee'])
+            ->orderBy('name')
+            ->get();
+
+        return view('teams.show', compact('team', 'employees', 'assets'));
     }
 
     public function create()

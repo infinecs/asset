@@ -12,6 +12,9 @@
         <a href="{{ route('employees.org-chart') }}" class="btn btn-outline">
             <i class="bi bi-diagram-3"></i>Org Chart
         </a>
+        <a href="{{ route('employees.export', request()->query()) }}" class="btn btn-outline">
+            <i class="bi bi-download"></i>Export CSV
+        </a>
         @if(auth()->user()->isAdmin())
         <a href="{{ route('employees.bulk-edit-org') }}" class="btn btn-outline">
             <i class="bi bi-diagram-3"></i>Bulk Edit Org Structure

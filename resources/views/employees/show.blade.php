@@ -64,6 +64,81 @@
             </div>
         </div>
 
+        @if($employee->status === 'resigned')
+        @php
+            $offboardAssetsRemaining = $employee->assets->count();
+            $offboardProductsRemaining = $employee->digitalProducts->count();
+            $offboardReportsRemaining = $employee->is_manager ? $employee->subordinates->count() : 0;
+            $offboardTeamsRemaining = $employee->is_manager ? $employee->managedTeams->count() : 0;
+        @endphp
+        <!-- Offboarding Checklist -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-clipboard-check me-2 text-slate-400"></i>Offboarding Checklist</h6>
+            </div>
+            <div class="card-body space-y-3">
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardAssetsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Reclaim assigned assets</span>
+                        @if($offboardAssetsRemaining > 0)
+                        <a href="#assigned-assets" class="ms-1 text-primary-600 hover:underline dark:text-primary-400">({{ $offboardAssetsRemaining }} remaining)</a>
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardProductsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Revoke digital product licenses</span>
+                        @if($offboardProductsRemaining > 0)
+                        <span class="text-slate-400">({{ $offboardProductsRemaining }} assigned)</span>
+                        @if(auth()->user()->isAdmin())
+                        <form action="{{ route('employees.revoke-digital-products', $employee) }}" method="POST" class="mt-1" onsubmit="return confirm('Revoke all {{ $offboardProductsRemaining }} license(s) from {{ $employee->name }}?')">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Revoke All</button>
+                        </form>
+                        @endif
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
+                @if($employee->is_manager)
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardReportsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Reassign direct reports</span>
+                        @if($offboardReportsRemaining > 0)
+                        <a href="{{ route('employees.bulk-edit-org') }}" class="ms-1 text-primary-600 hover:underline dark:text-primary-400">({{ $offboardReportsRemaining }} still reporting to them)</a>
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardTeamsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Reassign managed teams</span>
+                        @if($offboardTeamsRemaining > 0)
+                        <a href="{{ route('teams.index') }}" class="ms-1 text-primary-600 hover:underline dark:text-primary-400">({{ $offboardTeamsRemaining }} team(s) still assigned)</a>
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
+                @endif
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-info-circle text-slate-400 mt-0.5"></i>
+                    <div class="flex-1 text-sm text-slate-500 dark:text-slate-400">
+                        {{ $employee->documents->count() }} document(s) on file — kept for records, no action needed.
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         @if($employee->is_manager && $employee->managedTeams->isNotEmpty())
         <!-- Teams Managed Card -->
         <div class="card mt-4">
@@ -156,7 +231,7 @@
     <div class="lg:col-span-8">
         <!-- Assets Section -->
         @php $canReclaim = auth()->user()->isAdmin() && $employee->status === 'resigned' && $employee->assets->isNotEmpty(); @endphp
-        <div class="card mb-4">
+        <div id="assigned-assets" class="card mb-4">
             <div class="card-header flex items-center justify-between">
                 <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-laptop me-2 text-slate-400"></i>Assigned Assets ({{ $employee->assets->count() }})</h6>
                 @if($canReclaim)

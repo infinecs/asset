@@ -174,6 +174,13 @@
                     <h6 class="mb-0 text-sm font-semibold text-slate-800 dark:text-slate-100 sm:text-base">@yield('page-title', 'Dashboard')</h6>
                 </div>
                 <div class="flex items-center gap-3">
+                    <form method="GET" action="{{ route('search.index') }}" class="relative hidden md:block">
+                        <i class="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" name="q" value="{{ request()->routeIs('search.index') ? request('q') : '' }}" class="field-input w-56 pl-9" placeholder="Search...">
+                    </form>
+                    <a href="{{ route('search.index') }}" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden" title="Search">
+                        <i class="bi bi-search"></i>
+                    </a>
                     <span class="hidden text-sm text-slate-500 dark:text-slate-400 sm:inline">{{ now()->format('D, d M Y') }}</span>
                     <button type="button" class="rounded-lg border border-slate-300 p-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" @click="toggleTheme()" title="Toggle dark mode">
                         <i class="bi" :class="dark ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
