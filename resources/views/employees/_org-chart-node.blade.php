@@ -1,4 +1,12 @@
-@php $children = $byManager->get($employee->id, collect()); @endphp
+@php
+    $children = $byManager->get($employee->id, collect());
+    // A manager can lead several teams: when their reports span more than one team, insert a
+    // team node between the manager and each team's members. Reports without a team (e.g.
+    // sub-managers) still hang directly off the manager.
+    $teamGroups = $children->whereNotNull('team_id')->groupBy('team_id')->sortBy(fn ($members) => $members->first()->team->name);
+    $groupByTeam = $teamGroups->count() > 1;
+    $ungrouped = $groupByTeam ? $children->whereNull('team_id') : $children;
+@endphp
 <li>
     <a href="{{ route('employees.show', $employee) }}" class="org-node no-underline">
         <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-600">
@@ -8,7 +16,7 @@
         @if($employee->role)
         <span class="text-xs text-slate-500 dark:text-slate-400">{{ $employee->role->name }}</span>
         @endif
-        @if($employee->team)
+        @if($employee->team && !$groupByTeam)
         <span class="text-xs text-slate-400 dark:text-slate-500">{{ $employee->team->name }}</span>
         @endif
         @if($employee->is_manager)
@@ -17,7 +25,23 @@
     </a>
     @if($children->isNotEmpty())
     <ul>
-        @foreach($children as $child)
+        @if($groupByTeam)
+            @foreach($teamGroups as $members)
+            @php $team = $members->first()->team; @endphp
+            <li>
+                <div class="org-node org-team-node">
+                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><i class="bi bi-people me-1 text-slate-400"></i>{{ $team->name }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400">{{ $team->type_label }} · {{ $members->count() }} {{ Str::plural('member', $members->count()) }}</span>
+                </div>
+                <ul>
+                    @foreach($members as $child)
+                        @include('employees._org-chart-node', ['employee' => $child, 'byManager' => $byManager])
+                    @endforeach
+                </ul>
+            </li>
+            @endforeach
+        @endif
+        @foreach($ungrouped as $child)
             @include('employees._org-chart-node', ['employee' => $child, 'byManager' => $byManager])
         @endforeach
     </ul>
