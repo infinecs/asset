@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\AssetHistory;
+use App\Models\Client;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\EmployeeHistory;
@@ -16,32 +17,138 @@ use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
+    /**
+     * Query-string keys that belong to the Advanced Search panel (used to keep it open when active).
+     */
+    public const ADVANCED_FILTERS = ['role', 'team', 'team_type', 'client', 'manager', 'location', 'is_manager', 'assets', 'dob_month', 'missing_dob'];
+
     private function filteredEmployeesQuery(Request $request)
     {
-        $query = Employee::with(['role', 'team', 'manager']);
+        $query = Employee::with(['role', 'team.client', 'manager'])->select('employees.*');
 
-        if ($request->filled('search')) {
-            $search = trim((string) $request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('id_number', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%')
-                    ->orWhere('work_location', 'like', '%' . $search . '%');
-            });
+        $search = trim(preg_replace('/\s+/', ' ', (string) $request->input('search', '')));
+
+        if ($search !== '') {
+            $like = fn (string $value) => '%' . addcslashes($value, '%_\\') . '%';
+
+            // Every word must match somewhere (name, ID, email, location, role, team, client or
+            // manager), so "john finance" finds John in the Finance team.
+            foreach (explode(' ', $search) as $term) {
+                $query->where(function ($q) use ($term, $like) {
+                    $q->where('name', 'like', $like($term))
+                        ->orWhere('id_number', 'like', $like($term))
+                        ->orWhere('email', 'like', $like($term))
+                        ->orWhere('work_location', 'like', $like($term))
+                        ->orWhereHas('role', fn ($r) => $r->where('name', 'like', $like($term)))
+                        ->orWhereHas('team', fn ($t) => $t->where('name', 'like', $like($term))
+                            ->orWhereHas('client', fn ($c) => $c->where('name', 'like', $like($term))))
+                        ->orWhereHas('manager', fn ($m) => $m->where('name', 'like', $like($term)));
+                });
+            }
+
+            // Relevance: exact matches first, then prefix matches, then matches anywhere in the
+            // employee's own fields; related-record matches (team, role, ...) score lowest.
+            $prefix = addcslashes($search, '%_\\') . '%';
+            $scoreSql = '(CASE WHEN name = ? OR id_number = ? OR email = ? THEN 100 ELSE 0 END)'
+                . ' + (CASE WHEN id_number LIKE ? OR id_number LIKE ? THEN 60 ELSE 0 END)'
+                . ' + (CASE WHEN name LIKE ? THEN 50 WHEN name LIKE ? THEN 35 WHEN name LIKE ? THEN 20 ELSE 0 END)'
+                . ' + (CASE WHEN email LIKE ? THEN 15 ELSE 0 END)'
+                . ' + (CASE WHEN work_location LIKE ? THEN 5 ELSE 0 END)';
+            $bindings = [
+                $search, $search, $search,
+                $prefix, 'INF' . $prefix,
+                $prefix, '% ' . $prefix, $like($search),
+                $like($search),
+                $like($search),
+            ];
+
+            // Per-word bonus so partial multi-word searches ("sag ramoo") still rank the person first.
+            foreach (explode(' ', $search) as $term) {
+                $termPrefix = addcslashes($term, '%_\\') . '%';
+                $scoreSql .= ' + (CASE WHEN name LIKE ? OR name LIKE ? THEN 15 WHEN name LIKE ? THEN 8 ELSE 0 END)';
+                array_push($bindings, $termPrefix, '% ' . $termPrefix, $like($term));
+            }
+
+            $query->selectRaw('(' . $scoreSql . ') AS relevance', $bindings);
         }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        return $query->orderByRaw('CAST(SUBSTRING(id_number, 4) AS UNSIGNED) ASC');
+        if ($request->filled('role')) {
+            $query->where('role_id', $request->role);
+        }
+
+        // Managers don't carry a team_id, so a team filter also matches the team's manager.
+        if ($request->filled('team')) {
+            $query->where(fn ($q) => $q->where('team_id', $request->team)
+                ->orWhereHas('managedTeams', fn ($t) => $t->whereKey($request->team)));
+        }
+
+        if ($request->filled('team_type')) {
+            $query->where(fn ($q) => $q->whereHas('team', fn ($t) => $t->where('type', $request->team_type))
+                ->orWhereHas('managedTeams', fn ($t) => $t->where('type', $request->team_type)));
+        }
+
+        if ($request->filled('client')) {
+            $query->where(fn ($q) => $q->whereHas('team', fn ($t) => $t->where('client_id', $request->client))
+                ->orWhereHas('managedTeams', fn ($t) => $t->where('client_id', $request->client)));
+        }
+
+        if ($request->filled('manager')) {
+            $query->where('manager_id', $request->manager);
+        }
+
+        if ($request->filled('location')) {
+            $query->where('work_location', $request->location);
+        }
+
+        if (in_array($request->is_manager, ['yes', 'no'], true)) {
+            $query->where('is_manager', $request->is_manager === 'yes');
+        }
+
+        if ($request->assets === 'with') {
+            $query->has('assets');
+        } elseif ($request->assets === 'without') {
+            $query->doesntHave('assets');
+        }
+
+        if ($request->filled('dob_month')) {
+            $query->whereMonth('date_of_birth', (int) $request->dob_month);
+        }
+
+        if ($request->input('missing_dob') === '1') {
+            $query->whereNull('date_of_birth');
+        }
+
+        $sort = $request->input('sort', $search !== '' ? 'relevance' : 'id');
+
+        match ($sort) {
+            'relevance' => $search !== '' ? $query->orderByDesc('relevance')->orderBy('name') : $query->orderBy('name'),
+            'name_asc' => $query->orderBy('name'),
+            'name_desc' => $query->orderByDesc('name'),
+            'newest' => $query->latest(),
+            default => $query->orderByRaw('CAST(SUBSTRING(id_number, 4) AS UNSIGNED) ASC'),
+        };
+
+        return $query;
     }
 
     public function index(Request $request)
     {
         $employees = $this->filteredEmployeesQuery($request)->paginate(15)->withQueryString();
 
-        return view('employees.index', compact('employees'));
+        $filterOptions = [
+            'roles' => Role::orderBy('name')->get(['id', 'name']),
+            'teams' => Team::orderBy('name')->get(['id', 'name']),
+            'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'managers' => Employee::where('is_manager', true)->orderBy('name')->get(['id', 'name']),
+            'locations' => Employee::whereNotNull('work_location')->where('work_location', '!=', '')
+                ->distinct()->orderBy('work_location')->pluck('work_location'),
+        ];
+
+        return view('employees.index', compact('employees', 'filterOptions'));
     }
 
     public function export(Request $request)
