@@ -14,13 +14,26 @@ use App\Models\Team;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class EmployeeController extends Controller
 {
     /**
      * Query-string keys that belong to the Advanced Search panel (used to keep it open when active).
      */
-    public const ADVANCED_FILTERS = ['role', 'team', 'team_type', 'client', 'manager', 'location', 'is_manager', 'assets', 'dob_month', 'missing_dob'];
+    public const ADVANCED_FILTERS = ['employed_on', 'resigned_from', 'resigned_to', 'role', 'team', 'team_type', 'client', 'manager', 'location', 'is_manager', 'assets', 'dob_month', 'missing_dob'];
+
+    /**
+     * Parse a "YYYY-MM" month input; returns null for anything else.
+     */
+    private function parseMonth(?string $value): ?Carbon
+    {
+        if (!$value || !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $value)) {
+            return null;
+        }
+
+        return Carbon::createFromFormat('!Y-m', $value);
+    }
 
     private function filteredEmployeesQuery(Request $request)
     {
@@ -72,8 +85,22 @@ class EmployeeController extends Controller
             $query->selectRaw('(' . $scoreSql . ') AS relevance', $bindings);
         }
 
-        if ($request->filled('status')) {
+        // "Employed during" rewinds the list to who was on staff in a given month, so it replaces
+        // the (present-day) status filter rather than combining with it.
+        $employedMonth = $this->parseMonth($request->input('employed_on'));
+
+        if ($employedMonth) {
+            $query->employedDuring($employedMonth->copy()->startOfMonth(), $employedMonth->copy()->endOfMonth());
+        } elseif ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($resignedFrom = $this->parseMonth($request->input('resigned_from'))) {
+            $query->whereDate('resigned_date', '>=', $resignedFrom->startOfMonth());
+        }
+
+        if ($resignedTo = $this->parseMonth($request->input('resigned_to'))) {
+            $query->whereDate('resigned_date', '<=', $resignedTo->endOfMonth());
         }
 
         if ($request->filled('role')) {
@@ -164,7 +191,7 @@ class EmployeeController extends Controller
             $h = fopen('php://output', 'w');
             fputcsv($h, [
                 'ID Number', 'Name', 'Email', 'Work Location', 'Role', 'Team',
-                'Manager', 'Is Manager', 'Status', 'Date of Birth',
+                'Manager', 'Is Manager', 'Status', 'Join Date', 'Resignation Date', 'Date of Birth',
             ]);
 
             foreach ($employees as $employee) {
@@ -178,6 +205,8 @@ class EmployeeController extends Controller
                     $employee->manager?->name,
                     $employee->is_manager ? 'Yes' : 'No',
                     $employee->status_label,
+                    $employee->join_date?->format('Y-m-d'),
+                    $employee->resigned_date?->format('Y-m-d'),
                     $employee->date_of_birth?->format('Y-m-d'),
                 ]);
             }
@@ -374,6 +403,8 @@ class EmployeeController extends Controller
             'email'            => 'required|email|unique:employees,email',
             'status'           => 'required|in:active,resigned',
             'date_of_birth'    => 'nullable|date',
+            'join_date'        => 'nullable|date',
+            'resigned_date'    => 'nullable|date|required_if:status,resigned',
             'role_id'          => 'nullable|exists:roles,id',
             'team_id'          => 'nullable|exists:teams,id',
             'manager_id'       => 'nullable|exists:employees,id',
@@ -389,6 +420,7 @@ class EmployeeController extends Controller
         // A manager's team is expressed via the teams they lead (Teams Managed), not personal membership.
         $validated['team_id'] = $validated['is_manager'] ? null : ($validated['team_id'] ?? null);
         unset($validated['subordinate_ids'], $validated['managed_team_ids']);
+        $validated = $this->normalizeEmploymentDates($validated);
 
         $employee = Employee::create($validated);
 
@@ -421,6 +453,8 @@ class EmployeeController extends Controller
             'email' => 'Email',
             'status' => 'Status',
             'date_of_birth' => 'Date of Birth',
+            'join_date' => 'Join Date',
+            'resigned_date' => 'Resignation Date',
             'role_id' => 'Role',
             'team_id' => 'Team',
             'manager_id' => 'Manager',
@@ -491,6 +525,8 @@ class EmployeeController extends Controller
             'email'            => 'required|email|unique:employees,email,' . $employee->id,
             'status'           => 'required|in:active,resigned',
             'date_of_birth'    => 'nullable|date',
+            'join_date'        => 'nullable|date',
+            'resigned_date'    => 'nullable|date|required_if:status,resigned',
             'role_id'          => 'nullable|exists:roles,id',
             'team_id'          => 'nullable|exists:teams,id',
             'manager_id'       => 'nullable|exists:employees,id',
@@ -506,6 +542,7 @@ class EmployeeController extends Controller
         // A manager's team is expressed via the teams they lead (Teams Managed), not personal membership.
         $validated['team_id'] = $validated['is_manager'] ? null : ($validated['team_id'] ?? null);
         unset($validated['subordinate_ids'], $validated['managed_team_ids']);
+        $validated = $this->normalizeEmploymentDates($validated);
 
         if ($employee->wouldCreateCycle($validated['manager_id'] ?? null)) {
             return back()->withErrors(['manager_id' => 'Invalid manager selection: this would create a reporting loop.'])->withInput();
@@ -520,8 +557,10 @@ class EmployeeController extends Controller
 
         $changes = [];
         foreach ($validated as $key => $value) {
-            if ($employee->$key != $value) {
-                $changes[$key] = ['old' => $employee->$key, 'new' => $value];
+            // Compare date casts as Y-m-d so an unchanged date isn't logged as a change.
+            $current = $employee->$key instanceof \DateTimeInterface ? $employee->$key->format('Y-m-d') : $employee->$key;
+            if ($current != $value) {
+                $changes[$key] = ['old' => $current, 'new' => $value];
             }
         }
 
@@ -546,6 +585,23 @@ class EmployeeController extends Controller
             : route('employees.index');
 
         return redirect($redirectUrl)->with('success', 'Employee updated successfully.');
+    }
+
+    /**
+     * An active employee has no resignation date, and a resignation can't predate the join date.
+     */
+    private function normalizeEmploymentDates(array $validated): array
+    {
+        if ($validated['status'] !== 'resigned') {
+            $validated['resigned_date'] = null;
+        }
+
+        if (!empty($validated['join_date']) && !empty($validated['resigned_date'])
+            && Carbon::parse($validated['resigned_date'])->lt(Carbon::parse($validated['join_date']))) {
+            throw ValidationException::withMessages(['resigned_date' => 'The resignation date cannot be before the join date.']);
+        }
+
+        return $validated;
     }
 
     /**
@@ -616,6 +672,12 @@ class EmployeeController extends Controller
             'status' => 'required|in:active,resigned',
         ]);
 
+        // Quick status toggle from the list: resigning stamps today as the resignation date
+        // (editable later on the employee form); reactivating clears it.
+        $validated['resigned_date'] = $validated['status'] === 'resigned'
+            ? ($employee->resigned_date?->format('Y-m-d') ?? now()->toDateString())
+            : null;
+
         if ($employee->status !== $validated['status']) {
             EmployeeHistory::create([
                 'employee_id' => $employee->id,
@@ -623,6 +685,7 @@ class EmployeeController extends Controller
                 'action' => 'status_changed',
                 'changes' => [
                     'status' => ['old' => $employee->status, 'new' => $validated['status']],
+                    'resigned_date' => ['old' => $employee->resigned_date?->format('Y-m-d'), 'new' => $validated['resigned_date']],
                 ],
             ]);
         }

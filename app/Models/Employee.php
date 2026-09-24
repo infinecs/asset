@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,11 +13,13 @@ class Employee extends Model
 {
     protected $fillable = [
         'name', 'id_number', 'work_location', 'email', 'status', 'date_of_birth', 'gift_card_opt_out',
-        'role_id', 'team_id', 'manager_id', 'is_manager',
+        'role_id', 'team_id', 'manager_id', 'is_manager', 'join_date', 'resigned_date',
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
+        'join_date' => 'date',
+        'resigned_date' => 'date',
         'gift_card_opt_out' => 'boolean',
         'is_manager' => 'boolean',
     ];
@@ -80,6 +83,19 @@ class Employee extends Model
         }
 
         return false;
+    }
+
+    /**
+     * Employees who were on staff at any point between $start and $end: joined on or before $end
+     * (or join date unknown) and not resigned before $start. A resigned employee with no
+     * resignation date is treated as gone for every period.
+     */
+    public function scopeEmployedDuring(Builder $query, Carbon $start, Carbon $end): Builder
+    {
+        return $query
+            ->where(fn ($q) => $q->whereNull('join_date')->orWhereDate('join_date', '<=', $end))
+            ->where(fn ($q) => $q->where(fn ($active) => $active->where('status', '!=', 'resigned')->whereNull('resigned_date'))
+                ->orWhereDate('resigned_date', '>=', $start));
     }
 
     public function assets(): HasMany

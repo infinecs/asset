@@ -9,7 +9,7 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="POST" action="{{ route('employees.store') }}" x-data="{ isManager: {{ old('is_manager') ? 'true' : 'false' }} }">
+        <form method="POST" action="{{ route('employees.store') }}" x-data="{ isManager: {{ old('is_manager') ? 'true' : 'false' }}, status: '{{ old('status', 'active') }}' }">
             @csrf
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -95,11 +95,27 @@
 
                 <div>
                     <label class="field-label">Status <span class="text-red-500">*</span></label>
-                    <select name="status" class="field-input @error('status') is-invalid @enderror" required>
+                    <select name="status" x-model="status" class="field-input @error('status') is-invalid @enderror" required>
                         <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Active</option>
                         <option value="resigned" {{ old('status') === 'resigned' ? 'selected' : '' }}>Resigned</option>
                     </select>
                     @error('status')<p class="field-error">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label class="field-label">Join Date</label>
+                    <input type="date" name="join_date" class="field-input @error('join_date') is-invalid @enderror"
+                           value="{{ old('join_date') }}">
+                    <p class="field-hint">Used to show who was on staff at a past date.</p>
+                    @error('join_date')<p class="field-error">{{ $message }}</p>@enderror
+                </div>
+
+                <div x-show="status === 'resigned'" x-cloak>
+                    <label class="field-label">Resignation Date <span class="text-red-500">*</span></label>
+                    <input type="date" name="resigned_date" class="field-input @error('resigned_date') is-invalid @enderror"
+                           value="{{ old('resigned_date', now()->toDateString()) }}" :disabled="status !== 'resigned'">
+                    <p class="field-hint">Last working day.</p>
+                    @error('resigned_date')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
 
                 <div class="flex items-end">

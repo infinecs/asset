@@ -58,6 +58,16 @@
                     @endif
                 </div>
                 <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-box-arrow-in-right me-2"></i>Joined</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->join_date?->format('d M Y') ?? '—' }}</span>
+                </div>
+                @if($employee->status === 'resigned')
+                <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-box-arrow-right me-2"></i>Resigned</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->resigned_date?->format('d M Y') ?? '—' }}</span>
+                </div>
+                @endif
+                <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
                     <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-calendar3 me-2"></i>Added</span>
                     <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->created_at->format('d M Y') }}</span>
                 </div>

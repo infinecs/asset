@@ -32,7 +32,11 @@
 
 @php
     $advancedActive = collect(\App\Http\Controllers\EmployeeController::ADVANCED_FILTERS)->filter(fn ($key) => request()->filled($key));
+    $monthLabel = fn ($v) => preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $v) ? \Carbon\Carbon::createFromFormat('!Y-m', $v)->format('M Y') : $v;
     $filterLabels = [
+        'employed_on' => fn ($v) => 'Employed during ' . $monthLabel($v),
+        'resigned_from' => fn ($v) => 'Resigned from ' . $monthLabel($v),
+        'resigned_to' => fn ($v) => 'Resigned to ' . $monthLabel($v),
         'role' => fn ($v) => 'Role: ' . ($filterOptions['roles']->firstWhere('id', $v)->name ?? $v),
         'team' => fn ($v) => 'Team: ' . ($filterOptions['teams']->firstWhere('id', $v)->name ?? $v),
         'team_type' => fn ($v) => 'Team type: ' . ($v === 'client_placement' ? 'Client Placement' : 'Internal'),
@@ -46,7 +50,7 @@
     ];
     $sort = request('sort', request()->filled('search') ? 'relevance' : 'id');
 @endphp
-<div class="card mb-6" x-data="{ advanced: {{ $advancedActive->isNotEmpty() ? 'true' : 'false' }} }">
+<div class="card mb-6" x-data="{ advanced: {{ $advancedActive->isNotEmpty() ? 'true' : 'false' }}, employedOn: @js((string) request('employed_on')) }">
     <div class="card-body">
         <form method="GET" action="{{ route('employees.index') }}" class="grid grid-cols-1 gap-3 md:grid-cols-12">
             <div class="md:col-span-5">
@@ -56,7 +60,7 @@
                 </div>
             </div>
             <div class="md:col-span-2">
-                <select name="status" class="field-input">
+                <select name="status" class="field-input" :disabled="employedOn !== ''" :title="employedOn !== '' ? 'Not used while Employed During is set' : ''">
                     <option value="">All Statuses</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="resigned" {{ request('status') === 'resigned' ? 'selected' : '' }}>Resigned</option>
@@ -89,7 +93,24 @@
             {{-- Advanced Search panel --}}
             <div class="md:col-span-12" x-show="advanced" x-collapse x-cloak>
                 <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
-                    <p class="mb-2 text-sm font-semibold text-slate-500 dark:text-slate-400"><i class="bi bi-diagram-3 me-1"></i>Organization</p>
+                    <p class="mb-2 text-sm font-semibold text-slate-500 dark:text-slate-400"><i class="bi bi-calendar-range me-1"></i>Employment Period</p>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="field-label">Employed During</label>
+                            <input type="month" name="employed_on" x-model="employedOn" class="field-input" value="{{ request('employed_on') }}">
+                            <p class="field-hint">Who was on staff in that month (joined by then, not yet resigned). Replaces the Status filter.</p>
+                        </div>
+                        <div>
+                            <label class="field-label">Resigned From</label>
+                            <input type="month" name="resigned_from" class="field-input" value="{{ request('resigned_from') }}">
+                        </div>
+                        <div>
+                            <label class="field-label">Resigned To</label>
+                            <input type="month" name="resigned_to" class="field-input" value="{{ request('resigned_to') }}">
+                        </div>
+                    </div>
+
+                    <p class="mb-2 mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400"><i class="bi bi-diagram-3 me-1"></i>Organization</p>
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                             <label class="field-label">Role</label>
@@ -259,6 +280,9 @@
                         </form>
                         @else
                         <span class="badge badge-{{ $employee->status_badge }}">{{ $employee->status_label }}</span>
+                        @endif
+                        @if($employee->status === 'resigned' && $employee->resigned_date)
+                        <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">{{ $employee->resigned_date->format('d M Y') }}</div>
                         @endif
                     </td>
                     @if(auth()->user()->isAdmin())
