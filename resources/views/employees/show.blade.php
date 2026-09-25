@@ -149,52 +149,6 @@
         </div>
         @endif
 
-        @if($employee->is_manager && $employee->managedTeams->isNotEmpty())
-        <!-- Teams Managed Card -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-people me-2 text-slate-400"></i>Teams Managed ({{ $employee->managedTeams->count() }})</h6>
-            </div>
-            <div>
-                @foreach($employee->managedTeams as $managedTeam)
-                <div class="flex items-center gap-3 border-b border-slate-100 px-6 py-3 last:border-b-0 dark:border-slate-800">
-                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-500">
-                        <i class="bi bi-people text-xs text-white"></i>
-                    </div>
-                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $managedTeam->name }}</span>
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        @if($employee->is_manager)
-        <!-- Direct Reports Card -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Direct Reports ({{ $employee->subordinates->count() }})</h6>
-            </div>
-            <div>
-                @php $groupedSubordinates = $employee->subordinates->groupBy(fn ($s) => $s->team->name ?? 'No Team')->sortKeys(); @endphp
-                @forelse($groupedSubordinates as $teamName => $members)
-                <div class="border-b-2 border-slate-200 last:border-b-0 dark:border-slate-700">
-                    <div class="bg-slate-50 px-6 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">{{ $teamName }}</div>
-                    @foreach($members as $subordinate)
-                    <a href="{{ route('employees.show', $subordinate) }}" class="flex items-center gap-3 border-t border-slate-100 px-6 py-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60">
-                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
-                            <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
-                        </div>
-                        <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $subordinate->name }}</span>
-                    </a>
-                    @endforeach
-                </div>
-                @empty
-                <div class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No direct reports yet.</div>
-                @endforelse
-            </div>
-        </div>
-        @endif
-
         <!-- HR Documents Upload Card -->
         <div class="card mt-4">
             <div class="card-header">
@@ -337,6 +291,83 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        @if($employee->is_manager && $employee->managedTeams->isNotEmpty())
+        <!-- Teams Managed Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-people me-2 text-slate-400"></i>Teams Managed ({{ $employee->managedTeams->count() }})</h6>
+            </div>
+            <div>
+                @foreach($employee->managedTeams as $managedTeam)
+                <div class="flex items-center gap-3 border-b border-slate-100 px-6 py-3 last:border-b-0 dark:border-slate-800">
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-500">
+                        <i class="bi bi-people text-xs text-white"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $managedTeam->name }}</span>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        @if($employee->is_manager)
+        <!-- Direct Reports Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Direct Reports ({{ $employee->subordinates->count() }})</h6>
+            </div>
+            <div>
+                @php $groupedSubordinates = $employee->subordinates->groupBy(fn ($s) => $s->team->name ?? 'No Team')->sortKeys(); @endphp
+                @forelse($groupedSubordinates as $teamName => $members)
+                <div class="border-b-2 border-slate-200 last:border-b-0 dark:border-slate-700">
+                    <div class="bg-slate-50 px-6 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">{{ $teamName }}</div>
+                    @foreach($members as $subordinate)
+                    <a href="{{ route('employees.show', $subordinate) }}" class="flex items-center gap-3 border-t border-slate-100 px-6 py-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60">
+                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
+                            <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
+                        </div>
+                        <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $subordinate->name }}</span>
+                    </a>
+                    @endforeach
+                </div>
+                @empty
+                <div class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No direct reports yet.</div>
+                @endforelse
+            </div>
+        </div>
+        @endif
+
+        <!-- Individual Org Chart -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Org Chart</h6>
+            </div>
+            <div class="card-body overflow-x-auto">
+                <div class="flex justify-[safe_center]">
+                    <ul class="org-tree !pt-0">
+                        @foreach($orgAncestors as $ancestor)
+                        <li>
+                            <a href="{{ route('employees.show', $ancestor) }}" class="org-node no-underline">
+                                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-500">
+                                    <span class="text-xs font-bold text-white">{{ substr($ancestor->name, 0, 1) }}</span>
+                                </div>
+                                <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $ancestor->name }}</span>
+                                @if($ancestor->role)
+                                <span class="text-xs text-slate-500 dark:text-slate-400">{{ $ancestor->role->name }}</span>
+                                @endif
+                            </a>
+                            <ul>
+                        @endforeach
+                        @include('employees._org-chart-node', ['employee' => $employee, 'byManager' => $orgByManager, 'highlightId' => $employee->id])
+                        @foreach($orgAncestors as $ancestor)
+                            </ul>
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
             </div>
         </div>
 

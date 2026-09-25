@@ -8,7 +8,7 @@
     $ungrouped = $groupByTeam ? $children->whereNull('team_id') : $children;
 @endphp
 <li>
-    <a href="{{ route('employees.show', $employee) }}" class="org-node no-underline">
+    <a href="{{ route('employees.show', $employee) }}" class="org-node no-underline {{ ($highlightId ?? null) === $employee->id ? 'org-node-current' : '' }}">
         <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-600">
             <span class="text-xs font-bold text-white">{{ substr($employee->name, 0, 1) }}</span>
         </div>

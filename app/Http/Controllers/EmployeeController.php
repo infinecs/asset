@@ -499,7 +499,23 @@ class EmployeeController extends Controller
             ];
         })->sortByDesc('at')->take(15)->values();
 
-        return view('employees.show', compact('employee', 'activityTimeline'));
+        // Individual org chart: the employee's manager chain above them, and their active direct
+        // reports below (one level deep). The seen-list guards against a circular manager chain.
+        $orgAncestors = collect();
+        $seen = [$employee->id];
+        $current = $employee->manager;
+        while ($current && !in_array($current->id, $seen)) {
+            $current->loadMissing('role');
+            $orgAncestors->prepend($current);
+            $seen[] = $current->id;
+            $current = $current->manager;
+        }
+        $employee->subordinates->loadMissing('role');
+        $orgByManager = collect([
+            $employee->id => $employee->subordinates->where('status', 'active')->sortBy('name')->values(),
+        ]);
+
+        return view('employees.show', compact('employee', 'activityTimeline', 'orgAncestors', 'orgByManager'));
     }
 
     public function edit(Employee $employee)
