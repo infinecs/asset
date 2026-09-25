@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/employees/bulk-edit-birthdays', [EmployeeController::class, 'updateBirthdays'])->name('employees.update-birthdays');
     Route::get('/employees/bulk-edit-org', [EmployeeController::class, 'bulkEditOrgStructure'])->name('employees.bulk-edit-org');
     Route::post('/employees/bulk-edit-org', [EmployeeController::class, 'updateOrgStructure'])->name('employees.update-org');
+    Route::get('/employees/{employee}/org-chart', [EmployeeController::class, 'individualOrgChart'])->name('employees.individual-org-chart');
     Route::patch('/employees/{employee}/status', [EmployeeController::class, 'updateStatus'])->name('employees.update-status');
     Route::post('/employees/{employee}/reclaim-assets', [EmployeeController::class, 'reclaimAssets'])->name('employees.reclaim-assets');
     Route::post('/employees/{employee}/revoke-digital-products', [EmployeeController::class, 'revokeDigitalProducts'])->name('employees.revoke-digital-products');

@@ -6,6 +6,9 @@
 <div class="mb-6 flex items-center justify-between">
     <h5 class="text-lg font-semibold text-slate-900 dark:text-white">{{ $employee->name }}</h5>
     <div class="flex gap-2">
+        @if($employee->hasReportingLine())
+        <a href="{{ route('employees.individual-org-chart', $employee) }}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-diagram-3"></i>Org Chart</a>
+        @endif
         @if(auth()->user()->isAdmin())
         <a href="{{ route('employees.edit', $employee) }}{{ $safeReturn ? '?return=' . urlencode($safeReturn) : '' }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i>Edit</a>
         @endif
@@ -310,14 +313,18 @@
         </div>
         @endif
 
-        @if($employee->is_manager)
+        @php
+            $activeReports = $employee->subordinates->where('status', 'active');
+            $formerReports = $employee->subordinates->where('status', '!=', 'active')->sortBy('name');
+        @endphp
+        @if($employee->is_manager || $employee->subordinates->isNotEmpty())
         <!-- Direct Reports Card -->
         <div class="card mb-4">
             <div class="card-header">
-                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Direct Reports ({{ $employee->subordinates->count() }})</h6>
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Direct Reports ({{ $activeReports->count() }})</h6>
             </div>
             <div class="card-body space-y-5">
-                @php $groupedSubordinates = $employee->subordinates->groupBy(fn ($s) => $s->team->name ?? 'No Team')->sortKeys(); @endphp
+                @php $groupedSubordinates = $activeReports->groupBy(fn ($s) => $s->team->name ?? 'No Team')->sortKeys(); @endphp
                 @forelse($groupedSubordinates as $teamName => $members)
                 <div>
                     <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -339,42 +346,33 @@
                     </div>
                 </div>
                 @empty
-                <div class="py-2 text-center text-sm text-slate-500 dark:text-slate-400">No direct reports yet.</div>
+                <div class="py-2 text-center text-sm text-slate-500 dark:text-slate-400">{{ $formerReports->isNotEmpty() ? 'No active direct reports.' : 'No direct reports yet.' }}</div>
                 @endforelse
+
+                @if($formerReports->isNotEmpty())
+                <div class="border-t border-slate-100 pt-4 dark:border-slate-800">
+                    <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                        Former
+                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-400 dark:bg-slate-800 dark:text-slate-500">{{ $formerReports->count() }}</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        @foreach($formerReports as $subordinate)
+                        <a href="{{ route('employees.show', $subordinate) }}" title="{{ $subordinate->name }}" class="flex min-w-0 items-center gap-3 rounded-lg border border-dashed border-slate-200 px-3 py-2 opacity-70 transition hover:bg-slate-50 hover:opacity-100 dark:border-slate-800 dark:hover:bg-slate-800/60">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-400 dark:bg-slate-600">
+                                <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="truncate text-sm font-semibold text-slate-600 dark:text-slate-300">{{ $subordinate->name }}</div>
+                                <div class="truncate text-xs text-slate-400 dark:text-slate-500">{{ ucfirst($subordinate->status) }}{{ $subordinate->resigned_date ? ' · ' . $subordinate->resigned_date->format('d M Y') : '' }}</div>
+                            </div>
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
         @endif
-
-        <!-- Individual Org Chart -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Org Chart</h6>
-            </div>
-            <div class="card-body overflow-x-auto">
-                <div class="flex justify-[safe_center]">
-                    <ul class="org-tree !pt-0">
-                        @foreach($orgAncestors as $ancestor)
-                        <li>
-                            <a href="{{ route('employees.show', $ancestor) }}" class="org-node no-underline">
-                                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-500">
-                                    <span class="text-xs font-bold text-white">{{ substr($ancestor->name, 0, 1) }}</span>
-                                </div>
-                                <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $ancestor->name }}</span>
-                                @if($ancestor->role)
-                                <span class="text-xs text-slate-500 dark:text-slate-400">{{ $ancestor->role->name }}</span>
-                                @endif
-                            </a>
-                            <ul>
-                        @endforeach
-                        @include('employees._org-chart-node', ['employee' => $employee, 'byManager' => $orgByManager, 'highlightId' => $employee->id])
-                        @foreach($orgAncestors as $ancestor)
-                            </ul>
-                        </li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-        </div>
 
         <!-- HR Documents Display Section -->
         <div class="card">

@@ -439,7 +439,7 @@ class EmployeeController extends Controller
 
     public function show(Employee $employee)
     {
-        $employee->load(['assets.category', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates.team', 'managedTeams', 'histories.user']);
+        $employee->load(['assets.category', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates.team', 'subordinates.role', 'managedTeams', 'histories.user']);
 
         $relationNameMaps = [
             'role_id' => Role::pluck('name', 'id'),
@@ -499,23 +499,40 @@ class EmployeeController extends Controller
             ];
         })->sortByDesc('at')->take(15)->values();
 
-        // Individual org chart: the employee's manager chain above them, and their active direct
-        // reports below (one level deep). The seen-list guards against a circular manager chain.
+        return view('employees.show', compact('employee', 'activityTimeline'));
+    }
+
+    /**
+     * Full-size org chart centred on one employee: their manager chain above them, and every
+     * active employee in their reporting line below them.
+     */
+    public function individualOrgChart(Request $request, Employee $employee)
+    {
+        abort_unless($employee->hasReportingLine(), 404);
+
+        $employee->loadMissing('role', 'team');
+        [$byManager, $parentOf] = $this->orgTree();
+
+        // Walk up the same parent rule the company chart uses. The seen-list guards against a
+        // circular manager chain.
         $orgAncestors = collect();
         $seen = [$employee->id];
-        $current = $employee->manager;
-        while ($current && !in_array($current->id, $seen)) {
-            $current->loadMissing('role');
+        $current = $employee;
+        while (($parentId = $parentOf($current)) && !in_array($parentId, $seen)) {
+            $current = Employee::with(['role', 'team'])->find($parentId);
+            if (!$current) {
+                break;
+            }
             $orgAncestors->prepend($current);
             $seen[] = $current->id;
-            $current = $current->manager;
         }
-        $employee->subordinates->loadMissing('role');
-        $orgByManager = collect([
-            $employee->id => $employee->subordinates->where('status', 'active')->sortBy('name')->values(),
-        ]);
 
-        return view('employees.show', compact('employee', 'activityTimeline', 'orgAncestors', 'orgByManager'));
+        // Dropping the employee and their managers from everyone's reports keeps a circular
+        // chain from recursing forever.
+        $orgByManager = $byManager->map(fn ($reports) => $reports->whereNotIn('id', $seen)->values());
+        $maxDepth = $this->orgChartDepth($request);
+
+        return view('employees.individual-org-chart', compact('employee', 'orgAncestors', 'orgByManager', 'maxDepth'));
     }
 
     public function edit(Employee $employee)
@@ -652,30 +669,49 @@ class EmployeeController extends Controller
         }
     }
 
-    public function orgChart()
+    public function orgChart(Request $request)
+    {
+        [$byManager] = $this->orgTree();
+        $roots = $byManager->get(null, collect());
+        $maxDepth = $this->orgChartDepth($request);
+
+        return view('employees.org-chart', compact('roots', 'byManager', 'maxDepth'));
+    }
+
+    /**
+     * Active employees grouped by who they sit under on the org chart, plus the rule that decides
+     * it. Employees whose role is flagged as top-level (e.g. CEO) always sit at the very top,
+     * regardless of their manager_id; anyone else without a manager hangs under the first of them.
+     *
+     * @return array{0: \Illuminate\Support\Collection, 1: \Closure(Employee): ?int}
+     */
+    private function orgTree(): array
     {
         $employees = Employee::with(['role', 'team'])->where('status', 'active')->orderBy('name')->get();
 
-        // Employees whose role is flagged as top-level (e.g. CEO) always sit at the very top of
-        // the chart, above every other manager — regardless of their manager_id.
         $topLevel = $employees->filter(fn (Employee $employee) => (bool) $employee->role?->is_top_level)->sortBy('name');
         $topLevelIds = $topLevel->pluck('id');
         $chiefId = $topLevel->first()?->id;
 
-        $byManager = $employees->groupBy(function (Employee $employee) use ($topLevelIds, $chiefId) {
+        $parentOf = function (Employee $employee) use ($topLevelIds, $chiefId): ?int {
             if ($topLevelIds->contains($employee->id)) {
                 return null;
             }
 
-            if (is_null($employee->manager_id) && $chiefId) {
-                return $chiefId;
-            }
+            return $employee->manager_id ?? $chiefId;
+        };
 
-            return $employee->manager_id;
-        });
-        $roots = $byManager->get(null, collect());
+        return [$employees->groupBy($parentOf), $parentOf];
+    }
 
-        return view('employees.org-chart', compact('roots', 'byManager'));
+    /**
+     * How many levels below the top of an org chart to draw (?levels=1|2|3), or null for all.
+     */
+    private function orgChartDepth(Request $request): ?int
+    {
+        $levels = (int) $request->query('levels');
+
+        return in_array($levels, [1, 2, 3], true) ? $levels : null;
     }
 
     public function updateStatus(Request $request, Employee $employee)

@@ -162,6 +162,10 @@
         @apply border-2 border-primary-500 bg-primary-50 dark:border-primary-500 dark:bg-primary-900/30;
     }
 
+    .org-tree .org-chart-link {
+        @apply absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-md text-xs text-slate-400 no-underline hover:bg-slate-100 hover:text-primary-600 print:hidden dark:hover:bg-slate-800 dark:hover:text-primary-400;
+    }
+
     /* Printing a card as a plain, unclipped page (e.g. org chart export) */
     @media print {
         @page { size: landscape; margin: 12mm; }

@@ -53,6 +53,17 @@ class Employee extends Model
     }
 
     /**
+     * Whether this employee has anyone under them on the org chart: an active direct report, or
+     * a top-level role (which also collects everyone who has no manager).
+     */
+    public function hasReportingLine(): bool
+    {
+        $reports = $this->relationLoaded('subordinates') ? $this->subordinates : $this->subordinates()->get();
+
+        return $reports->contains('status', 'active') || (bool) $this->role?->is_top_level;
+    }
+
+    /**
      * Whether making $managerId this employee's manager would create a reporting loop
      * (i.e. $managerId is this employee itself, or already sits somewhere below it in the tree).
      */
