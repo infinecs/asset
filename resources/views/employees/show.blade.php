@@ -300,14 +300,11 @@
             <div class="card-header">
                 <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-people me-2 text-slate-400"></i>Teams Managed ({{ $employee->managedTeams->count() }})</h6>
             </div>
-            <div>
+            <div class="card-body flex flex-wrap gap-2">
                 @foreach($employee->managedTeams as $managedTeam)
-                <div class="flex items-center gap-3 border-b border-slate-100 px-6 py-3 last:border-b-0 dark:border-slate-800">
-                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-500">
-                        <i class="bi bi-people text-xs text-white"></i>
-                    </div>
-                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $managedTeam->name }}</span>
-                </div>
+                <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200">
+                    <i class="bi bi-people text-slate-400"></i>{{ $managedTeam->name }}
+                </span>
                 @endforeach
             </div>
         </div>
@@ -319,22 +316,30 @@
             <div class="card-header">
                 <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Direct Reports ({{ $employee->subordinates->count() }})</h6>
             </div>
-            <div>
+            <div class="card-body space-y-5">
                 @php $groupedSubordinates = $employee->subordinates->groupBy(fn ($s) => $s->team->name ?? 'No Team')->sortKeys(); @endphp
                 @forelse($groupedSubordinates as $teamName => $members)
-                <div class="border-b-2 border-slate-200 last:border-b-0 dark:border-slate-700">
-                    <div class="bg-slate-50 px-6 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">{{ $teamName }}</div>
-                    @foreach($members as $subordinate)
-                    <a href="{{ route('employees.show', $subordinate) }}" class="flex items-center gap-3 border-t border-slate-100 px-6 py-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60">
-                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
-                            <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
-                        </div>
-                        <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $subordinate->name }}</span>
-                    </a>
-                    @endforeach
+                <div>
+                    <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        {{ $teamName }}
+                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{{ $members->count() }}</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        @foreach($members->sortBy('name') as $subordinate)
+                        <a href="{{ route('employees.show', $subordinate) }}" title="{{ $subordinate->name }}" class="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 transition-colors hover:border-primary-300 hover:bg-slate-50 dark:border-slate-800 dark:hover:border-primary-800 dark:hover:bg-slate-800/60">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
+                                <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $subordinate->name }}</div>
+                                <div class="truncate text-xs text-slate-500 dark:text-slate-400">{{ $subordinate->role->name ?? '—' }}</div>
+                            </div>
+                        </a>
+                        @endforeach
+                    </div>
                 </div>
                 @empty
-                <div class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No direct reports yet.</div>
+                <div class="py-2 text-center text-sm text-slate-500 dark:text-slate-400">No direct reports yet.</div>
                 @endforelse
             </div>
         </div>
