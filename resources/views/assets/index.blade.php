@@ -207,7 +207,7 @@
                     </td>
                     <td>{{ $asset->category?->name ?? '-' }}</td>
                     <td>{{ $asset->location?->name ?? '-' }}</td>
-                    <td>{{ $asset->assignedEmployee?->name ?? '-' }}</td>
+                    <td>{{ $asset->assignee_name ?? '-' }}</td>
                     <td>
                         <span class="badge badge-{{ $asset->status_badge }}">
                             <span class="status-dot {{ $asset->status }}"></span>

@@ -95,17 +95,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div>
-                            <label class="field-label">Assigned To</label>
-                            <select name="assigned_to" class="field-input">
-                                <option value="">Not Assigned</option>
-                                @foreach($employees as $employee)
-                                <option value="{{ $employee->id }}" {{ old('assigned_to') == $employee->id ? 'selected' : '' }}>
-                                    {{ $employee->name }} <{{ $employee->id_number }}>
-                                </option>
-                                @endforeach
-                            </select>
-                        </div>
+                        @include('assets._assigned-to-field')
 
                         <div class="sm:col-span-2 lg:col-span-3">
                             <hr class="my-1 border-slate-200 dark:border-slate-800">

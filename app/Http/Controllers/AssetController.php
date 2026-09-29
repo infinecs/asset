@@ -14,10 +14,42 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AssetController extends Controller
 {
+    /**
+     * Placeholder value of the "Assigned To" dropdown for assets held by the office
+     * (e.g. a security PC) rather than an employee; the name goes in assigned_to_other.
+     */
+    private const ASSIGNED_TO_OTHER = '__other__';
+
+    private function assigneeRules(Request $request): array
+    {
+        $isOther = $request->input('assigned_to') === self::ASSIGNED_TO_OTHER;
+
+        return [
+            'assigned_to' => ['nullable', $isOther ? Rule::in([self::ASSIGNED_TO_OTHER]) : 'exists:employees,id'],
+            'assigned_to_other' => [Rule::requiredIf($isOther), 'nullable', 'string', 'max:255'],
+        ];
+    }
+
+    /**
+     * Keep exactly one of assigned_to / assigned_to_other set.
+     */
+    private function normalizeAssignee(array $validated): array
+    {
+        if (($validated['assigned_to'] ?? null) === self::ASSIGNED_TO_OTHER) {
+            $validated['assigned_to'] = null;
+            $validated['assigned_to_other'] = trim($validated['assigned_to_other']);
+        } else {
+            $validated['assigned_to_other'] = null;
+        }
+
+        return $validated;
+    }
+
     private function filteredAssetsQuery(Request $request)
     {
         $query = Asset::with(['brand', 'category', 'location', 'assignedEmployee']);
@@ -33,6 +65,7 @@ class AssetController extends Controller
                   ->orWhere('asset_tag', 'like', "%{$search}%")
                   ->orWhere('serial_number', 'like', "%{$search}%")
                   ->orWhere('service_tag', 'like', "%{$search}%")
+                  ->orWhere('assigned_to_other', 'like', "%{$search}%")
                   ->orWhere('brand', 'like', "%{$search}%")
                                     ->orWhere('model', 'like', "%{$search}%")
                                     ->orWhereHas('brand', function ($brandQuery) use ($search) {
@@ -101,7 +134,7 @@ class AssetController extends Controller
                     break;
                 case 'assigned_to':
                     $query->leftJoin('employees', 'employees.id', '=', 'assets.assigned_to')
-                          ->orderBy('employees.name', $direction);
+                          ->orderByRaw('COALESCE(employees.name, assets.assigned_to_other) ' . $direction);
                     break;
                 default:
                     $query->orderBy('assets.' . $sort, $direction);
@@ -157,7 +190,7 @@ class AssetController extends Controller
                     $asset->service_tag,
                     $asset->category?->name,
                     $asset->location?->name,
-                    $asset->assignedEmployee?->name,
+                    $asset->assignee_name,
                     $asset->status_label,
                     $asset->cpu,
                     $asset->ram,
@@ -217,7 +250,7 @@ class AssetController extends Controller
             'service_tag' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
-            'assigned_to' => 'nullable|exists:employees,id',
+            ...$this->assigneeRules($request),
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
             'purchase_cost' => 'nullable|numeric|min:0',
@@ -228,14 +261,17 @@ class AssetController extends Controller
             'ram' => 'nullable|string|max:50',
             'storage' => 'nullable|string|max:100',
             'display' => 'nullable|string|max:50',
+        ], [
+            'assigned_to_other.required' => 'Enter who or what this asset is assigned to.',
         ]);
+        $validated = $this->normalizeAssignee($validated);
         $validated['brand'] = null;
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
         }
 
-        // Assigning an employee to an available asset marks it as in use.
-        if (!empty($validated['assigned_to']) && $validated['status'] === 'available') {
+        // Assigning an available asset marks it as in use.
+        if ((!empty($validated['assigned_to']) || !empty($validated['assigned_to_other'])) && $validated['status'] === 'available') {
             $validated['status'] = 'in_use';
         }
 
@@ -310,6 +346,7 @@ class AssetController extends Controller
                         'location_id' => 'Location',
                         'brand_id' => 'Brand',
                         'assigned_to' => 'Assigned To',
+                        'assigned_to_other' => 'Assigned To (Non-employee)',
                         'photo_path' => 'Photo',
                     ];
 
@@ -396,7 +433,7 @@ class AssetController extends Controller
             'service_tag' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
-            'assigned_to' => 'nullable|exists:employees,id',
+            ...$this->assigneeRules($request),
             'last_seen_at' => 'nullable|date_format:Y-m-d\TH:i',
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
@@ -408,7 +445,10 @@ class AssetController extends Controller
             'ram' => 'nullable|string|max:50',
             'storage' => 'nullable|string|max:100',
             'display' => 'nullable|string|max:50',
+        ], [
+            'assigned_to_other.required' => 'Enter who or what this asset is assigned to.',
         ]);
+        $validated = $this->normalizeAssignee($validated);
 
         $changes = [];
 
@@ -417,12 +457,12 @@ class AssetController extends Controller
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
         }
 
-        // Keep status in sync with assignment: assigning an employee to an available
-        // asset marks it in use; clearing the assignment frees it back to available.
-        $newAssignedTo = $validated['assigned_to'] ?? null;
-        if ($newAssignedTo && $validated['status'] === 'available') {
+        // Keep status in sync with assignment: assigning an available asset marks it
+        // in use; clearing the assignment frees it back to available.
+        $isAssigned = !empty($validated['assigned_to']) || !empty($validated['assigned_to_other']);
+        if ($isAssigned && $validated['status'] === 'available') {
             $validated['status'] = 'in_use';
-        } elseif (!$newAssignedTo && $validated['status'] === 'in_use') {
+        } elseif (!$isAssigned && $validated['status'] === 'in_use') {
             $validated['status'] = 'available';
         }
 

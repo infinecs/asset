@@ -116,7 +116,7 @@
                         <div class="text-xs text-slate-500 dark:text-slate-400">
                             <code class="text-[.7rem]">{{ $asset->asset_tag ?? '-' }}</code>
                             @if($asset->category) · {{ $asset->category->name }}@endif
-                            @if($asset->assignedEmployee) · <span class="text-primary-600 dark:text-primary-400">{{ $asset->assignedEmployee->name }}</span>@endif
+                            @if($asset->assignee_name) · <span class="text-primary-600 dark:text-primary-400">{{ $asset->assignee_name }}</span>@endif
                         </div>
                     </div>
                     <span class="badge badge-{{ $asset->status_badge }} ml-3 shrink-0">{{ $asset->status_label }}</span>
