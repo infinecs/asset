@@ -234,7 +234,7 @@
                             <label class="field-label">Display</label>
                             <select name="display" class="field-input">
                                 <option value="">— Select Display —</option>
-                                @foreach(['11.6"','13.3"','13.6"','14.0"','14.2"','15.6"','16.0"','17.3"'] as $opt)
+                                @foreach(['11.6"','13.0"','13.3"','13.6"','14.0"','14.2"','15.6"','16.0"','17.3"','18.5"','21.45"','21.5"'] as $opt)
                                 <option value="{{ $opt }}" {{ old('display') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
                                 @endforeach
                             </select>
