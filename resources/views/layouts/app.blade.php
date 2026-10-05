@@ -293,13 +293,7 @@
                     select.dataset.inlineSearchReady = '1';
                 });
 
-                const creatableSearchableNames = [
-                    'cpu'
-                ];
-
-                const creatableSelector = creatableSearchableNames
-                    .map(function (name) { return 'select[name="' + name + '"]'; })
-                    .join(',');
+                const creatableSelector = 'select[data-cpu-create-url], select[data-inline-create-url]';
 
                 document.querySelectorAll(creatableSelector).forEach(function (select) {
                     if (select.dataset.inlineSearchReady === '1') {
@@ -307,9 +301,57 @@
                     }
 
                     new TomSelect(select, {
-                        create: true,
-                        createOnBlur: true,
+                        create: function (input, callback) {
+                            const errorElement = select.parentElement.querySelector('[data-inline-create-error], [data-cpu-create-error]');
+                            if (errorElement) {
+                                errorElement.textContent = '';
+                                errorElement.classList.add('hidden');
+                            }
+
+                            const isDisplay = select.name === 'display';
+                            fetch(select.dataset.inlineCreateUrl || select.dataset.cpuCreateUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                },
+                                body: JSON.stringify({ name: isDisplay ? input.trim().replace(/"+\s*$/, '') + '"' : input.trim() })
+                            })
+                                .then(function (response) {
+                                    return response.json().then(function (payload) {
+                                        if (!response.ok) {
+                                            const validationMessage = payload.errors
+                                                ? Object.values(payload.errors).flat()[0]
+                                                : null;
+                                            throw new Error(validationMessage || payload.message || 'Unable to save this CPU.');
+                                        }
+
+                                        return payload;
+                                    });
+                                })
+                                .then(function (option) {
+                                    const control = select.tomselect;
+                                    if (option.group) {
+                                        if (!control.optgroups[option.group]) {
+                                            control.addOptionGroup(option.group, { label: option.group });
+                                        }
+                                        callback({ value: option.value, text: option.text, optgroup: option.group });
+                                    } else {
+                                        callback({ value: option.value, text: option.text });
+                                    }
+                                })
+                                .catch(function (error) {
+                                    if (errorElement) {
+                                        errorElement.textContent = error.message || 'Unable to save this CPU.';
+                                        errorElement.classList.remove('hidden');
+                                    }
+                                    callback();
+                                });
+                        },
+                        createOnBlur: false,
                         maxItems: 1,
+                        maxOptions: null,
                         allowEmptyOption: true,
                         searchField: ['text'],
                         placeholder: 'Select or type a CPU...',

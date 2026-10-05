@@ -75,6 +75,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/assets/{asset}/agreement/send', [AssetController::class, 'sendAgreement'])->name('assets.agreement.send');
     Route::delete('/assets/bulk-delete', [AssetController::class, 'bulkDestroy'])->name('assets.bulk-destroy');
     Route::delete('/assets/delete-all', [AssetController::class, 'destroyAll'])->name('assets.destroy-all');
+    Route::post('/assets/cpus', [AssetController::class, 'storeCpu'])->name('assets.cpus.store');
+    Route::post('/assets/displays', [AssetController::class, 'storeDisplay'])->name('assets.displays.store');
     Route::resource('assets', AssetController::class);
 
     // Digital Products (licenses)

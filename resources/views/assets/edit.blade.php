@@ -150,91 +150,19 @@
                         <div class="sm:col-span-2">
                             <label class="field-label">CPU</label>
                             @php
-                                $cpuGroups = [
-                                    'Intel Core Ultra (14th Gen)' => [
-                                        'Intel Core Ultra 5 125U','Intel Core Ultra 5 125H', 'Intel Core Ultra 5 135U',
-                                        'Intel Core Ultra 7 155U','Intel Core Ultra 7 155H','Intel Core Ultra 7 165H',
-                                        'Intel Core Ultra 9 185H',
-                                    ],
-                                    'Intel 13th Gen (Raptor Lake)' => [
-                                        'Intel Core i3-1305U','Intel Core i3-1315U',
-                                        'Intel Core i5-1335U','Intel Core i5-1345U','Intel Core i5-13500H','Intel Core i5-13600H',
-                                        'Intel Core i7-1355U','Intel Core i7-1365U','Intel Core i7-13700H','Intel Core i7-13800H',
-                                        'Intel Core i9-13900H','Intel Core i9-13950HX',
-                                    ],
-                                    'Intel 12th Gen (Alder Lake)' => [
-                                        'Intel Core i3-1215U','Intel Core i3-1220P',
-                                        'Intel Core i5-1235U','Intel Core i5-1240P','Intel Core i5-1250P',
-                                        'Intel Core i5-12450H','Intel Core i5-12450HX','Intel Core i5-12500H','Intel Core i5-12600H',
-                                        'Intel Core i7-1260P','Intel Core i7-1270P',
-                                        'Intel Core i7-12700H','Intel Core i7-12800H','Intel Core i7-12800HX',
-                                        'Intel Core i9-12900H','Intel Core i9-12900HK',
-                                    ],
-                                    'Intel 11th Gen (Tiger Lake)' => [
-                                        'Intel Core i3-1115G4','Intel Core i3-1125G4',
-                                        'Intel Core i5-1135G7','Intel Core i5-1155G7',
-                                        'Intel Core i5-11300H','Intel Core i5-11400H',
-                                        'Intel Core i7-1165G7','Intel Core i7-1185G7',
-                                        'Intel Core i7-11370H','Intel Core i7-11800H',
-                                        'Intel Core i9-11900H',
-                                    ],
-                                    'Intel 10th Gen (Comet/Ice Lake)' => [
-                                        'Intel Core i3-10110U','Intel Core i3-1005G1',
-                                        'Intel Core i5-10210U','Intel Core i5-10310U','Intel Core i5-10500H',
-                                        'Intel Core i7-10510U','Intel Core i7-10750H','Intel Core i7-10850H',
-                                    ],
-                                    'AMD Ryzen 7000 Series' => [
-                                        'AMD Ryzen 3 7330U',
-                                        'AMD Ryzen 5 7530U','AMD Ryzen 5 7535U','AMD Ryzen 5 7600H',
-                                        'AMD Ryzen 7 7730U','AMD Ryzen 7 7735U','AMD Ryzen 7 7745HX',
-                                        'AMD Ryzen 9 7940HS','AMD Ryzen 9 7945HX',
-                                    ],
-                                    'AMD Ryzen 6000 Series' => [
-                                        'AMD Ryzen 5 6600U','AMD Ryzen 5 6600H',
-                                        'AMD Ryzen 7 6800U','AMD Ryzen 7 6800H',
-                                        'AMD Ryzen 9 6900HX',
-                                    ],
-                                    'AMD Ryzen 5000 Series' => [
-                                        'AMD Ryzen 3 5300U',
-                                        'AMD Ryzen 5 5500U','AMD Ryzen 5 5600U','AMD Ryzen 5 5600H',
-                                        'AMD Ryzen 7 5700U','AMD Ryzen 7 5800H',
-                                        'AMD Ryzen 9 5900HS','AMD Ryzen 9 5900HX',
-                                    ],
-                                    'AMD Ryzen 3000 Series' => [
-                                        'AMD Ryzen 5 3500U','AMD Ryzen 5 3550H',
-                                        'AMD Ryzen 7 3700U','AMD Ryzen 7 3750H',
-                                    ],
-                                    'Apple' => [
-                                        'Apple M1','Apple M1 Pro','Apple M1 Max',
-                                        'Apple M2','Apple M2 Pro','Apple M2 Max',
-                                        'Apple M3','Apple M3 Pro','Apple M3 Max',
-                                    ],
-                                ];
                                 $currentCpu = old('cpu', $asset->cpu);
-                                $knownCpus = collect($cpuGroups)->flatten();
-                                $cpuIsCustom = $currentCpu && !$knownCpus->contains($currentCpu);
-                                $extraCpus = $customCpus->reject(fn ($cpu) => $knownCpus->contains($cpu) || $cpu === $currentCpu)->values();
                             @endphp
-                            <select name="cpu" class="field-input">
+                            <select name="cpu" class="field-input" data-cpu-create-url="{{ route('assets.cpus.store') }}">
                                 <option value="">— Select CPU —</option>
-                                @if($cpuIsCustom)
-                                <option value="{{ $currentCpu }}" selected>{{ $currentCpu }}</option>
-                                @endif
                                 @foreach($cpuGroups as $group => $cpus)
                                 <optgroup label="{{ $group }}">
-                                    @foreach($cpus as $cpu)
-                                    <option value="{{ $cpu }}" {{ $currentCpu === $cpu ? 'selected' : '' }}>{{ $cpu }}</option>
-                                    @endforeach
+                                @foreach($cpus as $cpu)
+                                <option value="{{ $cpu }}" {{ $currentCpu === $cpu ? 'selected' : '' }}>{{ $cpu }}</option>
+                                @endforeach
                                 </optgroup>
                                 @endforeach
-                                @if($extraCpus->isNotEmpty())
-                                <optgroup label="Previously Used">
-                                    @foreach($extraCpus as $cpu)
-                                    <option value="{{ $cpu }}">{{ $cpu }}</option>
-                                    @endforeach
-                                </optgroup>
-                                @endif
                             </select>
+                            <p data-cpu-create-error role="alert" aria-live="polite" class="field-error hidden"></p>
                         </div>
                         <div>
                             <label class="field-label">RAM</label>
@@ -256,12 +184,17 @@
                         </div>
                         <div>
                             <label class="field-label">Display</label>
-                            <select name="display" class="field-input">
+                            @php
+                                $currentDisplay = old('display', $asset->display);
+                                $currentDisplay = $currentDisplay ? \App\Support\DisplayCatalog::normalize($currentDisplay) : null;
+                            @endphp
+                            <select name="display" class="field-input" data-inline-create-url="{{ route('assets.displays.store') }}" data-inline-create-label="Display">
                                 <option value="">— Select Display —</option>
-                                @foreach(['11.6"','13.0"','13.3"','13.6"','14.0"','14.2"','15.6"','16.0"','17.3"','18.5"','21.45"','21.5"'] as $opt)
-                                <option value="{{ $opt }}" {{ old('display', $asset->display) === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                @foreach($displayOptions as $opt)
+                                <option value="{{ $opt }}" {{ $currentDisplay === $opt ? 'selected' : '' }}>{{ $opt }}</option>
                                 @endforeach
                             </select>
+                            <p data-inline-create-error role="alert" aria-live="polite" class="field-error hidden"></p>
                         </div>
 
                         <div class="sm:col-span-2 lg:col-span-3">
