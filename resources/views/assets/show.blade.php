@@ -64,7 +64,7 @@
                     </div>
                     <div>
                         <label class="text-sm text-slate-500 dark:text-slate-400">Assigned To</label>
-                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->assignedEmployee?->name ?? 'Unassigned' }}</div>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->assignee_name ?? 'Unassigned' }}</div>
                     </div>
                     <div>
                         <label class="text-sm text-slate-500 dark:text-slate-400">Last Seen</label>
@@ -225,7 +225,9 @@
                 <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Assignment Agreement</h6>
             </div>
             <div class="card-body">
-                @if(!$asset->assigned_to)
+                @if($asset->assigned_to_other)
+                <div class="py-4 text-center text-sm text-slate-400">Agreements aren't needed for non-employee assignments.</div>
+                @elseif(!$asset->assigned_to)
                 <div class="py-4 text-center text-sm text-slate-400">Assign this asset to an employee to send an e-signature agreement.</div>
                 @elseif($asset->agreement_signed_at)
                 <div class="mb-3 flex items-center gap-2 text-sm text-green-600 dark:text-green-400">

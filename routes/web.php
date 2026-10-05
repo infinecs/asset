@@ -15,7 +15,11 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\OutcomeAdminController;
 use App\Http\Controllers\OutcomeController;
+use App\Http\Controllers\ClientController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +38,7 @@ Route::post('/agreements/{token}', [AssetAgreementController::class, 'store'])->
 // Authenticated routes
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::get('/directory', [DirectoryController::class, 'index'])->name('directory.index');
     Route::resource('directory-contacts', DirectoryContactController::class)->except(['index', 'show']);
     Route::get('/settings', [UserController::class, 'settings'])->name('settings.edit');
@@ -76,11 +81,17 @@ Route::middleware('auth')->group(function () {
     Route::resource('digital-products', DigitalProductController::class);
 
     // Employees
+    Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');
+    Route::get('/employees/org-chart', [EmployeeController::class, 'orgChart'])->name('employees.org-chart');
     Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
     Route::get('/employees/bulk-edit-birthdays', [EmployeeController::class, 'bulkEditBirthdays'])->name('employees.bulk-edit-birthdays');
     Route::post('/employees/bulk-edit-birthdays', [EmployeeController::class, 'updateBirthdays'])->name('employees.update-birthdays');
+    Route::get('/employees/bulk-edit-org', [EmployeeController::class, 'bulkEditOrgStructure'])->name('employees.bulk-edit-org');
+    Route::post('/employees/bulk-edit-org', [EmployeeController::class, 'updateOrgStructure'])->name('employees.update-org');
+    Route::get('/employees/{employee}/org-chart', [EmployeeController::class, 'individualOrgChart'])->name('employees.individual-org-chart');
     Route::patch('/employees/{employee}/status', [EmployeeController::class, 'updateStatus'])->name('employees.update-status');
     Route::post('/employees/{employee}/reclaim-assets', [EmployeeController::class, 'reclaimAssets'])->name('employees.reclaim-assets');
+    Route::post('/employees/{employee}/revoke-digital-products', [EmployeeController::class, 'revokeDigitalProducts'])->name('employees.revoke-digital-products');
     Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
     Route::post('/employees/{employee}/documents', [EmployeeController::class, 'uploadDocument'])->name('employees.upload-document');
     Route::delete('/employees/{employee}/documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('employees.delete-document');
@@ -97,6 +108,9 @@ Route::middleware('auth')->group(function () {
 
     // Staff/Admin routes
     Route::resource('departments', DepartmentController::class);
+    Route::resource('roles', RoleController::class);
+    Route::resource('teams', TeamController::class);
+    Route::resource('clients', ClientController::class);
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');

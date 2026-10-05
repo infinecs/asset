@@ -8,8 +8,17 @@
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Employees</h5>
         <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">Manage and track all employees</p>
     </div>
-    @if(auth()->user()->isAdmin())
     <div class="flex gap-2">
+        <a href="{{ route('employees.org-chart') }}" class="btn btn-outline">
+            <i class="bi bi-diagram-3"></i>Org Chart
+        </a>
+        <a href="{{ route('employees.export', request()->query()) }}" class="btn btn-outline">
+            <i class="bi bi-download"></i>Export CSV
+        </a>
+        @if(auth()->user()->isAdmin())
+        <a href="{{ route('employees.bulk-edit-org') }}" class="btn btn-outline">
+            <i class="bi bi-diagram-3"></i>Bulk Edit Org Structure
+        </a>
         <a href="{{ route('employees.bulk-edit-birthdays') }}" class="btn btn-outline">
             <i class="bi bi-calendar-heart"></i>Bulk Edit Birthdays
         </a>
@@ -17,31 +26,196 @@
             <i class="bi bi-upload"></i>Import Excel
         </button>
         <a href="{{ route('employees.create') }}" class="btn btn-primary"><i class="bi bi-person-plus"></i>Add Employee</a>
+        @endif
     </div>
-    @endif
 </div>
 
-<div class="card mb-6">
+@php
+    $advancedActive = collect(\App\Http\Controllers\EmployeeController::ADVANCED_FILTERS)->filter(fn ($key) => request()->filled($key));
+    $monthLabel = fn ($v) => preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $v) ? \Carbon\Carbon::createFromFormat('!Y-m', $v)->format('M Y') : $v;
+    $filterLabels = [
+        'employed_on' => fn ($v) => 'Employed during ' . $monthLabel($v),
+        'resigned_from' => fn ($v) => 'Resigned from ' . $monthLabel($v),
+        'resigned_to' => fn ($v) => 'Resigned to ' . $monthLabel($v),
+        'role' => fn ($v) => 'Role: ' . ($filterOptions['roles']->firstWhere('id', $v)->name ?? $v),
+        'team' => fn ($v) => 'Team: ' . ($filterOptions['teams']->firstWhere('id', $v)->name ?? $v),
+        'team_type' => fn ($v) => 'Team type: ' . ($v === 'client_placement' ? 'Client Placement' : 'Internal'),
+        'client' => fn ($v) => 'Client: ' . ($filterOptions['clients']->firstWhere('id', $v)->name ?? $v),
+        'manager' => fn ($v) => 'Reports to: ' . ($filterOptions['managers']->firstWhere('id', $v)->name ?? $v),
+        'location' => fn ($v) => 'Location: ' . $v,
+        'is_manager' => fn ($v) => $v === 'yes' ? 'Managers only' : 'Non-managers only',
+        'assets' => fn ($v) => $v === 'with' ? 'Has assets' : 'No assets',
+        'dob_month' => fn ($v) => 'Birthday in ' . \Carbon\Carbon::create(null, (int) $v, 1)->format('F'),
+        'missing_dob' => fn ($v) => 'Missing date of birth',
+    ];
+    $sort = request('sort', request()->filled('search') ? 'relevance' : 'id');
+@endphp
+<div class="card mb-6" x-data="{ advanced: {{ $advancedActive->isNotEmpty() ? 'true' : 'false' }}, employedOn: @js((string) request('employed_on')) }">
     <div class="card-body">
         <form method="GET" action="{{ route('employees.index') }}" class="grid grid-cols-1 gap-3 md:grid-cols-12">
-            <div class="md:col-span-6">
+            <div class="md:col-span-5">
                 <div class="relative">
                     <i class="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" name="search" class="field-input pl-9" value="{{ request('search') }}" placeholder="Search name, ID number, email, work location...">
+                    <input type="text" name="search" class="field-input pl-9" value="{{ request('search') }}" placeholder="Search name, ID, email, role, team, client, manager...">
                 </div>
             </div>
             <div class="md:col-span-2">
-                <select name="status" class="field-input">
+                <select name="status" class="field-input" :disabled="employedOn !== ''" :title="employedOn !== '' ? 'Not used while Employed During is set' : ''">
                     <option value="">All Statuses</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="resigned" {{ request('status') === 'resigned' ? 'selected' : '' }}>Resigned</option>
                 </select>
             </div>
-            <div class="flex gap-2 md:col-span-4">
-                <button type="submit" class="btn btn-primary flex-1">Filter</button>
+            <div class="md:col-span-2">
+                <select name="sort" class="field-input" aria-label="Sort by">
+                    <option value="relevance" {{ $sort === 'relevance' ? 'selected' : '' }}>Sort: Best match</option>
+                    <option value="id" {{ $sort === 'id' ? 'selected' : '' }}>Sort: ID number</option>
+                    <option value="name_asc" {{ $sort === 'name_asc' ? 'selected' : '' }}>Sort: Name A–Z</option>
+                    <option value="name_desc" {{ $sort === 'name_desc' ? 'selected' : '' }}>Sort: Name Z–A</option>
+                    <option value="newest" {{ $sort === 'newest' ? 'selected' : '' }}>Sort: Newest added</option>
+                </select>
+            </div>
+            <div class="flex gap-2 md:col-span-3">
+                <button type="submit" class="btn btn-primary flex-1">Search</button>
                 <a href="{{ route('employees.index') }}" class="btn btn-outline">Clear</a>
             </div>
+
+            {{-- Advanced Search toggle --}}
+            <div class="md:col-span-12">
+                <button type="button" class="btn btn-sm btn-outline" @click="advanced = !advanced">
+                    <i class="bi bi-sliders"></i> Advanced Search
+                    @if($advancedActive->isNotEmpty())
+                    <span class="badge badge-primary">{{ $advancedActive->count() }} active</span>
+                    @endif
+                </button>
+            </div>
+
+            {{-- Advanced Search panel --}}
+            <div class="md:col-span-12" x-show="advanced" x-collapse x-cloak>
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                    <p class="mb-2 text-sm font-semibold text-slate-500 dark:text-slate-400"><i class="bi bi-calendar-range me-1"></i>Employment Period</p>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="field-label">Employed During</label>
+                            <input type="month" name="employed_on" x-model="employedOn" class="field-input" value="{{ request('employed_on') }}">
+                            <p class="field-hint">Who was on staff in that month (joined by then, not yet resigned). Replaces the Status filter.</p>
+                        </div>
+                        <div>
+                            <label class="field-label">Resigned From</label>
+                            <input type="month" name="resigned_from" class="field-input" value="{{ request('resigned_from') }}">
+                        </div>
+                        <div>
+                            <label class="field-label">Resigned To</label>
+                            <input type="month" name="resigned_to" class="field-input" value="{{ request('resigned_to') }}">
+                        </div>
+                    </div>
+
+                    <p class="mb-2 mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400"><i class="bi bi-diagram-3 me-1"></i>Organization</p>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="field-label">Role</label>
+                            <select name="role" class="field-input">
+                                <option value="">All Roles</option>
+                                @foreach($filterOptions['roles'] as $opt)
+                                <option value="{{ $opt->id }}" {{ request('role') == $opt->id ? 'selected' : '' }}>{{ $opt->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Team</label>
+                            <select name="team" class="field-input">
+                                <option value="">All Teams</option>
+                                @foreach($filterOptions['teams'] as $opt)
+                                <option value="{{ $opt->id }}" {{ request('team') == $opt->id ? 'selected' : '' }}>{{ $opt->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Team Type</label>
+                            <select name="team_type" class="field-input">
+                                <option value="">All Types</option>
+                                <option value="internal" {{ request('team_type') === 'internal' ? 'selected' : '' }}>Internal</option>
+                                <option value="client_placement" {{ request('team_type') === 'client_placement' ? 'selected' : '' }}>Client Placement</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Client</label>
+                            <select name="client" class="field-input">
+                                <option value="">All Clients</option>
+                                @foreach($filterOptions['clients'] as $opt)
+                                <option value="{{ $opt->id }}" {{ request('client') == $opt->id ? 'selected' : '' }}>{{ $opt->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Reports To</label>
+                            <select name="manager" class="field-input">
+                                <option value="">Any Manager</option>
+                                @foreach($filterOptions['managers'] as $opt)
+                                <option value="{{ $opt->id }}" {{ request('manager') == $opt->id ? 'selected' : '' }}>{{ $opt->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Manager</label>
+                            <select name="is_manager" class="field-input">
+                                <option value="">Everyone</option>
+                                <option value="yes" {{ request('is_manager') === 'yes' ? 'selected' : '' }}>Managers only</option>
+                                <option value="no" {{ request('is_manager') === 'no' ? 'selected' : '' }}>Non-managers only</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Work Location</label>
+                            <select name="location" class="field-input">
+                                <option value="">All Locations</option>
+                                @foreach($filterOptions['locations'] as $opt)
+                                <option value="{{ $opt }}" {{ request('location') === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <p class="mb-2 mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400"><i class="bi bi-person-lines-fill me-1"></i>Records</p>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="field-label">Assigned Assets</label>
+                            <select name="assets" class="field-input">
+                                <option value="">Any</option>
+                                <option value="with" {{ request('assets') === 'with' ? 'selected' : '' }}>Has assets</option>
+                                <option value="without" {{ request('assets') === 'without' ? 'selected' : '' }}>No assets</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Birthday Month</label>
+                            <select name="dob_month" class="field-input">
+                                <option value="">Any Month</option>
+                                @for($m = 1; $m <= 12; $m++)
+                                <option value="{{ $m }}" {{ request('dob_month') == $m ? 'selected' : '' }}>{{ \Carbon\Carbon::create(null, $m, 1)->format('F') }}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <label class="inline-flex items-center gap-2 pb-2 text-sm text-slate-700 dark:text-slate-300">
+                                <input type="checkbox" name="missing_dob" value="1" class="rounded border-slate-300" {{ request('missing_dob') === '1' ? 'checked' : '' }}>
+                                Missing date of birth
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </form>
+
+        @if($advancedActive->isNotEmpty() || request()->filled('search'))
+        <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 text-sm dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400">{{ $employees->total() }} {{ Str::plural('result', $employees->total()) }}</span>
+            @if(request()->filled('search'))
+            <a href="{{ route('employees.index', request()->except(['search', 'page'])) }}" class="badge badge-primary no-underline" title="Remove">“{{ request('search') }}” <i class="bi bi-x"></i></a>
+            @endif
+            @foreach($advancedActive as $key)
+            <a href="{{ route('employees.index', request()->except([$key, 'page'])) }}" class="badge badge-secondary no-underline" title="Remove">{{ $filterLabels[$key](request($key)) }} <i class="bi bi-x"></i></a>
+            @endforeach
+        </div>
+        @endif
     </div>
 </div>
 
@@ -52,6 +226,8 @@
                 <tr>
                     <th>Name</th>
                     <th>ID Number</th>
+                    <th>Role</th>
+                    <th>Team</th>
                     <th>Work Location</th>
                     <th>Email</th>
                     <th>Status</th>
@@ -72,6 +248,19 @@
                         </div>
                     </td>
                     <td><code class="text-primary-600 dark:text-primary-400">{{ $employee->id_number }}</code></td>
+                    <td class="text-slate-500 dark:text-slate-400">
+                        @if($employee->role)
+                        <span class="badge badge-primary">{{ $employee->role->name }}</span>
+                        @if($employee->is_manager)
+                        <span class="badge badge-secondary"><i class="bi bi-diagram-3 me-1"></i>Manager</span>
+                        @endif
+                        @elseif($employee->is_manager)
+                        <span class="badge badge-secondary"><i class="bi bi-diagram-3 me-1"></i>Manager</span>
+                        @else
+                        -
+                        @endif
+                    </td>
+                    <td class="text-slate-500 dark:text-slate-400">{{ $employee->team->name ?? '-' }}</td>
                     <td class="text-slate-500 dark:text-slate-400">{{ $employee->work_location ?? '-' }}</td>
                     <td class="text-slate-500 dark:text-slate-400">{{ $employee->email }}</td>
                     <td>
@@ -92,6 +281,9 @@
                         @else
                         <span class="badge badge-{{ $employee->status_badge }}">{{ $employee->status_label }}</span>
                         @endif
+                        @if($employee->status === 'resigned' && $employee->resigned_date)
+                        <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">{{ $employee->resigned_date->format('d M Y') }}</div>
+                        @endif
                     </td>
                     @if(auth()->user()->isAdmin())
                     <td class="text-right">
@@ -107,7 +299,7 @@
                     @endif
                 </tr>
                 @empty
-                <tr><td colspan="{{ auth()->user()->isAdmin() ? 6 : 5 }}" class="py-8 text-center text-slate-500 dark:text-slate-400">No employees found.</td></tr>
+                <tr><td colspan="{{ auth()->user()->isAdmin() ? 8 : 7 }}" class="py-8 text-center text-slate-500 dark:text-slate-400">No employees found.</td></tr>
                 @endforelse
             </tbody>
         </table>

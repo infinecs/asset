@@ -6,6 +6,9 @@
 <div class="mb-6 flex items-center justify-between">
     <h5 class="text-lg font-semibold text-slate-900 dark:text-white">{{ $employee->name }}</h5>
     <div class="flex gap-2">
+        @if($employee->hasReportingLine())
+        <a href="{{ route('employees.individual-org-chart', $employee) }}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-diagram-3"></i>Org Chart</a>
+        @endif
         @if(auth()->user()->isAdmin())
         <a href="{{ route('employees.edit', $employee) }}{{ $safeReturn ? '?return=' . urlencode($safeReturn) : '' }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i>Edit</a>
         @endif
@@ -23,7 +26,18 @@
                 </div>
                 <h5 class="mb-1 font-semibold text-slate-900 dark:text-white">{{ $employee->name }}</h5>
                 <p class="mb-2 text-sm text-slate-500 dark:text-slate-400">{{ $employee->email }}</p>
-                <span class="badge badge-{{ $employee->status_badge }} px-3 py-1">{{ $employee->status_label }}</span>
+                <div class="flex flex-wrap items-center justify-center gap-1.5">
+                    <span class="badge badge-{{ $employee->status_badge }} px-3 py-1">{{ $employee->status_label }}</span>
+                    @if($employee->role)
+                    <span class="badge badge-primary px-3 py-1">{{ $employee->role->name }}</span>
+                    @endif
+                    @if($employee->team)
+                    <span class="badge badge-secondary px-3 py-1">{{ $employee->team->name }}</span>
+                    @endif
+                    @if($employee->is_manager)
+                    <span class="badge badge-secondary px-3 py-1"><i class="bi bi-diagram-3 me-1"></i>Manager</span>
+                    @endif
+                </div>
             </div>
             <div class="border-t border-slate-200 px-6 py-3 dark:border-slate-800">
                 <div class="flex items-center justify-between py-2">
@@ -35,11 +49,108 @@
                     <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->work_location ?? '-' }}</span>
                 </div>
                 <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-people me-2"></i>Team</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->team->name ?? '-' }}</span>
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-person-arms-up me-2"></i>Manager</span>
+                    @if($employee->manager)
+                    <a href="{{ route('employees.show', $employee->manager) }}" class="text-sm font-semibold text-primary-600 hover:underline dark:text-primary-400">{{ $employee->manager->name }}</a>
+                    @else
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">-</span>
+                    @endif
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-box-arrow-in-right me-2"></i>Joined</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->join_date?->format('d M Y') ?? '—' }}</span>
+                </div>
+                @if($employee->status === 'resigned')
+                <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
+                    <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-box-arrow-right me-2"></i>Resigned</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->resigned_date?->format('d M Y') ?? '—' }}</span>
+                </div>
+                @endif
+                <div class="flex items-center justify-between border-t border-slate-100 py-2 dark:border-slate-800">
                     <span class="text-sm text-slate-500 dark:text-slate-400"><i class="bi bi-calendar3 me-2"></i>Added</span>
                     <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $employee->created_at->format('d M Y') }}</span>
                 </div>
             </div>
         </div>
+
+        @if($employee->status === 'resigned')
+        @php
+            $offboardAssetsRemaining = $employee->assets->count();
+            $offboardProductsRemaining = $employee->digitalProducts->count();
+            $offboardReportsRemaining = $employee->is_manager ? $employee->subordinates->count() : 0;
+            $offboardTeamsRemaining = $employee->is_manager ? $employee->managedTeams->count() : 0;
+        @endphp
+        <!-- Offboarding Checklist -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-clipboard-check me-2 text-slate-400"></i>Offboarding Checklist</h6>
+            </div>
+            <div class="card-body space-y-3">
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardAssetsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Reclaim assigned assets</span>
+                        @if($offboardAssetsRemaining > 0)
+                        <a href="#assigned-assets" class="ms-1 text-primary-600 hover:underline dark:text-primary-400">({{ $offboardAssetsRemaining }} remaining)</a>
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardProductsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Revoke digital product licenses</span>
+                        @if($offboardProductsRemaining > 0)
+                        <span class="text-slate-400">({{ $offboardProductsRemaining }} assigned)</span>
+                        @if(auth()->user()->isAdmin())
+                        <form action="{{ route('employees.revoke-digital-products', $employee) }}" method="POST" class="mt-1" onsubmit="return confirm('Revoke all {{ $offboardProductsRemaining }} license(s) from {{ $employee->name }}?')">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Revoke All</button>
+                        </form>
+                        @endif
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
+                @if($employee->is_manager)
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardReportsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Reassign direct reports</span>
+                        @if($offboardReportsRemaining > 0)
+                        <a href="{{ route('employees.bulk-edit-org') }}" class="ms-1 text-primary-600 hover:underline dark:text-primary-400">({{ $offboardReportsRemaining }} still reporting to them)</a>
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardTeamsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Reassign managed teams</span>
+                        @if($offboardTeamsRemaining > 0)
+                        <a href="{{ route('teams.index') }}" class="ms-1 text-primary-600 hover:underline dark:text-primary-400">({{ $offboardTeamsRemaining }} team(s) still assigned)</a>
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
+                @endif
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-info-circle text-slate-400 mt-0.5"></i>
+                    <div class="flex-1 text-sm text-slate-500 dark:text-slate-400">
+                        {{ $employee->documents->count() }} document(s) on file — kept for records, no action needed.
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
 
         <!-- HR Documents Upload Card -->
         <div class="card mt-4">
@@ -87,7 +198,7 @@
     <div class="lg:col-span-8">
         <!-- Assets Section -->
         @php $canReclaim = auth()->user()->isAdmin() && $employee->status === 'resigned' && $employee->assets->isNotEmpty(); @endphp
-        <div class="card mb-4">
+        <div id="assigned-assets" class="card mb-4">
             <div class="card-header flex items-center justify-between">
                 <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-laptop me-2 text-slate-400"></i>Assigned Assets ({{ $employee->assets->count() }})</h6>
                 @if($canReclaim)
@@ -186,6 +297,83 @@
             </div>
         </div>
 
+        @if($employee->is_manager && $employee->managedTeams->isNotEmpty())
+        <!-- Teams Managed Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-people me-2 text-slate-400"></i>Teams Managed ({{ $employee->managedTeams->count() }})</h6>
+            </div>
+            <div class="card-body flex flex-wrap gap-2">
+                @foreach($employee->managedTeams as $managedTeam)
+                <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200">
+                    <i class="bi bi-people text-slate-400"></i>{{ $managedTeam->name }}
+                </span>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        @php
+            $activeReports = $employee->subordinates->where('status', 'active');
+            $formerReports = $employee->subordinates->where('status', '!=', 'active')->sortBy('name');
+        @endphp
+        @if($employee->is_manager || $employee->subordinates->isNotEmpty())
+        <!-- Direct Reports Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-diagram-3 me-2 text-slate-400"></i>Direct Reports ({{ $activeReports->count() }})</h6>
+            </div>
+            <div class="card-body space-y-5">
+                @php $groupedSubordinates = $activeReports->groupBy(fn ($s) => $s->team->name ?? 'No Team')->sortKeys(); @endphp
+                @forelse($groupedSubordinates as $teamName => $members)
+                <div>
+                    <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        {{ $teamName }}
+                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{{ $members->count() }}</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        @foreach($members->sortBy('name') as $subordinate)
+                        <a href="{{ route('employees.show', $subordinate) }}" title="{{ $subordinate->name }}" class="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 transition-colors hover:border-primary-300 hover:bg-slate-50 dark:border-slate-800 dark:hover:border-primary-800 dark:hover:bg-slate-800/60">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
+                                <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $subordinate->name }}</div>
+                                <div class="truncate text-xs text-slate-500 dark:text-slate-400">{{ $subordinate->role->name ?? '—' }}</div>
+                            </div>
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+                @empty
+                <div class="py-2 text-center text-sm text-slate-500 dark:text-slate-400">{{ $formerReports->isNotEmpty() ? 'No active direct reports.' : 'No direct reports yet.' }}</div>
+                @endforelse
+
+                @if($formerReports->isNotEmpty())
+                <div class="border-t border-slate-100 pt-4 dark:border-slate-800">
+                    <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                        Former
+                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-400 dark:bg-slate-800 dark:text-slate-500">{{ $formerReports->count() }}</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        @foreach($formerReports as $subordinate)
+                        <a href="{{ route('employees.show', $subordinate) }}" title="{{ $subordinate->name }}" class="flex min-w-0 items-center gap-3 rounded-lg border border-dashed border-slate-200 px-3 py-2 opacity-70 transition hover:bg-slate-50 hover:opacity-100 dark:border-slate-800 dark:hover:bg-slate-800/60">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-400 dark:bg-slate-600">
+                                <span class="text-xs font-bold text-white">{{ substr($subordinate->name, 0, 1) }}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="truncate text-sm font-semibold text-slate-600 dark:text-slate-300">{{ $subordinate->name }}</div>
+                                <div class="truncate text-xs text-slate-400 dark:text-slate-500">{{ ucfirst($subordinate->status) }}{{ $subordinate->resigned_date ? ' · ' . $subordinate->resigned_date->format('d M Y') : '' }}</div>
+                            </div>
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
         <!-- HR Documents Display Section -->
         <div class="card">
             <div class="card-header">
@@ -235,6 +423,51 @@
                     <i class="bi bi-folder2-open mb-2 block text-2xl"></i>
                     No documents uploaded
                 </div>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- Activity History -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-clock-history me-2 text-slate-400"></i>Activity History</h6>
+            </div>
+            <div class="card-body">
+                @forelse($activityTimeline as $activity)
+                <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/40">
+                            <i class="bi bi-{{ $activity->icon }} text-sm text-primary-600 dark:text-primary-400"></i>
+                        </div>
+                        @if(!$loop->last)
+                        <div class="mt-1 w-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                        @endif
+                    </div>
+                    <div class="min-w-0 flex-1 pb-5 last:pb-0">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $activity->title }}</div>
+                            <div class="text-xs text-slate-400 dark:text-slate-500">{{ $activity->at->diffForHumans() }}</div>
+                        </div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">by {{ $activity->by }}</div>
+                        @if($activity->notes)
+                        <div class="mt-1 text-sm text-slate-500 dark:text-slate-400 break-words">{{ $activity->notes }}</div>
+                        @endif
+                        @if($activity->changes->isNotEmpty())
+                        <div class="mt-2 space-y-1.5 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+                            @foreach($activity->changes as $change)
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                <span class="font-semibold text-slate-600 dark:text-slate-300">{{ $change['label'] }}:</span>
+                                <span class="text-slate-500 dark:text-slate-400">{{ $change['old'] }}</span>
+                                <i class="bi bi-arrow-right text-slate-400"></i>
+                                <span class="font-medium text-slate-700 dark:text-slate-200">{{ $change['new'] }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @empty
+                <div class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">No history</div>
                 @endforelse
             </div>
         </div>

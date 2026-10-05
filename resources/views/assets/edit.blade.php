@@ -115,17 +115,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div>
-                            <label class="field-label">Assigned To</label>
-                            <select name="assigned_to" class="field-input">
-                                <option value="">Not Assigned</option>
-                                @foreach($employees as $employee)
-                                <option value="{{ $employee->id }}" {{ old('assigned_to', $asset->assigned_to) == $employee->id ? 'selected' : '' }}>
-                                    {{ $employee->name }} <{{ $employee->id_number }}>
-                                </option>
-                                @endforeach
-                            </select>
-                        </div>
+                        @include('assets._assigned-to-field')
                         <div>
                             <label class="field-label">Last Seen At</label>
                             <input type="datetime-local" name="last_seen_at" class="field-input" value="{{ old('last_seen_at', $asset->last_seen_at?->format('Y-m-d\TH:i')) }}">
@@ -221,7 +211,9 @@
                                     ],
                                 ];
                                 $currentCpu = old('cpu', $asset->cpu);
-                                $cpuIsCustom = $currentCpu && !collect($cpuGroups)->flatten()->contains($currentCpu);
+                                $knownCpus = collect($cpuGroups)->flatten();
+                                $cpuIsCustom = $currentCpu && !$knownCpus->contains($currentCpu);
+                                $extraCpus = $customCpus->reject(fn ($cpu) => $knownCpus->contains($cpu) || $cpu === $currentCpu)->values();
                             @endphp
                             <select name="cpu" class="field-input">
                                 <option value="">— Select CPU —</option>
@@ -235,6 +227,13 @@
                                     @endforeach
                                 </optgroup>
                                 @endforeach
+                                @if($extraCpus->isNotEmpty())
+                                <optgroup label="Previously Used">
+                                    @foreach($extraCpus as $cpu)
+                                    <option value="{{ $cpu }}">{{ $cpu }}</option>
+                                    @endforeach
+                                </optgroup>
+                                @endif
                             </select>
                         </div>
                         <div>

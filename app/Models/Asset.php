@@ -11,7 +11,7 @@ class Asset extends Model
 {
     protected $fillable = [
         'type', 'asset_tag', 'name', 'brand', 'model', 'serial_number', 'service_tag',
-        'brand_id', 'category_id', 'location_id', 'assigned_to', 'status',
+        'brand_id', 'category_id', 'location_id', 'assigned_to', 'assigned_to_other', 'status',
         'purchase_date', 'purchase_cost', 'warranty_expiry',
         'notes', 'photo_path', 'last_seen_at',
         'cpu', 'ram', 'storage', 'display',
@@ -75,6 +75,15 @@ class Asset extends Model
             'lost' => 'Lost',
             default => 'Unknown',
         };
+    }
+
+    /**
+     * Name of whoever holds the asset: the assigned employee, or the free-text
+     * non-employee assignee (e.g. an office PC), or null when unassigned.
+     */
+    public function getAssigneeNameAttribute(): ?string
+    {
+        return $this->assignedEmployee?->name ?? $this->assigned_to_other;
     }
 
     public function getBrandLabelAttribute(): string
