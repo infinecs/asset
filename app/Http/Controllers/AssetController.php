@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AssetAgreementMail;
 use App\Models\Asset;
 use App\Models\AssetHistory;
 use App\Models\Brand;
@@ -10,12 +11,46 @@ use App\Models\Location;
 use App\Models\Employee;
 use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AssetController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Placeholder value of the "Assigned To" dropdown for assets held by the office
+     * (e.g. a security PC) rather than an employee; the name goes in assigned_to_other.
+     */
+    private const ASSIGNED_TO_OTHER = '__other__';
+
+    private function assigneeRules(Request $request): array
+    {
+        $isOther = $request->input('assigned_to') === self::ASSIGNED_TO_OTHER;
+
+        return [
+            'assigned_to' => ['nullable', $isOther ? Rule::in([self::ASSIGNED_TO_OTHER]) : 'exists:employees,id'],
+            'assigned_to_other' => [Rule::requiredIf($isOther), 'nullable', 'string', 'max:255'],
+        ];
+    }
+
+    /**
+     * Keep exactly one of assigned_to / assigned_to_other set.
+     */
+    private function normalizeAssignee(array $validated): array
+    {
+        if (($validated['assigned_to'] ?? null) === self::ASSIGNED_TO_OTHER) {
+            $validated['assigned_to'] = null;
+            $validated['assigned_to_other'] = trim($validated['assigned_to_other']);
+        } else {
+            $validated['assigned_to_other'] = null;
+        }
+
+        return $validated;
+    }
+
+    private function filteredAssetsQuery(Request $request)
     {
         $query = Asset::with(['brand', 'category', 'location', 'assignedEmployee']);
 
@@ -29,6 +64,8 @@ class AssetController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('asset_tag', 'like', "%{$search}%")
                   ->orWhere('serial_number', 'like', "%{$search}%")
+                  ->orWhere('service_tag', 'like', "%{$search}%")
+                  ->orWhere('assigned_to_other', 'like', "%{$search}%")
                   ->orWhere('brand', 'like', "%{$search}%")
                                     ->orWhere('model', 'like', "%{$search}%")
                                     ->orWhereHas('brand', function ($brandQuery) use ($search) {
@@ -65,7 +102,53 @@ class AssetController extends Controller
             $query->where('display', $request->display);
         }
 
-        $assets = $query->latest()->paginate(15)->withQueryString();
+        if ($request->filled('agreement')) {
+            switch ($request->agreement) {
+                case 'not_sent':
+                    $query->whereNotNull('assigned_to')->whereNull('agreement_sent_at');
+                    break;
+                case 'pending':
+                    $query->whereNotNull('agreement_sent_at')->whereNull('agreement_signed_at');
+                    break;
+                case 'signed':
+                    $query->whereNotNull('agreement_signed_at');
+                    break;
+            }
+        }
+
+        $sortable = ['asset_tag', 'name', 'category', 'location', 'assigned_to', 'status', 'last_seen_at'];
+        $sort = $request->get('sort');
+        $direction = $request->get('direction') === 'desc' ? 'desc' : 'asc';
+
+        if ($sort && in_array($sort, $sortable, true)) {
+            $query->select('assets.*');
+
+            switch ($sort) {
+                case 'category':
+                    $query->leftJoin('categories', 'categories.id', '=', 'assets.category_id')
+                          ->orderBy('categories.name', $direction);
+                    break;
+                case 'location':
+                    $query->leftJoin('locations', 'locations.id', '=', 'assets.location_id')
+                          ->orderBy('locations.name', $direction);
+                    break;
+                case 'assigned_to':
+                    $query->leftJoin('employees', 'employees.id', '=', 'assets.assigned_to')
+                          ->orderByRaw('COALESCE(employees.name, assets.assigned_to_other) ' . $direction);
+                    break;
+                default:
+                    $query->orderBy('assets.' . $sort, $direction);
+            }
+        } else {
+            $query->orderByRaw('CAST(SUBSTRING(asset_tag, 6) AS UNSIGNED) DESC');
+        }
+
+        return $query;
+    }
+
+    public function index(Request $request)
+    {
+        $assets = $this->filteredAssetsQuery($request)->paginate(15)->withQueryString();
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
@@ -78,6 +161,54 @@ class AssetController extends Controller
         return view('assets.index', compact('assets', 'brands', 'categories', 'locations', 'filterCpus', 'filterRams', 'filterStorages', 'filterDisplays'));
     }
 
+    public function export(Request $request)
+    {
+        $assets = $this->filteredAssetsQuery($request)->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="assets_' . now()->format('Y-m-d_His') . '.csv"',
+        ];
+
+        $callback = function () use ($assets) {
+            $h = fopen('php://output', 'w');
+            fputcsv($h, [
+                'Asset Tag', 'Name', 'Type', 'Brand', 'Model', 'Serial Number', 'Service Tag',
+                'Category', 'Location', 'Assigned To', 'Status',
+                'CPU', 'RAM', 'Storage', 'Display',
+                'Purchase Date', 'Purchase Cost', 'Warranty Expiry', 'Last Seen',
+            ]);
+
+            foreach ($assets as $asset) {
+                fputcsv($h, [
+                    $asset->asset_tag,
+                    $asset->name,
+                    $asset->type,
+                    $asset->brand_label,
+                    $asset->model,
+                    $asset->serial_number,
+                    $asset->service_tag,
+                    $asset->category?->name,
+                    $asset->location?->name,
+                    $asset->assignee_name,
+                    $asset->status_label,
+                    $asset->cpu,
+                    $asset->ram,
+                    $asset->storage,
+                    $asset->display,
+                    $asset->purchase_date?->format('Y-m-d'),
+                    $asset->purchase_cost,
+                    $asset->warranty_expiry?->format('Y-m-d'),
+                    $asset->last_seen_at?->format('Y-m-d H:i'),
+                ]);
+            }
+
+            fclose($h);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function create()
     {
         if (!auth()->user()->isAdmin()) {
@@ -87,7 +218,9 @@ class AssetController extends Controller
         $brands = Brand::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
-        return view('assets.create', compact('brands', 'categories', 'locations'));
+        $employees = Employee::orderBy('name')->get();
+        $customCpus = Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu');
+        return view('assets.create', compact('brands', 'categories', 'locations', 'employees', 'customCpus'));
     }
 
     public function store(Request $request)
@@ -97,23 +230,27 @@ class AssetController extends Controller
         }
 
         $typePrefix = match($request->input('type')) {
-            'desktop'    => 'ISSB-D',
-            'smartphone' => 'ISSB-S',
-            'tablet'     => 'ISSB-T',
-            default      => 'ISSB-L',
+            'desktop'      => 'ISSBD',
+            'smartphone'   => 'ISSBS',
+            'tablet'       => 'ISSBT',
+            'monitor'      => 'ISSBM',
+            'speakerphone' => 'ISSBP',
+            default        => 'ISSBL',
         };
         $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
 
         $validated = $request->validate([
-            'type' => 'nullable|in:laptop,desktop,smartphone,tablet',
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor,speakerphone',
             'asset_tag' => 'required|string|max:255|unique:assets,asset_tag',
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
             'brand' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'serial_number' => 'nullable|string|max:255',
+            'service_tag' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
+            ...$this->assigneeRules($request),
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
             'purchase_cost' => 'nullable|numeric|min:0',
@@ -124,13 +261,19 @@ class AssetController extends Controller
             'ram' => 'nullable|string|max:50',
             'storage' => 'nullable|string|max:100',
             'display' => 'nullable|string|max:50',
+        ], [
+            'assigned_to_other.required' => 'Enter who or what this asset is assigned to.',
         ]);
+        $validated = $this->normalizeAssignee($validated);
         $validated['brand'] = null;
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
         }
 
-        $validated['assigned_to'] = null;
+        // Assigning an available asset marks it as in use.
+        if ((!empty($validated['assigned_to']) || !empty($validated['assigned_to_other'])) && $validated['status'] === 'available') {
+            $validated['status'] = 'in_use';
+        }
 
         if ($request->hasFile('photo')) {
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
@@ -162,18 +305,90 @@ class AssetController extends Controller
             'histories.user',
         ]);
 
-        $activityTimeline = $asset->histories->map(function ($history) {
+        $relationNameMaps = [
+            'category_id' => Category::pluck('name', 'id'),
+            'location_id' => Location::pluck('name', 'id'),
+            'assigned_to' => Employee::pluck('name', 'id'),
+            'brand_id' => Brand::pluck('name', 'id'),
+        ];
+        $dateFields = ['purchase_date', 'warranty_expiry', 'last_seen_at'];
+
+        $activityTimeline = $asset->histories->map(function ($history) use ($relationNameMaps, $dateFields) {
+            $changes = collect($history->changes ?? [])
+                ->reject(fn ($change, $field) => $field === 'photo')
+                ->map(function ($change, $field) use ($relationNameMaps, $dateFields) {
+                    $old = $change['old'] ?? null;
+                    $new = $change['new'] ?? null;
+
+                    if (is_array($old)) {
+                        $old = !empty($old) ? json_encode($old) : null;
+                    }
+                    if (is_array($new)) {
+                        $new = !empty($new) ? json_encode($new) : null;
+                    }
+
+                    if (isset($relationNameMaps[$field])) {
+                        $old = $old ? ($relationNameMaps[$field][$old] ?? $old) : null;
+                        $new = $new ? ($relationNameMaps[$field][$new] ?? $new) : null;
+                    } elseif ($field === 'last_seen_at') {
+                        $old = $old ? \Carbon\Carbon::parse($old)->format('M d, Y h:i A') : null;
+                        $new = $new ? \Carbon\Carbon::parse($new)->format('M d, Y h:i A') : null;
+                    } elseif (in_array($field, $dateFields, true)) {
+                        $old = $old ? \Carbon\Carbon::parse($old)->format('M d, Y') : null;
+                        $new = $new ? \Carbon\Carbon::parse($new)->format('M d, Y') : null;
+                    } elseif ($field === 'photo_path') {
+                        $old = $old ? basename($old) : null;
+                        $new = $new ? basename($new) : null;
+                    }
+
+                    $labels = [
+                        'category_id' => 'Category',
+                        'location_id' => 'Location',
+                        'brand_id' => 'Brand',
+                        'assigned_to' => 'Assigned To',
+                        'assigned_to_other' => 'Assigned To (Non-employee)',
+                        'photo_path' => 'Photo',
+                    ];
+
+                    return [
+                        'label' => $labels[$field] ?? ucwords(str_replace('_', ' ', $field)),
+                        'old' => $old ?? '—',
+                        'new' => $new ?? '—',
+                    ];
+                })->values();
+
             return (object) [
                 'type' => 'asset_history',
                 'at' => $history->created_at,
                 'title' => ucwords(str_replace('_', ' ', $history->action)),
                 'by' => $history->user?->name ?? 'System',
                 'notes' => $history->notes,
-                'icon' => $history->action == 'created' ? 'plus' : ($history->action == 'status_changed' ? 'arrow-repeat' : 'pencil'),
+                'changes' => $changes,
+                'icon' => match ($history->action) {
+                    'created' => 'plus',
+                    'status_changed' => 'arrow-repeat',
+                    'reclaimed' => 'box-arrow-in-left',
+                    'agreement_sent' => 'envelope',
+                    'agreement_signed' => 'check2-circle',
+                    default => 'pencil',
+                },
             ];
         })->sortByDesc('at')->take(15)->values();
 
-        return view('assets.show', compact('asset', 'activityTimeline'));
+        $qrCode = QrCode::size(140)->margin(1)->generate(route('assets.show', $asset));
+
+        return view('assets.show', compact('asset', 'activityTimeline', 'qrCode'));
+    }
+
+    public function label(Asset $asset)
+    {
+        if (!auth()->user()->isAdmin() && $asset->status !== 'available') {
+            abort(403);
+        }
+
+        $qrCode = QrCode::size(220)->margin(1)->generate(route('assets.show', $asset));
+
+        return view('assets.label', compact('asset', 'qrCode'));
     }
 
     public function edit(Asset $asset)
@@ -187,7 +402,8 @@ class AssetController extends Controller
         $locations = Location::orderBy('name')->get();
         $employees = Employee::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
-        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments'));
+        $customCpus = Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu');
+        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments', 'customCpus'));
     }
 
     public function update(Request $request, Asset $asset)
@@ -197,24 +413,27 @@ class AssetController extends Controller
         }
 
         $typePrefix = match($request->input('type')) {
-            'desktop'    => 'ISSB-D',
-            'smartphone' => 'ISSB-S',
-            'tablet'     => 'ISSB-T',
-            default      => 'ISSB-L',
+            'desktop'      => 'ISSBD',
+            'smartphone'   => 'ISSBS',
+            'tablet'       => 'ISSBT',
+            'monitor'      => 'ISSBM',
+            'speakerphone' => 'ISSBP',
+            default        => 'ISSBL',
         };
         $request->merge(['asset_tag' => $typePrefix . trim($request->input('asset_tag_suffix', ''))]);
 
         $validated = $request->validate([
-            'type' => 'nullable|in:laptop,desktop,smartphone,tablet',
+            'type' => 'nullable|in:laptop,desktop,smartphone,tablet,monitor,speakerphone',
             'asset_tag' => 'required|string|max:255|unique:assets,asset_tag,' . $asset->id,
             'name' => 'required|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
             'brand' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'serial_number' => 'nullable|string|max:255',
+            'service_tag' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
-            'assigned_to' => 'nullable|exists:employees,id',
+            ...$this->assigneeRules($request),
             'last_seen_at' => 'nullable|date_format:Y-m-d\TH:i',
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
@@ -226,13 +445,25 @@ class AssetController extends Controller
             'ram' => 'nullable|string|max:50',
             'storage' => 'nullable|string|max:100',
             'display' => 'nullable|string|max:50',
+        ], [
+            'assigned_to_other.required' => 'Enter who or what this asset is assigned to.',
         ]);
+        $validated = $this->normalizeAssignee($validated);
 
         $changes = [];
 
         $validated['brand'] = null;
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
+        }
+
+        // Keep status in sync with assignment: assigning an available asset marks it
+        // in use; clearing the assignment frees it back to available.
+        $isAssigned = !empty($validated['assigned_to']) || !empty($validated['assigned_to_other']);
+        if ($isAssigned && $validated['status'] === 'available') {
+            $validated['status'] = 'in_use';
+        } elseif (!$isAssigned && $validated['status'] === 'in_use') {
+            $validated['status'] = 'available';
         }
 
         if ($request->hasFile('photo')) {
@@ -242,10 +473,18 @@ class AssetController extends Controller
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
         }
 
-        foreach ($validated as $key => $value) {
+        foreach (collect($validated)->except(['photo']) as $key => $value) {
             if ($asset->$key != $value) {
                 $changes[$key] = ['old' => $asset->$key, 'new' => $value];
             }
+        }
+
+        if (array_key_exists('assigned_to', $validated) && $validated['assigned_to'] != $asset->assigned_to) {
+            $validated['agreement_token'] = null;
+            $validated['agreement_sent_at'] = null;
+            $validated['agreement_signed_at'] = null;
+            $validated['agreement_signature_path'] = null;
+            $validated['agreement_signed_name'] = null;
         }
 
         $asset->update($validated);
@@ -260,7 +499,13 @@ class AssetController extends Controller
             ]);
         }
 
-        return redirect()->route('assets.show', $asset)->with('success', 'Asset updated successfully.');
+        $returnTo = $request->input('return');
+        $showUrl = route('assets.show', $asset);
+        if ($returnTo && str_starts_with($returnTo, '/assets')) {
+            $showUrl .= '?return=' . urlencode($returnTo);
+        }
+
+        return redirect($showUrl)->with('success', 'Asset updated successfully.');
     }
 
     public function destroy(Asset $asset)
@@ -334,6 +579,40 @@ class AssetController extends Controller
         }
 
         return redirect()->route('assets.show', $asset)->with('success', 'Asset status updated.');
+    }
+
+    public function sendAgreement(Asset $asset)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        if (!$asset->assigned_to || !$asset->assignedEmployee) {
+            return redirect()->back()->with('error', 'Assign this asset to an employee before sending an agreement.');
+        }
+
+        if (!$asset->assignedEmployee->email) {
+            return redirect()->back()->with('error', 'The assigned employee has no email address on file.');
+        }
+
+        $asset->update([
+            'agreement_token' => Str::random(48),
+            'agreement_sent_at' => now(),
+            'agreement_signed_at' => null,
+            'agreement_signature_path' => null,
+            'agreement_signed_name' => null,
+        ]);
+
+        Mail::to($asset->assignedEmployee->email)->send(new AssetAgreementMail($asset));
+
+        AssetHistory::create([
+            'asset_id' => $asset->id,
+            'user_id' => auth()->id(),
+            'action' => 'agreement_sent',
+            'notes' => 'Agreement sent to ' . $asset->assignedEmployee->name . ' for e-signature',
+        ]);
+
+        return redirect()->back()->with('success', 'Agreement sent to ' . $asset->assignedEmployee->name . ' for signature.');
     }
 
     public function live()

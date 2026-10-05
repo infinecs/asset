@@ -1,267 +1,253 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Infinecs Asset Management')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.ico') }}">
-    <!-- Bootstrap 5 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <!-- Bootstrap Icons -->
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
-    <style>
-        body { background-color: #f8f9fa; }
-        .sidebar {
-            height: 100vh;
-            background: #1e293b;
-            color: #94a3b8;
-            width: 250px;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 100;
-            overflow-y: auto;
-            overflow-x: hidden;
-            transition: width .2s ease;
-        }
-        .sidebar-menu {
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding-bottom: .5rem;
-        }
-        .sidebar-menu::-webkit-scrollbar {
-            width: 8px;
-        }
-        .sidebar-menu::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 999px;
-        }
-        .sidebar .nav-link {
-            color: #94a3b8;
-            padding: .5rem 1.25rem;
-            border-radius: .375rem;
-            margin: 2px 8px;
-            font-size: .9rem;
-        }
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: #334155;
-            color: #f1f5f9;
-        }
-        .sidebar .nav-link i { width: 20px; }
-        .sidebar-brand {
-            padding: 1.25rem;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #fff;
-            border-bottom: 1px solid #334155;
-        }
-        .sidebar-toggle-btn {
-            color: #e2e8f0;
-            border: 0;
-            background: transparent;
-            padding: .25rem .4rem;
-            border-radius: .375rem;
-        }
-        .sidebar-toggle-btn:hover {
-            background: #334155;
-            color: #fff;
-        }
-        body.sidebar-collapsed .sidebar {
-            width: 78px;
-        }
-        body.sidebar-collapsed .main-content {
-            margin-left: 78px;
-        }
-        body.sidebar-collapsed .sidebar-section,
-        body.sidebar-collapsed .nav-text,
-        body.sidebar-collapsed .brand-text,
-        body.sidebar-collapsed .user-meta,
-        body.sidebar-collapsed .logout-text {
-            display: none;
-        }
-        body.sidebar-collapsed .sidebar .nav-link {
-            justify-content: center;
-            padding: .6rem .5rem;
-            margin: 2px 6px;
-        }
-        body.sidebar-collapsed .sidebar-brand {
-            justify-content: center;
-            padding: 1rem .5rem;
-        }
-        body.sidebar-collapsed .sidebar .sidebar-toggle-btn {
-            margin: 0 auto;
-        }
-        .sidebar-section {
-            font-size: .7rem;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: #64748b;
-            padding: .75rem 1.25rem .25rem;
-        }
-        .main-content {
-            margin-left: 250px;
-            min-height: 100vh;
-            transition: margin-left .2s ease;
-        }
-        .topbar {
-            background: #fff;
-            border-bottom: 1px solid #e2e8f0;
-            padding: .75rem 1.5rem;
-        }
-        .ts-wrapper.single .ts-control {
-            min-height: calc(1.5em + .75rem + 2px);
-        }
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .status-dot.available { background: #22c55e; }
-        .status-dot.in_use { background: #3b82f6; }
-        .status-dot.under_maintenance { background: #f59e0b; }
-        .status-dot.retired { background: #94a3b8; }
-        .status-dot.lost { background: #ef4444; }
-        @media (max-width: 768px) {
-            .sidebar { width: 100%; min-height: auto; position: relative; }
-            .main-content { margin-left: 0; }
-            body.sidebar-collapsed .sidebar { width: 100%; }
-            body.sidebar-collapsed .main-content { margin-left: 0; }
-            body.sidebar-collapsed .sidebar-section,
-            body.sidebar-collapsed .nav-text,
-            body.sidebar-collapsed .brand-text,
-            body.sidebar-collapsed .user-meta,
-            body.sidebar-collapsed .logout-text {
-                display: initial;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.default.min.css">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body>
-    <div class="d-flex">
+<body class="h-full font-sans antialiased" x-data="{
+        sidebarCollapsed: localStorage.getItem('sidebarSimplified') === '1',
+        mobileOpen: false,
+        dark: localStorage.getItem('theme') === 'dark',
+        toggleSidebar() { this.sidebarCollapsed = !this.sidebarCollapsed; localStorage.setItem('sidebarSimplified', this.sidebarCollapsed ? '1' : '0'); },
+        toggleTheme() { this.dark = !this.dark; document.documentElement.classList.toggle('dark', this.dark); localStorage.setItem('theme', this.dark ? 'dark' : 'light'); }
+    }">
+    <div class="flex min-h-full overflow-x-hidden">
+        <!-- Mobile overlay -->
+        <div x-show="mobileOpen" x-cloak x-transition.opacity class="fixed inset-0 z-40 bg-slate-900/50 lg:hidden" @click="mobileOpen = false"></div>
+
         <!-- Sidebar -->
-        <nav class="sidebar d-flex flex-column">
-            <div class="sidebar-brand d-flex align-items-center justify-content-between">
-                <span class="brand-text"><img src="{{ asset('images/infinecs-logo-white.png') }}" alt="Infinecs" style="height: 28px;"></span>
-                <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Simplify view">
+        <nav
+            class="print:hidden fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col bg-slate-900 transition-all duration-200 lg:translate-x-0"
+            :class="{ 'translate-x-0': mobileOpen, 'lg:!w-[78px]': sidebarCollapsed }"
+        >
+            <div class="flex h-[68px] shrink-0 items-center justify-between border-b border-slate-800 px-4">
+                <a href="{{ route('dashboard') }}" x-show="!sidebarCollapsed || mobileOpen">
+                    <img src="{{ asset('images/infinecs-logo-white.png') }}" alt="Infinecs" class="h-10 max-w-[170px] object-contain object-left">
+                </a>
+                <button type="button" class="rounded-lg p-1.5 text-slate-300 hover:bg-slate-800 hover:text-white hidden lg:inline-flex" @click="toggleSidebar()" title="Simplify view">
                     <i class="bi bi-layout-sidebar-inset"></i>
                 </button>
+                <button type="button" class="rounded-lg p-1.5 text-slate-300 hover:bg-slate-800 hover:text-white lg:hidden" @click="mobileOpen = false">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
-            <div class="sidebar-menu mt-2">
-                <div class="sidebar-section">Main</div>
-                <a href="{{ route('dashboard') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('dashboard') ? 'active' : '' }}" data-sidebar-tooltip="Dashboard">
-                    <i class="bi bi-speedometer2"></i><span class="nav-text">Dashboard</span>
+
+            <div class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-3">
+                @if(auth()->user()->isContingentWorker())
+                <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Main</div>
+                <a href="{{ route('outcome.index') }}" class="sidebar-link {{ request()->routeIs('outcome.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-check2-square"></i><span x-show="!sidebarCollapsed || mobileOpen">Outcome Based</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Outcome Based</span>
                 </a>
-                <a href="{{ route('directory.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('directory.index') ? 'active' : '' }}" data-sidebar-tooltip="Directory">
-                    <i class="bi bi-journal-bookmark"></i><span class="nav-text">Directory</span>
+                @elseif(auth()->user()->isManager())
+                @include('outcome.admin._sidebar-links')
+                @else
+                <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Main</div>
+                <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-speedometer2"></i><span x-show="!sidebarCollapsed || mobileOpen">Dashboard</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Dashboard</span>
                 </a>
-                <a href="{{ route('employees.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('employees.*') ? 'active' : '' }}" data-sidebar-tooltip="Employees">
-                    <i class="bi bi-people"></i><span class="nav-text">Employees</span>
+                <a href="{{ route('directory.index') }}" class="sidebar-link {{ request()->routeIs('directory.index') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-journal-bookmark"></i><span x-show="!sidebarCollapsed || mobileOpen">Directory</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Directory</span>
+                </a>
+                <a href="{{ route('employees.index') }}" class="sidebar-link {{ request()->routeIs('employees.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-people"></i><span x-show="!sidebarCollapsed || mobileOpen">Employees</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Employees</span>
                 </a>
 
                 @if(auth()->user()->isStaff())
-                <div class="sidebar-section mt-2">Assets</div>
-                <a href="{{ route('assets.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('assets.index') ? 'active' : '' }}" data-sidebar-tooltip="All Assets">
-                    <i class="bi bi-laptop"></i><span class="nav-text">All Assets</span>
+                <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Assets</div>
+                <a href="{{ route('assets.index') }}" class="sidebar-link {{ request()->routeIs('assets.index') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-laptop"></i><span x-show="!sidebarCollapsed || mobileOpen">All Assets</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">All Assets</span>
+                </a>
+                <a href="{{ route('digital-products.index') }}" class="sidebar-link {{ request()->routeIs('digital-products.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-key"></i><span x-show="!sidebarCollapsed || mobileOpen">Digital Products</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Digital Products</span>
                 </a>
                 @if(auth()->user()->isAdmin())
-                <a href="{{ route('assets.live') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('assets.live') ? 'active' : '' }}" data-sidebar-tooltip="Live Tracker">
-                    <i class="bi bi-activity"></i><span class="nav-text">Live Tracker</span>
+                <a href="{{ route('assets.live') }}" class="sidebar-link {{ request()->routeIs('assets.live') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-activity"></i><span x-show="!sidebarCollapsed || mobileOpen">Live Tracker</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Live Tracker</span>
                 </a>
                 @endif
                 @endif
 
                 @if(auth()->user()->isStaff())
-                <div class="sidebar-section mt-2">Management</div>
-                <a href="{{ route('departments.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('departments.*') ? 'active' : '' }}" data-sidebar-tooltip="Departments">
-                    <i class="bi bi-building"></i><span class="nav-text">Departments</span>
+                <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Management</div>
+                <a href="{{ route('departments.index') }}" class="sidebar-link {{ request()->routeIs('departments.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-building"></i><span x-show="!sidebarCollapsed || mobileOpen">Departments</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Departments</span>
                 </a>
-                <a href="{{ route('brands.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('brands.*') ? 'active' : '' }}" data-sidebar-tooltip="Brands">
-                    <i class="bi bi-award"></i><span class="nav-text">Brands</span>
+                @if(auth()->user()->isAdmin())
+                <a href="{{ route('roles.index') }}" class="sidebar-link {{ request()->routeIs('roles.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-person-badge"></i><span x-show="!sidebarCollapsed || mobileOpen">Roles</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Roles</span>
                 </a>
-                <a href="{{ route('categories.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('categories.*') ? 'active' : '' }}" data-sidebar-tooltip="Categories">
-                    <i class="bi bi-tags"></i><span class="nav-text">Categories</span>
+                <a href="{{ route('teams.index') }}" class="sidebar-link {{ request()->routeIs('teams.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-people"></i><span x-show="!sidebarCollapsed || mobileOpen">Teams</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Teams</span>
                 </a>
-                <a href="{{ route('locations.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('locations.*') ? 'active' : '' }}" data-sidebar-tooltip="Locations">
-                    <i class="bi bi-geo-alt"></i><span class="nav-text">Locations</span>
+                <a href="{{ route('clients.index') }}" class="sidebar-link {{ request()->routeIs('clients.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-briefcase"></i><span x-show="!sidebarCollapsed || mobileOpen">Clients</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Clients</span>
+                </a>
+                @endif
+                <a href="{{ route('brands.index') }}" class="sidebar-link {{ request()->routeIs('brands.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-award"></i><span x-show="!sidebarCollapsed || mobileOpen">Brands</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Brands</span>
+                </a>
+                <a href="{{ route('categories.index') }}" class="sidebar-link {{ request()->routeIs('categories.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-tags"></i><span x-show="!sidebarCollapsed || mobileOpen">Categories</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Categories</span>
+                </a>
+                <a href="{{ route('locations.index') }}" class="sidebar-link {{ request()->routeIs('locations.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-geo-alt"></i><span x-show="!sidebarCollapsed || mobileOpen">Locations</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Locations</span>
+                </a>
+                <a href="{{ route('gift-cards.index') }}" class="sidebar-link {{ request()->routeIs('gift-cards.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-gift"></i><span x-show="!sidebarCollapsed || mobileOpen">Gift Cards</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Gift Cards</span>
                 </a>
                 @endif
 
                 @if(auth()->user()->isAdmin())
-                <div class="sidebar-section mt-2">Admin</div>
-                <a href="{{ route('tasks.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('tasks.*') ? 'active' : '' }}" data-sidebar-tooltip="Tasks">
-                    <i class="bi bi-list-task"></i><span class="nav-text">Tasks</span>
+                <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Admin</div>
+                <a href="{{ route('tasks.index') }}" class="sidebar-link {{ request()->routeIs('tasks.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-list-task"></i><span x-show="!sidebarCollapsed || mobileOpen">Tasks</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Tasks</span>
                 </a>
-                <a href="{{ route('users.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('users.*') ? 'active' : '' }}" data-sidebar-tooltip="Users">
-                    <i class="bi bi-people"></i><span class="nav-text">Users</span>
+                <a href="{{ route('users.index') }}" class="sidebar-link {{ request()->routeIs('users.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-people"></i><span x-show="!sidebarCollapsed || mobileOpen">Users</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Users</span>
                 </a>
+                @endif
+
+                @if(auth()->user()->canManageOutcome())
+                @include('outcome.admin._sidebar-links')
+                @endif
                 @endif
             </div>
 
-            <div class="p-3 border-top border-secondary mt-auto">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
-                        <span class="text-white fw-bold" style="font-size:.8rem;">{{ substr(auth()->user()->name, 0, 1) }}</span>
+            <div class="shrink-0 border-t border-slate-800 p-3">
+                <div class="mb-2 flex items-center gap-2" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-600">
+                        <span class="text-xs font-bold text-white">{{ substr(auth()->user()->name, 0, 1) }}</span>
                     </div>
-                    <div class="small user-meta">
-                        <div class="text-white fw-semibold">{{ auth()->user()->name }}</div>
-                        <div class="text-white" style="font-size:.75rem;">{{ ucfirst(auth()->user()->role) }}</div>
+                    <div class="min-w-0 text-xs" x-show="!sidebarCollapsed || mobileOpen">
+                        <div class="truncate font-semibold text-white">{{ auth()->user()->name }}</div>
+                        <div class="text-slate-400">{{ auth()->user()->roleLabel() }}</div>
                     </div>
                 </div>
-                <a href="{{ route('settings.edit') }}" class="btn btn-sm btn-outline-secondary w-100 mb-2" data-sidebar-tooltip="Settings">
-                    <i class="bi bi-gear me-1"></i><span class="logout-text">Settings</span>
+                <a href="{{ route('settings.edit') }}" class="btn btn-outline mb-2 w-full !border-slate-700 !text-slate-200 hover:!bg-slate-800" :class="{ '!px-2': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-gear"></i><span x-show="!sidebarCollapsed || mobileOpen">Settings</span>
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button class="btn btn-sm btn-outline-secondary w-100" data-sidebar-tooltip="Logout">
-                        <i class="bi bi-box-arrow-left me-1"></i><span class="logout-text">Logout</span>
+                    <button type="submit" class="btn btn-outline w-full !border-slate-700 !text-slate-200 hover:!bg-slate-800" :class="{ '!px-2': sidebarCollapsed && !mobileOpen }">
+                        <i class="bi bi-box-arrow-left"></i><span x-show="!sidebarCollapsed || mobileOpen">Logout</span>
                     </button>
                 </form>
             </div>
         </nav>
 
         <!-- Main Content -->
-        <div class="main-content flex-grow-1">
-            <div class="topbar d-flex align-items-center justify-content-between">
-                <h6 class="mb-0 fw-semibold text-dark">@yield('page-title', 'Dashboard')</h6>
-                <div class="d-flex align-items-center gap-3">
-                    <span class="small text-muted">{{ now()->format('D, d M Y') }}</span>
+        <div class="flex min-h-full min-w-0 flex-1 flex-col transition-all duration-200 print:pl-0" :class="sidebarCollapsed ? 'lg:pl-[78px]' : 'lg:pl-64'">
+            <header class="print:hidden sticky top-0 z-30 flex h-[68px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+                <div class="flex items-center gap-3">
+                    <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden" @click="mobileOpen = true">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+                    <h6 class="mb-0 text-sm font-semibold text-slate-800 dark:text-slate-100 sm:text-base">@yield('page-title', 'Dashboard')</h6>
                 </div>
-            </div>
+                <div class="flex items-center gap-3">
+                    <form method="GET" action="{{ route('search.index') }}" class="relative hidden md:block">
+                        <i class="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" name="q" value="{{ request()->routeIs('search.index') ? request('q') : '' }}" class="field-input w-56 pl-9" placeholder="Search...">
+                    </form>
+                    <a href="{{ route('search.index') }}" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden" title="Search">
+                        <i class="bi bi-search"></i>
+                    </a>
+                    <span class="hidden text-sm text-slate-500 dark:text-slate-400 sm:inline">{{ now()->format('D, d M Y') }}</span>
+                    <button type="button" class="rounded-lg border border-slate-300 p-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" @click="toggleTheme()" title="Toggle dark mode">
+                        <i class="bi" :class="dark ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+                    </button>
+                </div>
+            </header>
 
-            <div class="p-4">
+            <main class="min-w-0 flex-1 p-4 sm:p-6">
                 @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
+                <div x-data="{ show: true }" x-show="show" x-transition class="alert alert-success mb-4">
+                    <i class="bi bi-check-circle mt-0.5"></i>
+                    <span class="flex-1">{{ session('success') }}</span>
+                    <button type="button" class="text-green-600 hover:text-green-800 dark:text-green-400" @click="show = false"><i class="bi bi-x-lg"></i></button>
+                </div>
                 @endif
                 @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
+                <div x-data="{ show: true }" x-show="show" x-transition class="alert alert-danger mb-4">
+                    <i class="bi bi-exclamation-triangle mt-0.5"></i>
+                    <span class="flex-1">{{ session('error') }}</span>
+                    <button type="button" class="text-red-600 hover:text-red-800 dark:text-red-400" @click="show = false"><i class="bi bi-x-lg"></i></button>
+                </div>
                 @endif
 
                 @yield('content')
-            </div>
+            </main>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <x-ui.modal id="confirmDeleteModal" maxWidth="max-w-md">
+        <div class="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+            <h5 class="text-base font-semibold text-slate-900 dark:text-white" id="confirmDeleteTitle">Confirm Deletion</h5>
+        </div>
+        <div class="px-6 py-4" x-data="{ typed: '' }" x-on:reset-delete-confirm.window="typed = ''">
+            <p class="text-sm text-slate-600 dark:text-slate-300" id="confirmDeleteMessage"></p>
+            <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                Type <span class="font-semibold text-red-600 dark:text-red-400">DELETE</span> below to confirm.
+            </p>
+            <input
+                type="text"
+                id="confirmDeleteInput"
+                x-model="typed"
+                autocomplete="off"
+                spellcheck="false"
+                class="field-input mt-2"
+                placeholder="Type DELETE to confirm"
+            >
+            <div class="mt-4 flex justify-end gap-2">
+                <button type="button" class="btn btn-outline btn-sm" @click="open = false; typed = ''">Cancel</button>
+                <button
+                    type="button"
+                    class="btn btn-danger btn-sm"
+                    :disabled="typed !== 'DELETE'"
+                    @click="open = false; typed = ''; window.__submitPendingDeleteForm()"
+                >
+                    <i class="bi bi-trash"></i>Confirm Delete
+                </button>
+            </div>
+        </div>
+    </x-ui.modal>
+
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const sidebarToggleButton = document.getElementById('sidebar-toggle-btn');
-            const mobileBreakpoint = 768;
-            let sidebarTooltips = [];
-
             const initInlineDropdownSearch = function () {
                 if (typeof TomSelect === 'undefined') {
                     return;
@@ -278,7 +264,9 @@
                     'assigned_to',
                     'user_id',
                     'requested_by',
-                    'lessee_id'
+                    'lessee_id',
+                    'role_id',
+                    'manager_id'
                 ];
 
                 const selector = searchableNames
@@ -304,60 +292,99 @@
 
                     select.dataset.inlineSearchReady = '1';
                 });
-            };
 
-            const updateSidebarTooltips = function () {
-                sidebarTooltips.forEach(function (tooltip) {
-                    tooltip.dispose();
-                });
-                sidebarTooltips = [];
+                const creatableSearchableNames = [
+                    'cpu'
+                ];
 
-                const shouldEnableTooltips = document.body.classList.contains('sidebar-collapsed') && window.innerWidth > mobileBreakpoint;
-                if (!shouldEnableTooltips) {
-                    return;
-                }
+                const creatableSelector = creatableSearchableNames
+                    .map(function (name) { return 'select[name="' + name + '"]'; })
+                    .join(',');
 
-                document.querySelectorAll('.sidebar [data-sidebar-tooltip]').forEach(function (el) {
-                    const title = el.getAttribute('data-sidebar-tooltip');
-                    el.setAttribute('data-bs-toggle', 'tooltip');
-                    el.setAttribute('data-bs-placement', 'right');
-                    el.setAttribute('data-bs-title', title);
-                    sidebarTooltips.push(new bootstrap.Tooltip(el));
-                });
-            };
-
-            const applySidebarPreference = function () {
-                if (window.innerWidth <= mobileBreakpoint) {
-                    document.body.classList.remove('sidebar-collapsed');
-                    updateSidebarTooltips();
-                    return;
-                }
-
-                if (localStorage.getItem('sidebarSimplified') === '1') {
-                    document.body.classList.add('sidebar-collapsed');
-                } else {
-                    document.body.classList.remove('sidebar-collapsed');
-                }
-
-                updateSidebarTooltips();
-            };
-
-            applySidebarPreference();
-            initInlineDropdownSearch();
-
-            if (sidebarToggleButton) {
-                sidebarToggleButton.addEventListener('click', function () {
-                    if (window.innerWidth <= mobileBreakpoint) {
+                document.querySelectorAll(creatableSelector).forEach(function (select) {
+                    if (select.dataset.inlineSearchReady === '1') {
                         return;
                     }
 
-                    const collapsed = document.body.classList.toggle('sidebar-collapsed');
-                    localStorage.setItem('sidebarSimplified', collapsed ? '1' : '0');
-                    updateSidebarTooltips();
-                });
-            }
+                    new TomSelect(select, {
+                        create: true,
+                        createOnBlur: true,
+                        maxItems: 1,
+                        allowEmptyOption: true,
+                        searchField: ['text'],
+                        placeholder: 'Select or type a CPU...',
+                        sortField: [
+                            { field: '$score' },
+                            { field: '$order' }
+                        ]
+                    });
 
-            window.addEventListener('resize', applySidebarPreference);
+                    select.dataset.inlineSearchReady = '1';
+                });
+
+                const multiSearchableNames = [
+                    'employee_ids[]',
+                    'person_in_charge_ids[]',
+                    'subordinate_ids[]',
+                    'managed_team_ids[]'
+                ];
+
+                const multiSelector = multiSearchableNames
+                    .map(function (name) { return 'select[name="' + name + '"]'; })
+                    .join(',');
+
+                document.querySelectorAll(multiSelector).forEach(function (select) {
+                    if (select.dataset.inlineSearchReady === '1') {
+                        return;
+                    }
+
+                    new TomSelect(select, {
+                        create: false,
+                        searchField: ['text'],
+                        placeholder: 'Search and select employees...',
+                        sortField: [
+                            { field: '$score' },
+                            { field: '$order' }
+                        ]
+                    });
+
+                    select.dataset.inlineSearchReady = '1';
+                });
+            };
+
+            initInlineDropdownSearch();
+
+            let pendingDeleteForm = null;
+
+            window.__submitPendingDeleteForm = function () {
+                if (pendingDeleteForm) {
+                    const form = pendingDeleteForm;
+                    pendingDeleteForm = null;
+                    form.submit();
+                }
+            };
+
+            document.querySelectorAll('form[data-confirm-delete]').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    pendingDeleteForm = form;
+
+                    let message = form.dataset.confirmMessage || 'This action cannot be undone.';
+                    if (message.indexOf('{count}') !== -1) {
+                        const count = form.querySelectorAll('input[name="ids[]"]').length;
+                        message = message.replace('{count}', count);
+                    }
+
+                    document.getElementById('confirmDeleteTitle').textContent = form.dataset.confirmTitle || 'Confirm Deletion';
+                    document.getElementById('confirmDeleteMessage').textContent = message;
+
+                    window.dispatchEvent(new CustomEvent('reset-delete-confirm'));
+                    window.dispatchEvent(new CustomEvent('open-modal', { detail: 'confirmDeleteModal' }));
+                    setTimeout(function () {
+                        document.getElementById('confirmDeleteInput').focus();
+                    }, 50);
+                });
+            });
 
             document.querySelectorAll('[data-bulk-container]').forEach(function (container) {
                 const selectAll = container.querySelector('[data-bulk-select-all]');

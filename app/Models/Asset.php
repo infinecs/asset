@@ -10,11 +10,13 @@ use App\Models\Employee;
 class Asset extends Model
 {
     protected $fillable = [
-        'type', 'asset_tag', 'name', 'brand', 'model', 'serial_number',
-        'brand_id', 'category_id', 'location_id', 'assigned_to', 'status',
+        'type', 'asset_tag', 'name', 'brand', 'model', 'serial_number', 'service_tag',
+        'brand_id', 'category_id', 'location_id', 'assigned_to', 'assigned_to_other', 'status',
         'purchase_date', 'purchase_cost', 'warranty_expiry',
         'notes', 'photo_path', 'last_seen_at',
         'cpu', 'ram', 'storage', 'display',
+        'agreement_token', 'agreement_sent_at', 'agreement_signed_at',
+        'agreement_signature_path', 'agreement_signed_name',
     ];
 
     protected $casts = [
@@ -22,6 +24,8 @@ class Asset extends Model
         'warranty_expiry' => 'date',
         'last_seen_at' => 'datetime',
         'purchase_cost' => 'decimal:2',
+        'agreement_sent_at' => 'datetime',
+        'agreement_signed_at' => 'datetime',
     ];
 
     public function category(): BelongsTo
@@ -71,6 +75,15 @@ class Asset extends Model
             'lost' => 'Lost',
             default => 'Unknown',
         };
+    }
+
+    /**
+     * Name of whoever holds the asset: the assigned employee, or the free-text
+     * non-employee assignee (e.g. an office PC), or null when unassigned.
+     */
+    public function getAssigneeNameAttribute(): ?string
+    {
+        return $this->assignedEmployee?->name ?? $this->assigned_to_other;
     }
 
     public function getBrandLabelAttribute(): string

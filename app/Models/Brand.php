@@ -13,4 +13,9 @@ class Brand extends Model
     {
         return $this->hasMany(Asset::class);
     }
+
+    public function digitalProducts(): HasMany
+    {
+        return $this->hasMany(DigitalProduct::class);
+    }
 }
