@@ -78,6 +78,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/assets/{asset}/move', [AssetController::class, 'move'])->name('assets.move');
     Route::delete('/assets/bulk-delete', [AssetController::class, 'bulkDestroy'])->name('assets.bulk-destroy');
     Route::delete('/assets/delete-all', [AssetController::class, 'destroyAll'])->name('assets.destroy-all');
+    Route::post('/assets/cpus', [AssetController::class, 'storeCpu'])->name('assets.cpus.store');
+    Route::post('/assets/displays', [AssetController::class, 'storeDisplay'])->name('assets.displays.store');
     Route::resource('assets', AssetController::class);
 
     // Workstations (desks within a location; fixed assets such as monitors are bound to them)

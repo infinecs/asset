@@ -7,10 +7,14 @@ use App\Models\Asset;
 use App\Models\AssetHistory;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Cpu;
 use App\Models\Location;
 use App\Models\Employee;
 use App\Models\Department;
+use App\Models\DisplayOption;
 use App\Models\Workstation;
+use App\Support\CpuCatalog;
+use App\Support\DisplayCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -175,7 +179,7 @@ class AssetController extends Controller
         $filterCpus     = Asset::whereNotNull('cpu')->distinct()->orderBy('cpu')->pluck('cpu');
         $filterRams     = Asset::whereNotNull('ram')->distinct()->orderBy('ram')->pluck('ram');
         $filterStorages = Asset::whereNotNull('storage')->distinct()->orderBy('storage')->pluck('storage');
-        $filterDisplays = Asset::whereNotNull('display')->distinct()->orderBy('display')->pluck('display');
+        $filterDisplays = collect(DisplayCatalog::sort(Asset::whereNotNull('display')->distinct()->pluck('display')));
 
         return view('assets.index', compact('assets', 'brands', 'categories', 'locations', 'filterCpus', 'filterRams', 'filterStorages', 'filterDisplays'));
     }
@@ -238,9 +242,67 @@ class AssetController extends Controller
         $categories = Category::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
         $employees = Employee::orderBy('name')->get();
-        $customCpus = Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu');
+        $allCpus = Cpu::orderBy('name')->pluck('name')
+            ->merge(Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu'))
+            ->unique()
+            ->values();
+        $cpuGroups = CpuCatalog::groups($allCpus);
+        $displayOptions = $this->displayOptions();
         $workstationOptions = WorkstationController::workstationOptions();
-        return view('assets.create', compact('brands', 'categories', 'locations', 'employees', 'customCpus', 'workstationOptions'));
+        return view('assets.create', compact('brands', 'categories', 'locations', 'employees', 'cpuGroups', 'displayOptions', 'workstationOptions'));
+    }
+
+    public function storeCpu(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+        ]);
+
+        $cpu = Cpu::firstOrCreate(['name' => trim($validated['name'])]);
+
+        return response()->json([
+            'value' => $cpu->name,
+            'text' => $cpu->name,
+            'group' => CpuCatalog::groupFor($cpu->name),
+        ]);
+    }
+
+    public function storeDisplay(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:50', 'regex:/^\s*\d+(?:\.\d+)?\s*"?\s*$/'],
+        ]);
+
+        $value = DisplayCatalog::normalize($validated['name']);
+        if (mb_strlen($value) > 50) {
+            return response()->json([
+                'message' => 'The display measurement must be 49 characters or fewer.',
+                'errors' => ['name' => ['The display measurement must be 49 characters or fewer.']],
+            ], 422);
+        }
+
+        $display = DisplayOption::firstOrCreate(['value' => $value]);
+
+        return response()->json([
+            'value' => $display->value,
+            'text' => $display->value,
+        ]);
+    }
+
+    private function displayOptions()
+    {
+        return collect(DisplayCatalog::sort(
+            DisplayOption::orderBy('value')->pluck('value')
+                ->merge(Asset::whereNotNull('display')->where('display', '!=', '')->distinct()->pluck('display'))
+        ));
     }
 
     public function store(Request $request)
@@ -435,9 +497,14 @@ class AssetController extends Controller
         $locations = Location::orderBy('name')->get();
         $employees = Employee::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
-        $customCpus = Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu');
+        $allCpus = Cpu::orderBy('name')->pluck('name')
+            ->merge(Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu'))
+            ->unique()
+            ->values();
+        $cpuGroups = CpuCatalog::groups($allCpus);
+        $displayOptions = $this->displayOptions();
         $workstationOptions = WorkstationController::workstationOptions();
-        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments', 'customCpus', 'workstationOptions'));
+        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments', 'cpuGroups', 'displayOptions', 'workstationOptions'));
     }
 
     public function update(Request $request, Asset $asset)
