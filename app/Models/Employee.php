@@ -114,6 +114,14 @@ class Employee extends Model
         return $this->hasMany(Asset::class, 'assigned_to');
     }
 
+    /**
+     * Desks this employee sits at (usually one).
+     */
+    public function workstations(): HasMany
+    {
+        return $this->hasMany(Workstation::class, 'occupant_id');
+    }
+
     public function documents(): HasMany
     {
         return $this->hasMany(EmployeeDocument::class);

@@ -83,6 +83,10 @@
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Digital Products</span>
                 </a>
                 @if(auth()->user()->isAdmin())
+                <a href="{{ route('workstations.index') }}" class="sidebar-link {{ request()->routeIs('workstations.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-pc-display-horizontal"></i><span x-show="!sidebarCollapsed || mobileOpen">Workstations</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Workstations</span>
+                </a>
                 <a href="{{ route('assets.live') }}" class="sidebar-link {{ request()->routeIs('assets.live') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
                     <i class="bi bi-activity"></i><span x-show="!sidebarCollapsed || mobileOpen">Live Tracker</span>
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Live Tracker</span>
@@ -266,7 +270,9 @@
                     'requested_by',
                     'lessee_id',
                     'role_id',
-                    'manager_id'
+                    'manager_id',
+                    'occupant_id',
+                    'workstation_id'
                 ];
 
                 const selector = searchableNames

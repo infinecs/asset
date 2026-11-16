@@ -95,6 +95,7 @@
                                 @endforeach
                             </select>
                         </div>
+                        @include('assets._workstation-field', ['currentType' => old('type')])
                         @include('assets._assigned-to-field')
 
                         <div class="sm:col-span-2 lg:col-span-3">

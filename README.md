@@ -1,27 +1,25 @@
-# IT Asset Management System
+# Infinecs Asset Management
 
-A Laravel-based IT Asset Management System that allows IT departments to track, manage, and request assets efficiently.
+A Laravel app for Infinecs to track IT assets, employees and the org structure, software licenses, birthday gift cards, and contingent-worker task logs.
 
 ## Features
 
-- **Dashboard** — Overview of asset status, open tickets, warranties expiring soon, and quick actions
-- **Asset Inventory** — Full CRUD for IT assets with filtering by status, category, and location
-- **Live Asset Tracker** — Real-time status view of all assets with auto-refresh
-- **Request Tickets** — Submit and manage IT request tickets (new asset, repair, replacement, return, transfer)
-- **Category & Location Management** — Organize assets by category and physical location
-- **User Management** — Role-based access control (Admin, Staff, User)
-- **Asset History** — Full audit trail of changes and status updates
-
-## Screenshots
-
-### Login Page
-![Login](https://github.com/user-attachments/assets/b6b278f4-6872-49ec-8aec-fbf28c085214)
+- **Dashboard**: asset status overview, warranties expiring soon, quick actions
+- **Assets**: inventory with filters, CSV export, QR labels, live tracker, and a full change history. Assets can be assigned to an employee or to a non-employee (e.g. an office PC).
+- **Workstations**: desks within each location. Fixed assets (monitors, desktops, speakerphones) are placed at a workstation, and every move between desks is recorded in a movement log. Desks are coded after the office labels (e.g. `INFP1ARAWS01`), can be printed as QR labels, audited against their records, viewed room by room, and exported to CSV.
+- **Asset agreements**: email an employee a link to e-sign the agreement for the asset they hold (no login needed)
+- **Employees**: directory with advanced search, CSV import/export, HR documents, history, and offboarding (reclaim assets, revoke licenses)
+- **Org structure**: roles, teams (internal or client placement), clients, a manager hierarchy, org charts (company-wide and per manager), and bulk editors
+- **Digital products**: software licenses assigned to employees, with renewal tracking
+- **Birthday gift cards**: daily job that sends Touch 'n Go gift cards, reminds the persons in charge, and notifies managers ahead of a report's birthday (see [docs/BIRTHDAY_GIFT_CARDS.md](docs/BIRTHDAY_GIFT_CARDS.md))
+- **Outcome Based / Task Log**: contingent workers log man-hours; managers get reports and monthly/yearly summaries
+- **Also**: tasks, contact directory, brands, categories, locations, departments, users, global search
 
 ## Requirements
 
 - PHP 8.2+
-- Composer
-- MySQL (the mysql file can be found in Infinecs GDrive My Drive > Infinecs > Backup > Asset-System > DB)
+- Composer and Node.js
+- MySQL (the database dump is in Infinecs GDrive: My Drive > Infinecs > Backup > Asset-System > DB)
 
 ## Installation
 
@@ -30,48 +28,61 @@ A Laravel-based IT Asset Management System that allows IT departments to track, 
 git clone https://github.com/infinecs/asset.git
 cd asset
 
-# 2. Install PHP dependencies
+# 2. Install dependencies
 composer install
+npm install
 
 # 3. Configure environment
 cp .env.example .env
 php artisan key:generate
-
-# 4. Configure database in .env (default uses SQLite)
-
 # set DB_CONNECTION=mysql and fill DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 
-# 5. Run migrations and seed demo data
+# 4. Run migrations and seed demo data
 php artisan migrate --seed
 
-# 6. Start the development server
+# 5. Build front-end assets and start the server
+npm run build      # or `npm run dev` while developing
 php artisan serve
 ```
 
-Visit `http://localhost:8000` and log in with the demo credentials.
+Visit `http://localhost:8000` and log in with a demo account.
+
+The birthday gift card job needs the Laravel scheduler running on the server. See [docs/CRON_SETUP.md](docs/CRON_SETUP.md).
 
 ## Demo Credentials
 
-| Role  | Email                   | Password  |
-|-------|-------------------------|-----------|
-| Admin | admin@itasset.local     | password  |
-| Staff | staff@itasset.local     | password  |
+All seeded accounts use the password `password`.
 
-## Role Permissions
+| Role        | Email                     |
+|-------------|---------------------------|
+| Super Admin | superadmin@itasset.local  |
+| Admin       | admin@itasset.local       |
+| Staff       | staff@itasset.local       |
+| Manager     | manager@itasset.local     |
 
-| Feature                    | User | Staff | Admin |
-|---------------------------|------|-------|-------|
-| View assets & tickets      | ✅   | ✅    | ✅    |
-| Submit request tickets     | ✅   | ✅    | ✅    |
-| Create/edit assets         | ❌   | ✅    | ✅    |
-| Manage categories/locations| ❌   | ✅    | ✅    |
-| Update ticket status       | ❌   | ✅    | ✅    |
-| Manage users               | ❌   | ❌    | ✅    |
-| Delete records             | ❌   | ❌    | ✅    |
+## Roles
+
+| Role              | Access |
+|-------------------|--------|
+| Super Admin       | Everything an admin can do, plus Outcome Based administration |
+| Admin             | Full access: assets, employees, org structure, gift cards, users, and all settings |
+| Staff             | Dashboard, directory, and read-only employee pages |
+| Manager           | Outcome Based admin only (categories, departments, reports, summaries) |
+| Contingent Worker | Outcome Based task log only |
+
+Manager and contingent-worker access is enforced by middleware (`app/Http/Middleware`). Everything else is checked in each controller.
+
+## Tests
+
+Tests run against a separate MySQL database, `asset_infinecs_testing` (configured in `phpunit.xml`). Create it once, then run:
+
+```bash
+php artisan test
+```
 
 ## Tech Stack
 
-- **Framework**: Laravel 13
-- **Frontend**: Blade templates, Bootstrap 5, Bootstrap Icons
-- **Database**: SQLite (default), MySQL/PostgreSQL compatible
-- **JavaScript**: Minimal — only used for Bootstrap UI interactions and live tracker auto-refresh
+- **Framework**: Laravel 12 (PHP 8.2+)
+- **Frontend**: Blade, Tailwind CSS 4, Alpine.js, Bootstrap Icons, Tom Select (built with Vite)
+- **Database**: MySQL
+- **Other**: simple-qrcode for asset labels

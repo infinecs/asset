@@ -126,6 +126,14 @@
     .ts-dropdown .optgroup-header { @apply !bg-white !text-slate-500 dark:!bg-slate-900 dark:!text-slate-400; }
     .ts-dropdown .no-results { @apply dark:!text-slate-400; }
 
+    /* Phones: iOS zooms into any input under 16px when it's focused, so use 16px on small screens. */
+    @media (max-width: 639px) {
+        .field-input,
+        .ts-wrapper .ts-control,
+        .ts-wrapper .ts-control input,
+        .ts-dropdown { font-size: 16px !important; }
+    }
+
     /* Org chart tree */
     .org-tree, .org-tree ul, .org-tree li {
         @apply relative m-0 list-none p-0;

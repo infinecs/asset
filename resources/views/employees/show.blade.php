@@ -261,6 +261,34 @@
             @endif
         </div>
 
+        <!-- Workstation (desk this employee sits at) -->
+        @if($employee->workstations->isNotEmpty())
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-pc-display me-2 text-slate-400"></i>Workstation</h6>
+            </div>
+            <div class="card-body space-y-3">
+                @foreach($employee->workstations as $desk)
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    @if(auth()->user()->isAdmin())
+                    <a href="{{ route('workstations.show', $desk) }}" class="font-mono font-semibold text-slate-800 hover:text-primary-600 dark:text-slate-100 dark:hover:text-primary-400">{{ $desk->name }}</a>
+                    @else
+                    <span class="font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $desk->name }}</span>
+                    @endif
+                    <span class="text-sm text-slate-500 dark:text-slate-400">{{ $desk->location?->name }}</span>
+                    <div class="flex flex-wrap gap-1">
+                        @forelse($desk->assets as $asset)
+                        <a href="{{ route('assets.show', $asset) }}" class="badge badge-primary no-underline" title="{{ $asset->name }}"><i class="bi bi-{{ $asset->type_icon }} me-1"></i>{{ $asset->asset_tag }}</a>
+                        @empty
+                        <span class="text-sm text-slate-400">No equipment</span>
+                        @endforelse
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         <!-- Assigned Digital Products -->
         <div class="card mb-4">
             <div class="card-header">

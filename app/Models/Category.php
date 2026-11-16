@@ -13,9 +13,4 @@ class Category extends Model
     {
         return $this->hasMany(Asset::class);
     }
-
-    public function requestTickets(): HasMany
-    {
-        return $this->hasMany(RequestTicket::class);
-    }
 }

@@ -206,7 +206,12 @@
                         @endif
                     </td>
                     <td>{{ $asset->category?->name ?? '-' }}</td>
-                    <td>{{ $asset->location?->name ?? '-' }}</td>
+                    <td>
+                        {{ $asset->location?->name ?? '-' }}
+                        @if($asset->workstation)
+                        <div class="text-xs text-slate-500 dark:text-slate-400"><i class="bi bi-pc-display-horizontal me-1"></i>{{ $asset->workstation->name }}</div>
+                        @endif
+                    </td>
                     <td>{{ $asset->assignee_name ?? '-' }}</td>
                     <td>
                         <span class="badge badge-{{ $asset->status_badge }}">

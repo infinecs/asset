@@ -21,6 +21,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WorkstationController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes
@@ -73,9 +74,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/assets/{asset}/label', [AssetController::class, 'label'])->name('assets.label');
     Route::patch('/assets/{asset}/status', [AssetController::class, 'updateStatus'])->name('assets.update-status');
     Route::post('/assets/{asset}/agreement/send', [AssetController::class, 'sendAgreement'])->name('assets.agreement.send');
+    Route::get('/assets/{asset}/agreement/preview', [AssetAgreementController::class, 'preview'])->name('assets.agreement.preview');
+    Route::post('/assets/{asset}/move', [AssetController::class, 'move'])->name('assets.move');
     Route::delete('/assets/bulk-delete', [AssetController::class, 'bulkDestroy'])->name('assets.bulk-destroy');
     Route::delete('/assets/delete-all', [AssetController::class, 'destroyAll'])->name('assets.destroy-all');
     Route::resource('assets', AssetController::class);
+
+    // Workstations (desks within a location; fixed assets such as monitors are bound to them)
+    Route::get('/workstations/movements', [WorkstationController::class, 'movements'])->name('workstations.movements');
+    Route::get('/workstations/movements/export', [WorkstationController::class, 'exportMovements'])->name('workstations.movements.export');
+    Route::get('/workstations/export', [WorkstationController::class, 'export'])->name('workstations.export');
+    Route::get('/workstations/labels', [WorkstationController::class, 'labels'])->name('workstations.labels');
+    Route::get('/workstations/{workstation}/label', [WorkstationController::class, 'label'])->name('workstations.label');
+    Route::get('/workstations/{workstation}/audit', [WorkstationController::class, 'audit'])->name('workstations.audit');
+    Route::post('/workstations/{workstation}/audit', [WorkstationController::class, 'storeAudit'])->name('workstations.audit.store');
+    Route::post('/workstations/{workstation}/assets', [WorkstationController::class, 'placeAsset'])->name('workstations.place-asset');
+    Route::resource('workstations', WorkstationController::class);
 
     // Digital Products (licenses)
     Route::resource('digital-products', DigitalProductController::class);

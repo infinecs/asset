@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Location;
 use App\Models\Employee;
 use App\Models\Department;
+use App\Models\Workstation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -50,9 +51,26 @@ class AssetController extends Controller
         return $validated;
     }
 
+    /**
+     * Only fixed asset types (monitors, desktops, ...) can sit at a workstation; anything else is
+     * taken off its workstation. A workstation also decides the asset's location.
+     */
+    private function normalizeWorkstation(array $validated): array
+    {
+        if (!Asset::isFixedType($validated['type'] ?? null)) {
+            $validated['workstation_id'] = null;
+        }
+
+        if (!empty($validated['workstation_id'])) {
+            $validated['location_id'] = Workstation::whereKey($validated['workstation_id'])->value('location_id');
+        }
+
+        return $validated;
+    }
+
     private function filteredAssetsQuery(Request $request)
     {
-        $query = Asset::with(['brand', 'category', 'location', 'assignedEmployee']);
+        $query = Asset::with(['brand', 'category', 'location', 'workstation', 'assignedEmployee']);
 
         if (!auth()->user()->isAdmin()) {
             $query->where('status', 'available');
@@ -66,6 +84,7 @@ class AssetController extends Controller
                   ->orWhere('serial_number', 'like', "%{$search}%")
                   ->orWhere('service_tag', 'like', "%{$search}%")
                   ->orWhere('assigned_to_other', 'like', "%{$search}%")
+                  ->orWhereHas('workstation', fn ($w) => $w->where('name', 'like', "%{$search}%"))
                   ->orWhere('brand', 'like', "%{$search}%")
                                     ->orWhere('model', 'like', "%{$search}%")
                                     ->orWhereHas('brand', function ($brandQuery) use ($search) {
@@ -220,7 +239,8 @@ class AssetController extends Controller
         $locations = Location::orderBy('name')->get();
         $employees = Employee::orderBy('name')->get();
         $customCpus = Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu');
-        return view('assets.create', compact('brands', 'categories', 'locations', 'employees', 'customCpus'));
+        $workstationOptions = WorkstationController::workstationOptions();
+        return view('assets.create', compact('brands', 'categories', 'locations', 'employees', 'customCpus', 'workstationOptions'));
     }
 
     public function store(Request $request)
@@ -250,6 +270,7 @@ class AssetController extends Controller
             'service_tag' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
+            'workstation_id' => 'nullable|exists:workstations,id',
             ...$this->assigneeRules($request),
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
             'purchase_date' => 'nullable|date',
@@ -264,14 +285,15 @@ class AssetController extends Controller
         ], [
             'assigned_to_other.required' => 'Enter who or what this asset is assigned to.',
         ]);
-        $validated = $this->normalizeAssignee($validated);
+        $validated = $this->normalizeWorkstation($this->normalizeAssignee($validated));
         $validated['brand'] = null;
         if (!empty($validated['brand_id'])) {
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
         }
 
-        // Assigning an available asset marks it as in use.
-        if ((!empty($validated['assigned_to']) || !empty($validated['assigned_to_other'])) && $validated['status'] === 'available') {
+        // Assigning an available asset (to someone or to a workstation) marks it as in use.
+        $isAssigned = !empty($validated['assigned_to']) || !empty($validated['assigned_to_other']) || !empty($validated['workstation_id']);
+        if ($isAssigned && $validated['status'] === 'available') {
             $validated['status'] = 'in_use';
         }
 
@@ -288,6 +310,10 @@ class AssetController extends Controller
             'notes' => 'Asset created',
         ]);
 
+        if ($asset->workstation) {
+            $asset->recordWorkstationMove(null, $asset->workstation);
+        }
+
         return redirect()->route('assets.show', $asset)->with('success', 'Asset created successfully.');
     }
 
@@ -301,9 +327,15 @@ class AssetController extends Controller
             'brand',
             'category',
             'location',
+            'workstation.location',
             'assignedEmployee',
             'histories.user',
         ]);
+
+        $movements = $asset->movements()->with('user')->limit(10)->get();
+        $workstationOptions = $asset->isFixed() && auth()->user()->isAdmin()
+            ? WorkstationController::workstationOptions()
+            : collect();
 
         $relationNameMaps = [
             'category_id' => Category::pluck('name', 'id'),
@@ -368,6 +400,7 @@ class AssetController extends Controller
                     'created' => 'plus',
                     'status_changed' => 'arrow-repeat',
                     'reclaimed' => 'box-arrow-in-left',
+                    'moved' => 'arrows-move',
                     'agreement_sent' => 'envelope',
                     'agreement_signed' => 'check2-circle',
                     default => 'pencil',
@@ -377,7 +410,7 @@ class AssetController extends Controller
 
         $qrCode = QrCode::size(140)->margin(1)->generate(route('assets.show', $asset));
 
-        return view('assets.show', compact('asset', 'activityTimeline', 'qrCode'));
+        return view('assets.show', compact('asset', 'activityTimeline', 'qrCode', 'movements', 'workstationOptions'));
     }
 
     public function label(Asset $asset)
@@ -403,7 +436,8 @@ class AssetController extends Controller
         $employees = Employee::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
         $customCpus = Asset::whereNotNull('cpu')->where('cpu', '!=', '')->distinct()->orderBy('cpu')->pluck('cpu');
-        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments', 'customCpus'));
+        $workstationOptions = WorkstationController::workstationOptions();
+        return view('assets.edit', compact('asset', 'brands', 'categories', 'locations', 'employees', 'departments', 'customCpus', 'workstationOptions'));
     }
 
     public function update(Request $request, Asset $asset)
@@ -433,6 +467,7 @@ class AssetController extends Controller
             'service_tag' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'location_id' => 'nullable|exists:locations,id',
+            'workstation_id' => 'nullable|exists:workstations,id',
             ...$this->assigneeRules($request),
             'last_seen_at' => 'nullable|date_format:Y-m-d\TH:i',
             'status' => 'required|in:available,in_use,under_maintenance,retired,lost',
@@ -448,7 +483,7 @@ class AssetController extends Controller
         ], [
             'assigned_to_other.required' => 'Enter who or what this asset is assigned to.',
         ]);
-        $validated = $this->normalizeAssignee($validated);
+        $validated = $this->normalizeWorkstation($this->normalizeAssignee($validated));
 
         $changes = [];
 
@@ -457,9 +492,9 @@ class AssetController extends Controller
             $validated['brand'] = Brand::whereKey($validated['brand_id'])->value('name');
         }
 
-        // Keep status in sync with assignment: assigning an available asset marks it
-        // in use; clearing the assignment frees it back to available.
-        $isAssigned = !empty($validated['assigned_to']) || !empty($validated['assigned_to_other']);
+        // Keep status in sync with assignment: assigning an available asset (to someone or to a
+        // workstation) marks it in use; clearing the assignment frees it back to available.
+        $isAssigned = !empty($validated['assigned_to']) || !empty($validated['assigned_to_other']) || !empty($validated['workstation_id']);
         if ($isAssigned && $validated['status'] === 'available') {
             $validated['status'] = 'in_use';
         } elseif (!$isAssigned && $validated['status'] === 'in_use') {
@@ -473,7 +508,11 @@ class AssetController extends Controller
             $validated['photo_path'] = $request->file('photo')->store('assets/photos', 'public');
         }
 
-        foreach (collect($validated)->except(['photo']) as $key => $value) {
+        // Workstation changes go to the movement log (below) rather than the generic change list.
+        $oldWorkstation = $asset->workstation;
+        $workstationChanged = (int) $asset->workstation_id !== (int) ($validated['workstation_id'] ?? null);
+
+        foreach (collect($validated)->except(['photo', 'workstation_id']) as $key => $value) {
             if ($asset->$key != $value) {
                 $changes[$key] = ['old' => $asset->$key, 'new' => $value];
             }
@@ -497,6 +536,11 @@ class AssetController extends Controller
                 'notes' => 'Asset information updated',
                 'changes' => $changes,
             ]);
+        }
+
+        if ($workstationChanged) {
+            $asset->unsetRelation('workstation');
+            $asset->recordWorkstationMove($oldWorkstation, $asset->workstation);
         }
 
         $returnTo = $request->input('return');
@@ -615,6 +659,33 @@ class AssetController extends Controller
         return redirect()->back()->with('success', 'Agreement sent to ' . $asset->assignedEmployee->name . ' for signature.');
     }
 
+    /**
+     * Move a fixed asset to another workstation, or take it off its workstation when none is given.
+     */
+    public function move(Request $request, Asset $asset)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'workstation_id' => 'nullable|exists:workstations,id',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        if (!$asset->isFixed()) {
+            return back()->with('error', 'Only desktops, monitors and speakerphones can be placed at a workstation.');
+        }
+
+        $to = !empty($validated['workstation_id']) ? Workstation::with('location')->find($validated['workstation_id']) : null;
+
+        if (!$asset->moveToWorkstation($to, $validated['notes'] ?? null)) {
+            return back()->with('error', $to ? "{$asset->asset_tag} is already at {$to->name}." : "{$asset->asset_tag} isn't at a workstation.");
+        }
+
+        return back()->with('success', $to ? "{$asset->asset_tag} moved to {$to->label}." : "{$asset->asset_tag} removed from its workstation.");
+    }
+
     public function live()
     {
         if (!auth()->user()->isAdmin()) {
@@ -622,27 +693,13 @@ class AssetController extends Controller
         }
 
         $assets = Asset::with(['brand', 'category', 'location', 'assignedEmployee'])
-            ->when(!auth()->user()->isAdmin(), function ($query) {
-                $query->where('status', 'available');
-            })
             ->orderBy('last_seen_at', 'desc')
             ->paginate(20);
 
-        $statusCounts = Asset::when(!auth()->user()->isAdmin(), function ($query) {
-                $query->where('status', 'available');
-            })
-            ->selectRaw('status, count(*) as count')
+        $statusCounts = Asset::selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status');
 
         return view('assets.live', compact('assets', 'statusCounts'));
-    }
-
-    private function generateAssetTag(): string
-    {
-        $prefix = 'AST';
-        $year = now()->format('y');
-        $count = Asset::count() + 1;
-        return $prefix . $year . str_pad($count, 4, '0', STR_PAD_LEFT);
     }
 }

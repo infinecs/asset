@@ -62,6 +62,18 @@
                         <label class="text-sm text-slate-500 dark:text-slate-400">Location</label>
                         <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->location?->name ?? '-' }}</div>
                     </div>
+                    @if($asset->isFixed())
+                    <div>
+                        <label class="text-sm text-slate-500 dark:text-slate-400">Workstation</label>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">
+                            @if($asset->workstation && auth()->user()->isAdmin())
+                            <a href="{{ route('workstations.show', $asset->workstation) }}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ $asset->workstation->name }}</a>
+                            @else
+                            {{ $asset->workstation?->name ?? 'Not at a workstation' }}
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                     <div>
                         <label class="text-sm text-slate-500 dark:text-slate-400">Assigned To</label>
                         <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $asset->assignee_name ?? 'Unassigned' }}</div>
@@ -205,6 +217,54 @@
             </div>
         </div>
 
+        <!-- Workstation -->
+        @if($asset->isFixed() && auth()->user()->isAdmin())
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Workstation</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-4 flex items-center gap-3">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                        <i class="bi bi-{{ $asset->type_icon }} text-slate-500"></i>
+                    </div>
+                    <div class="min-w-0">
+                        @if($asset->workstation)
+                        <a href="{{ route('workstations.show', $asset->workstation) }}" class="font-semibold text-slate-800 hover:text-primary-600 dark:text-slate-100 dark:hover:text-primary-400">{{ $asset->workstation->name }}</a>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ $asset->workstation->location?->name }}</div>
+                        @else
+                        <div class="font-semibold text-slate-500 dark:text-slate-400">Not at a workstation</div>
+                        @endif
+                    </div>
+                </div>
+
+                @if($workstationOptions->isEmpty())
+                <p class="mb-0 text-sm text-slate-400">No workstations yet. <a href="{{ route('workstations.create') }}" class="text-primary-600 hover:underline dark:text-primary-400">Add one</a></p>
+                @else
+                @include('workstations._move-form', ['formId' => 'asset-move-form'])
+                @endif
+
+                @if($movements->isNotEmpty())
+                <div class="mt-4 border-t border-slate-200 pt-3 dark:border-slate-800">
+                    <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Recent moves</div>
+                    <ul class="space-y-2">
+                        @foreach($movements as $movement)
+                        <li class="text-sm">
+                            <div class="text-slate-700 dark:text-slate-300">
+                                {{ $movement->from_label ?? 'Storage' }} <i class="bi bi-arrow-right text-slate-400"></i> {{ $movement->to_label ?? 'Storage' }}
+                            </div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">
+                                {{ $movement->created_at->format('d M Y') }} · {{ $movement->user?->name ?? 'System' }}@if($movement->notes) · {{ $movement->notes }}@endif
+                            </div>
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
         <!-- QR Code -->
         <div class="card mb-4">
             <div class="card-header">
@@ -260,6 +320,12 @@
                     </button>
                 </form>
                 @endif
+
+                @if(auth()->user()->isSuperAdmin())
+                <a href="{{ route('assets.agreement.preview', $asset) }}" target="_blank" class="btn btn-outline btn-sm w-full mt-2" title="Superadmin only: see the signing page as the employee sees it. Nothing is saved.">
+                    <i class="bi bi-eye"></i>Preview Signing Page
+                </a>
+                @endif
             </div>
         </div>
         @endif
@@ -295,4 +361,18 @@
         @endif
     </div>
 </div>
+
+@if($asset->isFixed() && auth()->user()->isAdmin() && $workstationOptions->isNotEmpty())
+{{-- Phones: the workstation card sits far down the page, so keep "Scan desk" within thumb reach. --}}
+<div class="h-20 lg:hidden"></div>
+<div class="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
+    <div class="min-w-0 flex-1">
+        <div class="text-xs text-slate-500 dark:text-slate-400">Workstation</div>
+        <div class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $asset->workstation?->name ?? 'Not at a workstation' }}</div>
+    </div>
+    <button type="button" data-ws-scan="asset-move-form" class="btn btn-primary shrink-0 px-4 py-3 text-base">
+        <i class="bi bi-qr-code-scan"></i>Scan desk
+    </button>
+</div>
+@endif
 @endsection

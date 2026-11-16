@@ -121,6 +121,58 @@
             cursor: pointer;
             text-decoration: underline;
         }
+        .sig-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .sig-tabs button {
+            flex: 1;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 10px;
+            cursor: pointer;
+        }
+        .sig-tabs button.active {
+            background: #fff;
+            color: #4f46e5;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.08);
+        }
+        .sig-upload {
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            background: #f8fafc;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 13px;
+            color: #64748b;
+        }
+        .sig-upload:hover { border-color: #4f46e5; }
+        .sig-upload strong { color: #4f46e5; }
+        .sig-upload .hint { font-size: 11px; color: #94a3b8; }
+        .sig-upload img {
+            max-width: 100%;
+            max-height: 140px;
+            background: #fff;
+            border-radius: 6px;
+        }
+        .sig-upload input[type=file] { display: none; }
+        [hidden] { display: none !important; }
         .checkbox-row {
             display: flex;
             align-items: flex-start;
@@ -203,6 +255,16 @@
         }
         .btn-secondary:hover { background: #e2e8f0; }
 
+        .preview-banner {
+            background: #fffbeb;
+            border-bottom: 1px solid #fde68a;
+            color: #92400e;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px 16px;
+        }
+
         @media print {
             body { background: #fff; padding: 0; display: block; }
             .sheet { max-width: 100%; border-radius: 0; box-shadow: none; }
@@ -212,7 +274,11 @@
     </style>
 </head>
 <body>
+    @php $preview = $preview ?? false; @endphp
     <div class="sheet">
+        @if($preview)
+        <div class="preview-banner no-print">Preview mode: this is what the employee sees. Signing is disabled and nothing is saved.</div>
+        @endif
         <div class="header">
             <img src="{{ asset('images/Infinecs-with-slogan-small.png') }}" alt="Infinecs">
         </div>
@@ -265,7 +331,7 @@
 
                 @include('agreements._terms')
 
-                <form method="POST" action="{{ route('agreements.store', $asset->agreement_token) }}" id="agreement-form" class="no-print">
+                <form method="POST" action="{{ $preview ? '#' : route('agreements.store', $asset->agreement_token) }}" id="agreement-form" class="no-print" enctype="multipart/form-data" data-preview="{{ $preview ? '1' : '0' }}">
                     @csrf
 
                     <div class="field">
@@ -275,13 +341,37 @@
 
                     <div class="field">
                         <label>Signature</label>
-                        <div class="sig-wrap">
-                            <canvas id="sig-pad"></canvas>
+                        @php $sigMethod = old('signature_method') === 'upload' ? 'upload' : 'draw'; @endphp
+                        <input type="hidden" name="signature_method" id="signature-method" value="{{ $sigMethod }}">
+
+                        <div class="sig-tabs" role="tablist">
+                            <button type="button" data-method="draw" class="{{ $sigMethod === 'draw' ? 'active' : '' }}">Draw signature</button>
+                            <button type="button" data-method="upload" class="{{ $sigMethod === 'upload' ? 'active' : '' }}">Upload photo</button>
                         </div>
-                        <div class="sig-actions">
-                            <button type="button" id="sig-clear">Clear</button>
+
+                        <div id="sig-draw-panel" @if($sigMethod !== 'draw') hidden @endif>
+                            <div class="sig-wrap">
+                                <canvas id="sig-pad"></canvas>
+                            </div>
+                            <div class="sig-actions">
+                                <button type="button" id="sig-clear">Clear</button>
+                            </div>
+                            <input type="hidden" name="signature" id="signature-input">
                         </div>
-                        <input type="hidden" name="signature" id="signature-input">
+
+                        <div id="sig-upload-panel" @if($sigMethod !== 'upload') hidden @endif>
+                            <label class="sig-upload" for="signature-file">
+                                <div id="sig-upload-empty">
+                                    <div><strong>Choose a photo</strong> of your signature</div>
+                                    <div class="hint">Sign on white paper and take a clear photo. JPG, PNG or WEBP, up to 5 MB.</div>
+                                </div>
+                                <img id="sig-upload-preview" alt="Signature preview" hidden>
+                                <input type="file" name="signature_file" id="signature-file" accept="image/jpeg,image/png,image/webp">
+                            </label>
+                            <div class="sig-actions">
+                                <button type="button" id="sig-upload-clear" hidden>Remove photo</button>
+                            </div>
+                        </div>
                     </div>
 
                     <label class="checkbox-row">
@@ -306,12 +396,68 @@
             const clearBtn = document.getElementById('sig-clear');
             const form = document.getElementById('agreement-form');
             const signatureInput = document.getElementById('signature-input');
+            const methodInput = document.getElementById('signature-method');
+            const drawPanel = document.getElementById('sig-draw-panel');
+            const uploadPanel = document.getElementById('sig-upload-panel');
+            const fileInput = document.getElementById('signature-file');
+            const preview = document.getElementById('sig-upload-preview');
+            const uploadEmpty = document.getElementById('sig-upload-empty');
+            const uploadClear = document.getElementById('sig-upload-clear');
+            const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
             let drawing = false;
             let hasDrawn = false;
+
+            function setMethod(method) {
+                methodInput.value = method;
+                drawPanel.hidden = method !== 'draw';
+                uploadPanel.hidden = method !== 'upload';
+                document.querySelectorAll('.sig-tabs button').forEach(function (btn) {
+                    btn.classList.toggle('active', btn.dataset.method === method);
+                });
+                if (method === 'draw' && !hasDrawn) {
+                    resize();
+                }
+            }
+
+            document.querySelectorAll('.sig-tabs button').forEach(function (btn) {
+                btn.addEventListener('click', function () { setMethod(btn.dataset.method); });
+            });
+
+            function clearUpload() {
+                fileInput.value = '';
+                if (preview.src) URL.revokeObjectURL(preview.src);
+                preview.removeAttribute('src');
+                preview.hidden = true;
+                uploadEmpty.hidden = false;
+                uploadClear.hidden = true;
+            }
+
+            fileInput.addEventListener('change', function () {
+                const file = fileInput.files[0];
+                if (!file) { clearUpload(); return; }
+                if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+                    alert('Please choose a JPG, PNG or WEBP image.');
+                    clearUpload();
+                    return;
+                }
+                if (file.size > MAX_UPLOAD_BYTES) {
+                    alert('The photo is larger than 5 MB. Please choose a smaller image.');
+                    clearUpload();
+                    return;
+                }
+                if (preview.src) URL.revokeObjectURL(preview.src);
+                preview.src = URL.createObjectURL(file);
+                preview.hidden = false;
+                uploadEmpty.hidden = true;
+                uploadClear.hidden = false;
+            });
+
+            uploadClear.addEventListener('click', clearUpload);
 
             function resize() {
                 const ratio = window.devicePixelRatio || 1;
                 const rect = canvas.getBoundingClientRect();
+                if (!rect.width) return;
                 canvas.width = rect.width * ratio;
                 canvas.height = rect.height * ratio;
                 ctx.scale(ratio, ratio);
@@ -361,13 +507,37 @@
             });
 
             form.addEventListener('submit', function (e) {
+                if (methodInput.value === 'upload') {
+                    if (!fileInput.files.length) {
+                        e.preventDefault();
+                        alert('Please upload a photo of your signature before submitting.');
+                        return;
+                    }
+                    // Don't send a drawn signature alongside the photo.
+                    signatureInput.value = '';
+                    return;
+                }
+
                 if (!hasDrawn) {
                     e.preventDefault();
                     alert('Please draw your signature before submitting.');
                     return;
                 }
+                // Don't upload a photo that was picked and then abandoned for drawing.
+                fileInput.value = '';
                 signatureInput.value = canvas.toDataURL('image/png');
             });
+
+            if (form.dataset.preview === '1') {
+                // Registered after the validation handler, so it only runs once the signature checks pass.
+                form.addEventListener('submit', function (e) {
+                    const blocked = e.defaultPrevented;
+                    e.preventDefault();
+                    if (!blocked) {
+                        alert('Preview mode: the signature checks passed. On the real page the agreement would now be signed.');
+                    }
+                });
+            }
         })();
     </script>
     @endunless

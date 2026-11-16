@@ -30,17 +30,21 @@
     <div class="overflow-x-auto">
         <table class="table-clean">
             <thead>
-                <tr><th class="w-10"><input type="checkbox" class="h-4 w-4 rounded border-slate-300 accent-primary-600" data-bulk-select-all></th><th>Name</th><th>Building</th><th>Floor / Room</th><th>City / Postcode</th><th>State</th><th>Assets</th><th class="text-right">Actions</th></tr>
+                <tr><th class="w-10"><input type="checkbox" class="h-4 w-4 rounded border-slate-300 accent-primary-600" data-bulk-select-all></th><th>Name</th><th>Building</th><th>Floor / Room</th><th>City / Postcode</th><th>State</th><th>Workstations</th><th>Assets</th><th class="text-right">Actions</th></tr>
             </thead>
             <tbody>
                 @forelse($locations as $loc)
                 <tr>
                     <td><input type="checkbox" class="h-4 w-4 rounded border-slate-300 accent-primary-600" data-bulk-row value="{{ $loc->id }}"></td>
-                    <td class="font-semibold text-slate-800 dark:text-slate-100">{{ $loc->name }}</td>
+                    <td>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $loc->name }}</div>
+                        @if($loc->code)<code class="text-xs text-primary-600 dark:text-primary-400">{{ $loc->code }}</code>@endif
+                    </td>
                     <td>{{ $loc->building ?? '-' }}</td>
                     <td>{{ implode(' / ', array_filter([$loc->floor, $loc->room])) ?: '-' }}</td>
                     <td>{{ implode(' / ', array_filter([$loc->city, $loc->postcode])) ?: '-' }}</td>
                     <td>{{ $loc->state ?? '-' }}</td>
+                    <td><a href="{{ route('workstations.index', ['location' => $loc->id]) }}" class="badge badge-secondary no-underline">{{ $loc->workstations_count }}</a></td>
                     <td><span class="badge badge-primary">{{ $loc->assets_count }}</span></td>
                     <td class="text-right">
                         <div class="inline-flex gap-1">
@@ -53,7 +57,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="8" class="py-8 text-center text-slate-500 dark:text-slate-400">No locations yet. <a href="{{ route('locations.create') }}" class="text-primary-600 hover:underline dark:text-primary-400">Add one</a></td></tr>
+                <tr><td colspan="9" class="py-8 text-center text-slate-500 dark:text-slate-400">No locations yet. <a href="{{ route('locations.create') }}" class="text-primary-600 hover:underline dark:text-primary-400">Add one</a></td></tr>
                 @endforelse
             </tbody>
         </table>

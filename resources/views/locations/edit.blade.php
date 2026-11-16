@@ -18,6 +18,17 @@
                             <input type="text" name="name" class="field-input" value="{{ old('name', $location->name) }}" required>
                         </div>
                         <div class="sm:col-span-2">
+                            <label class="field-label">Workstation Code</label>
+                            <input type="text" name="code" class="field-input uppercase @error('code') is-invalid @enderror" value="{{ old('code', $location->code) }}" maxlength="20" placeholder="e.g. P1A">
+                            @error('code')<p class="field-error">{{ $message }}</p>@enderror
+                            <p class="field-hint mt-1">
+                                Site + block, used in workstation codes: P1A → INF<strong>P1A</strong>RAWS01.
+                                @if($location->workstations()->exists())
+                                Changing it renames this location's {{ $location->workstations()->count() }} workstation(s); past movement records keep the old name.
+                                @endif
+                            </p>
+                        </div>
+                        <div class="sm:col-span-2">
                             <label class="field-label">Building</label>
                             <input type="text" name="building" class="field-input" value="{{ old('building', $location->building) }}">
                         </div>

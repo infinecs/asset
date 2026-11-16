@@ -23,6 +23,13 @@ class EmployeeController extends Controller
      */
     public const ADVANCED_FILTERS = ['employed_on', 'resigned_from', 'resigned_to', 'role', 'team', 'team_type', 'client', 'manager', 'location', 'is_manager', 'assets', 'dob_month', 'missing_dob'];
 
+    private function authorizeAdmin(): void
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+    }
+
     /**
      * Parse a "YYYY-MM" month input; returns null for anything else.
      */
@@ -378,6 +385,8 @@ class EmployeeController extends Controller
 
     public function create()
     {
+        $this->authorizeAdmin();
+
         $locations = Location::orderBy('name')->get();
         $roles = Role::orderBy('name')->get();
         $teams = Team::orderBy('name')->get();
@@ -394,6 +403,8 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorizeAdmin();
+
         $request->merge(['id_number' => $this->buildIdNumber($request->input('id_number_suffix', ''))]);
 
         $validated = $request->validate([
@@ -439,7 +450,7 @@ class EmployeeController extends Controller
 
     public function show(Employee $employee)
     {
-        $employee->load(['assets.category', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates.team', 'subordinates.role', 'managedTeams', 'histories.user']);
+        $employee->load(['assets.category', 'workstations.location', 'workstations.assets', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates.team', 'subordinates.role', 'managedTeams', 'histories.user']);
 
         $relationNameMaps = [
             'role_id' => Role::pluck('name', 'id'),
@@ -537,6 +548,8 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
+        $this->authorizeAdmin();
+
         $locations = Location::orderBy('name')->get();
         $roles = Role::orderBy('name')->get();
         $teams = Team::orderBy('name')->get();
@@ -549,6 +562,8 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
+        $this->authorizeAdmin();
+
         $request->merge(['id_number' => $this->buildIdNumber($request->input('id_number_suffix', ''))]);
 
         $validated = $request->validate([
@@ -814,6 +829,8 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
+        $this->authorizeAdmin();
+
         $employee->delete();
         return redirect()->route('employees.index')->with('success', 'Employee deleted.');
     }
@@ -848,6 +865,8 @@ class EmployeeController extends Controller
 
     public function deleteDocument(Employee $employee, EmployeeDocument $document)
     {
+        $this->authorizeAdmin();
+
         if ($document->employee_id !== $employee->id) {
             return redirect()->route('employees.show', $employee)->with('error', 'Unauthorized action.');
         }
@@ -876,6 +895,8 @@ class EmployeeController extends Controller
 
     public function import(Request $request)
     {
+        $this->authorizeAdmin();
+
         $request->validate([
             'file' => 'required|file|mimes:csv,txt|max:5120',
         ]);

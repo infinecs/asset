@@ -115,6 +115,7 @@
                                 @endforeach
                             </select>
                         </div>
+                        @include('assets._workstation-field')
                         @include('assets._assigned-to-field')
                         <div>
                             <label class="field-label">Last Seen At</label>
