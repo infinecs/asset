@@ -39,10 +39,14 @@ class DisplayOptionTest extends TestCase
 
     public function test_only_admins_can_add_display_options(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'manager']));
-
+        $this->actingAs(User::factory()->create(['role' => 'staff']));
         $this->postJson(route('assets.displays.store'), ['name' => '14.0'])
             ->assertForbidden();
+
+        // Managers are kept out of the asset pages entirely (RestrictManagerRole), so they are redirected.
+        $this->actingAs(User::factory()->create(['role' => 'manager']));
+        $this->postJson(route('assets.displays.store'), ['name' => '14.0'])
+            ->assertRedirect(route('outcome.summary'));
 
         $this->assertDatabaseCount('display_options', 0);
     }

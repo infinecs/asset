@@ -10,21 +10,37 @@ class CpuCatalogTest extends TestCase
     public function test_core_ultra_series_is_detected_without_case_sensitivity(): void
     {
         $groups = CpuCatalog::groups([
-            'Intel COre Ultra 5 325',
+            'Intel COre Ultra 5 115U',
             'Intel Core Ultra 7 155H',
         ]);
 
         $this->assertSame([
+            'Intel COre Ultra 5 115U',
             'Intel Core Ultra 5 125H',
             'Intel Core Ultra 5 125U',
             'Intel Core Ultra 5 135U',
-            'Intel COre Ultra 5 325',
             'Intel Core Ultra 7 155H',
             'Intel Core Ultra 7 155U',
             'Intel Core Ultra 7 165H',
             'Intel Core Ultra 9 185H',
         ], $groups['Intel Core Ultra (14th Gen)']);
         $this->assertArrayNotHasKey('Previously Used', $groups);
+    }
+
+    public function test_core_ultra_cpus_are_grouped_by_series_newest_first(): void
+    {
+        $groups = CpuCatalog::groups([
+            'Intel Core Ultra 7 258V',
+            'Intel Core Ultra 5 225H',
+            'intel core ultra 5 325',
+        ]);
+
+        $this->assertSame(['Intel Core Ultra 5 225H', 'Intel Core Ultra 7 258V'], $groups['Intel Core Ultra Series 2']);
+        $this->assertSame(['intel core ultra 5 325'], $groups['Intel Core Ultra Series 3']);
+        $this->assertSame(
+            ['Intel Core Ultra Series 3', 'Intel Core Ultra Series 2', 'Intel Core Ultra (14th Gen)'],
+            array_slice(array_keys($groups), 0, 3),
+        );
     }
 
     public function test_added_intel_and_amd_cpus_are_grouped_by_model_generation(): void

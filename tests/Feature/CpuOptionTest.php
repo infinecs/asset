@@ -40,9 +40,12 @@ class CpuOptionTest extends TestCase
 
     public function test_only_admins_can_add_cpu_options(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'manager']));
-
+        $this->actingAs(User::factory()->create(['role' => 'staff']));
         $this->postJson(route('assets.cpus.store'), ['name' => 'Custom CPU'])->assertForbidden();
+
+        // Managers are kept out of the asset pages entirely (RestrictManagerRole), so they are redirected.
+        $this->actingAs(User::factory()->create(['role' => 'manager']));
+        $this->postJson(route('assets.cpus.store'), ['name' => 'Custom CPU'])->assertRedirect(route('outcome.summary'));
 
         $this->assertDatabaseCount('cpus', 0);
     }

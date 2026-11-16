@@ -114,6 +114,11 @@ class CpuCatalog
             return 0;
         }
 
+        // Newer Core Ultra series are listed first.
+        if (preg_match('/^Intel Core Ultra Series (\d+)$/', $group, $matches)) {
+            return -(int) $matches[1];
+        }
+
         if (preg_match('/^Intel (\d+)th Gen$/', $group, $matches)) {
             return 100 - (int) $matches[1];
         }
@@ -145,8 +150,12 @@ class CpuCatalog
 
     public static function groupFor(string $cpu): string
     {
-        if (preg_match('/\bIntel\s+Core\s+Ultra\s+[3579]\s+(\d{3})/i', $cpu, $matches)) {
-            return 'Intel Core Ultra (14th Gen)';
+        if (preg_match('/\bIntel\s+Core\s+Ultra\s+[3579]\s+(\d)\d{2}/i', $cpu, $matches)) {
+            // The first digit of the model number is the series: 1xx = Series 1 (Meteor Lake),
+            // 2xx = Series 2 (Lunar/Arrow Lake), 3xx = Series 3, and so on.
+            $series = (int) $matches[1];
+
+            return $series <= 1 ? 'Intel Core Ultra (14th Gen)' : "Intel Core Ultra Series {$series}";
         }
 
         if (preg_match('/\bIntel\s+Core\s+i[3579]-?(\d{4,5})/i', $cpu, $matches)) {
