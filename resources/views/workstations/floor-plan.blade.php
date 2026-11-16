@@ -261,8 +261,10 @@
     </div>
 
     {{-- What follows the pointer while dragging --}}
-    <div x-show="drag && drag.moved" x-cloak class="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-primary-700 bg-primary-600 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-white shadow-lg"
-         :style="drag ? 'left:' + drag.x + 'px; top:' + drag.y + 'px' : ''" x-text="drag ? drag.label : ''"></div>
+    <div x-show="drag && drag.moved" x-cloak class="pointer-events-none fixed z-50 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-md border border-primary-700 bg-primary-600/90 px-1.5 py-0.5 font-mono text-[11px] font-semibold leading-4 text-white shadow-lg"
+         :style="drag ? 'left:' + drag.x + 'px; top:' + drag.y + 'px;' + (drag.width ? ' width:' + drag.width + 'px; height:' + drag.height + 'px;' : '') : ''">
+        <span class="min-w-0 truncate" x-text="drag ? drag.label : ''"></span>
+    </div>
 </div>
 @endif
 @endsection
@@ -401,7 +403,15 @@
             startDrag(event, desk) {
                 if (!this.editing || event.button > 0) return;
                 event.preventDefault();
-                this.drag = { id: desk.id, label: desk.label, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false, overCancel: false };
+                this.drag = { id: desk.id, label: desk.label, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false, overCancel: false, width: null, height: null };
+
+                // A resized desk keeps its on-screen size while it's being dragged.
+                const marker = this.isSized(desk) && document.getElementById('desk-marker-' + desk.id);
+                if (marker) {
+                    const rect = marker.getBoundingClientRect();
+                    this.drag.width = rect.width;
+                    this.drag.height = rect.height;
+                }
 
                 this.track((e) => {
                     this.drag.x = e.clientX;
