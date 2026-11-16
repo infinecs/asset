@@ -101,6 +101,11 @@
                 </template>
                 <template x-if="editing">
                     <div class="flex flex-wrap items-center gap-2">
+                        <label class="me-2 flex cursor-pointer select-none items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300"
+                               title="Resizing one desk resizes every desk on the plan. Turn off to size a desk on its own.">
+                            <input type="checkbox" class="h-4 w-4 rounded border-slate-300 accent-primary-600" x-model="matchSizes">
+                            Same size for all desks
+                        </label>
                         <span class="text-xs text-slate-500 dark:text-slate-400" x-show="dirty">Unsaved changes</span>
                         <button type="button" class="btn btn-outline btn-sm" @click="cancelEditing()" :disabled="saving">Cancel</button>
                         <button type="button" class="btn btn-primary btn-sm" @click="save()" :disabled="saving || !dirty">
@@ -133,7 +138,7 @@
                      :class="drag && drag.overCancel ? 'scale-110 border-red-600 bg-red-600 text-white' : 'border-red-300 bg-white text-red-600 dark:border-red-800 dark:bg-slate-900 dark:text-red-400'">
                     <i class="bi bi-x-lg"></i><span>Drop here to cancel</span>
                 </div>
-                <div x-ref="viewport" class="max-h-[75vh] overflow-auto bg-slate-100 dark:bg-slate-950">
+                <div x-ref="viewport" class="max-h-[75vh] overflow-auto bg-slate-100 dark:bg-slate-950" @scroll="hover = null">
                     <div class="relative select-none" :style="'width:' + (zoom * 100) + '%'">
                         <img x-ref="plan" src="{{ asset('storage/' . $location->floor_plan_path) }}" alt="Floor plan of {{ $location->name }}"
                              class="block w-full" draggable="false" @click="if (!editing) selectedId = null">
@@ -145,6 +150,8 @@
                                     :style="markerStyle(desk)"
                                     :title="desk.code + (desk.occupant ? ' — ' + desk.occupant : '')"
                                     @pointerdown="startDrag($event, desk)"
+                                    @pointerenter="showHover($event, desk)"
+                                    @pointerleave="hover = null"
                                     @click="select(desk.id)"
                                     @keydown="nudge($event, desk)">
                                 <span class="min-w-0 truncate" x-text="desk.label"></span>
@@ -163,7 +170,7 @@
             <p x-show="editing" x-cloak class="mt-2 text-xs text-slate-500 dark:text-slate-400">
                 Drag desks onto the plan or to a new spot. Drag a desk back to the list to take it off the plan.
                 While dragging, let go over <strong>Drop here to cancel</strong> (or press Esc) to leave it where it was.
-                Drag the amber corner of a desk to resize it to the desk's real size.
+                Drag the amber corner of a desk to resize it to the desk's real size<span x-show="matchSizes">; with <strong>Same size for all desks</strong> on, every desk follows</span>.
                 Arrow keys nudge the selected desk (hold Shift for bigger steps).
             </p>
         </div>
@@ -231,7 +238,7 @@
                             <a :href="selected().audit_url" class="btn btn-outline-primary btn-sm flex-1"><i class="bi bi-clipboard-check"></i>Audit</a>
                         </div>
                         <button type="button" x-show="editing && selected().w !== null" class="btn btn-outline btn-sm w-full" @click="resetSize(selected())">
-                            <i class="bi bi-arrows-angle-contract"></i>Reset Size
+                            <i class="bi bi-arrows-angle-contract"></i><span x-text="matchSizes ? 'Reset All Sizes' : 'Reset Size'"></span>
                         </button>
                         <button type="button" x-show="editing && selected().x !== null" class="btn btn-outline-danger btn-sm w-full" @click="unplace(selected())">
                             <i class="bi bi-box-arrow-in-down"></i>Take Off the Plan
@@ -260,6 +267,39 @@
         </div>
     </div>
 
+    {{-- Hover card: the equipment bound to the desk under the mouse --}}
+    <template x-if="hoverDesk()">
+        <div class="pointer-events-none fixed z-50 w-64 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-xl dark:border-slate-700 dark:bg-slate-900"
+             :style="hoverStyle()" @scroll.window="hover = null">
+            <div class="flex items-center justify-between gap-2">
+                <span class="truncate font-mono text-xs font-semibold text-slate-800 dark:text-slate-100" x-text="hoverDesk().code"></span>
+                <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                      :class="hoverDesk().status === 'assigned' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+                      x-text="{ assigned: 'Assigned', hotdesk: 'Hot desk', empty: 'Empty' }[hoverDesk().status]"></span>
+            </div>
+            <div class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400" x-text="hoverDesk().occupant || 'Nobody / hot desk'"></div>
+
+            <div class="mt-2 border-t border-slate-100 pt-2 dark:border-slate-800">
+                <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400" x-text="'Equipment (' + hoverDesk().assets.length + ')'"></div>
+                <ul class="space-y-1">
+                    <template x-for="item in hoverDesk().assets.slice(0, 8)" :key="item.tag">
+                        <li class="flex items-center gap-2 text-xs">
+                            <i class="bi shrink-0 text-slate-400" :class="'bi-' + item.icon"></i>
+                            <span class="shrink-0 font-mono font-semibold text-slate-700 dark:text-slate-200" x-text="item.tag"></span>
+                            <span class="min-w-0 truncate text-slate-500 dark:text-slate-400" x-text="item.name"></span>
+                        </li>
+                    </template>
+                </ul>
+                <p x-show="hoverDesk().assets.length > 8" class="mt-1 text-[11px] text-slate-400" x-text="'+ ' + (hoverDesk().assets.length - 8) + ' more. Click the desk to see all.'"></p>
+                <p x-show="hoverDesk().assets.length === 0" class="text-xs text-slate-400">No equipment bound to this desk.</p>
+            </div>
+
+            <div x-show="hoverDesk().audit_issues || hoverDesk().audit_due" class="mt-2 text-[11px] font-medium"
+                 :class="hoverDesk().audit_issues ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'"
+                 x-text="hoverDesk().audit_issues ? 'Last audit found issues' : (hoverDesk().last_audit ? 'Audit due (last ' + hoverDesk().last_audit + ')' : 'Never audited')"></div>
+        </div>
+    </template>
+
     {{-- What follows the pointer while dragging --}}
     <div x-show="drag && drag.moved" x-cloak class="pointer-events-none fixed z-50 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-md border border-primary-700 bg-primary-600/90 px-1.5 py-0.5 font-mono text-[11px] font-semibold leading-4 text-white shadow-lg"
          :style="drag ? 'left:' + drag.x + 'px; top:' + drag.y + 'px;' + (drag.width ? ' width:' + drag.width + 'px; height:' + drag.height + 'px;' : '') : ''">
@@ -287,11 +327,18 @@
             error: '',
             drag: null,
             resizing: null,
+            hover: null,
             zoom: 1,
             zoomLevels: [1, 1.5, 2, 3],
             snapshot: null,
+            matchSizes: true,
 
             init() {
+                // The switch is remembered per browser; it's only a convenience.
+                try { if (localStorage.getItem('floorPlan.matchSizes') === '0') this.matchSizes = false; } catch (e) {}
+                this.$watch('matchSizes', (value) => {
+                    try { localStorage.setItem('floorPlan.matchSizes', value ? '1' : '0'); } catch (e) {}
+                });
                 window.addEventListener('beforeunload', (e) => {
                     if (this.dirty) { e.preventDefault(); e.returnValue = ''; }
                 });
@@ -330,6 +377,25 @@
                 if (this.drag && this.drag.moved && this.drag.id === desk.id) state.push('opacity-30');
                 return classes + ' ' + state.join(' ');
             },
+            showHover(event, desk) {
+                // Mouse only: on touch screens tapping a desk opens the side panel instead.
+                if (event.pointerType !== 'mouse' || this.drag || this.resizing) return;
+                const rect = event.currentTarget.getBoundingClientRect();
+                this.hover = { id: desk.id, x: rect.left + rect.width / 2, top: rect.top, bottom: rect.bottom };
+            },
+            hoverDesk() {
+                if (!this.hover || this.drag || this.resizing) return null;
+                return this.desks.find((d) => d.id === this.hover.id) || null;
+            },
+            hoverStyle() {
+                const h = this.hover;
+                const half = 128 + 8; // half the card's width plus a margin
+                const x = Math.min(window.innerWidth - half, Math.max(half, h.x));
+                // Above the desk, or below it when it's near the top of the window.
+                return h.top > 240
+                    ? 'left:' + x + 'px; top:' + (h.top - 8) + 'px; transform: translate(-50%, -100%);'
+                    : 'left:' + x + 'px; top:' + (h.bottom + 8) + 'px; transform: translate(-50%, 0);';
+            },
             isSized(desk) { return desk.w !== null && desk.h !== null; },
             markerStyle(desk) {
                 let style = 'left:' + desk.x + '%; top:' + desk.y + '%;';
@@ -350,8 +416,8 @@
                 if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
             },
 
-            zoomIn() { const i = this.zoomLevels.indexOf(this.zoom); if (i < this.zoomLevels.length - 1) this.zoom = this.zoomLevels[i + 1]; },
-            zoomOut() { const i = this.zoomLevels.indexOf(this.zoom); if (i > 0) this.zoom = this.zoomLevels[i - 1]; },
+            zoomIn() { const i = this.zoomLevels.indexOf(this.zoom); if (i < this.zoomLevels.length - 1) this.zoom = this.zoomLevels[i + 1]; this.hover = null; },
+            zoomOut() { const i = this.zoomLevels.indexOf(this.zoom); if (i > 0) this.zoom = this.zoomLevels[i - 1]; this.hover = null; },
 
             positions() { return this.desks.map((d) => ({ id: d.id, x: d.x, y: d.y, w: d.w, h: d.h })); },
             startEditing() {
@@ -372,8 +438,17 @@
                 this.dirty = true;
             },
             resetSize(desk) {
-                Object.assign(desk, { w: null, h: null });
+                (this.matchSizes ? this.placed() : [desk]).forEach((d) => Object.assign(d, { w: null, h: null }));
                 this.dirty = true;
+            },
+            /**
+             * The size the other desks share, for a desk joining them while "Same size for all desks"
+             * is on. Null when none of them has been resized.
+             */
+            sharedSize(desk) {
+                if (!this.matchSizes) return null;
+                const other = this.placed().find((d) => d.id !== desk.id && this.isSized(d));
+                return other ? { w: other.w, h: other.h } : null;
             },
 
             /**
@@ -403,14 +478,21 @@
             startDrag(event, desk) {
                 if (!this.editing || event.button > 0) return;
                 event.preventDefault();
+                this.hover = null;
                 this.drag = { id: desk.id, label: desk.label, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false, overCancel: false, width: null, height: null };
 
                 // A resized desk keeps its on-screen size while it's being dragged.
                 const marker = this.isSized(desk) && document.getElementById('desk-marker-' + desk.id);
+                const shared = !this.isSized(desk) && this.sharedSize(desk);
                 if (marker) {
                     const rect = marker.getBoundingClientRect();
                     this.drag.width = rect.width;
                     this.drag.height = rect.height;
+                } else if (shared) {
+                    // A desk joining the plan takes the others' size, so show it at that size.
+                    const plan = this.$refs.plan.getBoundingClientRect();
+                    this.drag.width = shared.w / 100 * plan.width;
+                    this.drag.height = shared.h / 100 * plan.height;
                 }
 
                 this.track((e) => {
@@ -435,6 +517,8 @@
                     const clamp = (v) => Math.min(100, Math.max(0, Math.round(v * 1000) / 1000));
                     desk.x = clamp((event.clientX - plan.left) / plan.width * 100);
                     desk.y = clamp((event.clientY - plan.top) / plan.height * 100);
+                    const shared = !this.isSized(desk) && this.sharedSize(desk);
+                    if (shared) Object.assign(desk, shared);
                     this.dirty = true;
                     this.select(desk.id);
                 } else if (inside(this.$refs.tray.getBoundingClientRect()) && desk.x !== null) {
@@ -443,14 +527,16 @@
             },
             /**
              * Drag the marker's bottom-right corner. The top-left corner stays put, so the centre
-             * (x, y) moves by half the change. Esc puts the desk back to how it was.
+             * (x, y) moves by half the change. With "Same size for all desks" on, every other desk on
+             * the plan takes the same size around its own centre. Esc puts them all back.
              */
             startResize(event, desk) {
                 if (!this.editing || event.button > 0) return;
                 event.preventDefault();
                 this.select(desk.id);
 
-                const original = { x: desk.x, y: desk.y, w: desk.w, h: desk.h };
+                const followers = this.matchSizes ? this.placed().filter((d) => d.id !== desk.id) : [];
+                const originals = [desk, ...followers].map((d) => [d, { x: d.x, y: d.y, w: d.w, h: d.h }]);
                 const wasDirty = this.dirty;
                 const planRect = () => this.$refs.plan.getBoundingClientRect();
                 const marker = document.getElementById('desk-marker-' + desk.id).getBoundingClientRect();
@@ -468,11 +554,12 @@
                     const w = Math.min(100 - left, Math.max(minW, (e.clientX - plan.left) / plan.width * 100 - left));
                     const h = Math.min(100 - top, Math.max(minH, (e.clientY - plan.top) / plan.height * 100 - top));
                     Object.assign(desk, { w: round(w), h: round(h), x: round(left + w / 2), y: round(top + h / 2) });
+                    followers.forEach((d) => Object.assign(d, { w: desk.w, h: desk.h }));
                     this.dirty = true;
                 }, (e, cancelled) => {
                     this.resizing = null;
                     if (cancelled) {
-                        Object.assign(desk, original);
+                        originals.forEach(([d, original]) => Object.assign(d, original));
                         this.dirty = wasDirty;
                     }
                 });
