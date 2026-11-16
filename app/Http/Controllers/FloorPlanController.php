@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\Employee;
 use App\Models\Location;
 use App\Models\Workstation;
 use Illuminate\Http\Request;
@@ -41,7 +42,71 @@ class FloorPlanController extends Controller
 
         $selectedDesk = $desks->firstWhere('id', (int) $request->input('desk'))['id'] ?? null;
 
-        return view('workstations.floor-plan', compact('locations', 'location', 'desks', 'selectedDesk'));
+        // Who can be seated: active employees, plus anyone already at a desk. Each one carries the
+        // desks they sit at (in any office), so the page can warn before moving them.
+        $employees = Employee::where('status', 'active')
+            ->orWhereHas('workstations')
+            ->with('workstations:id,name,occupant_id')
+            ->orderBy('name')
+            ->get(['id', 'name', 'id_number', 'status'])
+            ->map(fn (Employee $e) => [
+                'id' => $e->id,
+                'name' => $e->name,
+                'id_number' => $e->id_number,
+                'active' => $e->status === 'active',
+                'desks' => $e->workstations->map(fn (Workstation $w) => ['id' => $w->id, 'code' => $w->name])->values(),
+            ]);
+
+        return view('workstations.floor-plan', compact('locations', 'location', 'desks', 'selectedDesk', 'employees'));
+    }
+
+    /**
+     * Seat someone at a desk straight from the floor plan (or make it a hot desk with a null
+     * occupant). Someone who already sits elsewhere is only moved when "move" is set; their old
+     * desk becomes a hot desk.
+     */
+    public function setOccupant(Request $request, Workstation $workstation)
+    {
+        $this->authorizeAdmin();
+
+        $validated = $request->validate([
+            'occupant_id' => 'nullable|integer|exists:employees,id',
+            'move' => 'boolean',
+        ]);
+
+        $employee = isset($validated['occupant_id']) ? Employee::find($validated['occupant_id']) : null;
+
+        if ($employee && $employee->id !== $workstation->occupant_id && $employee->status !== 'active') {
+            throw ValidationException::withMessages(['occupant_id' => "{$employee->name} is not an active employee."]);
+        }
+
+        $elsewhere = $employee
+            ? $employee->workstations()->whereKeyNot($workstation->id)->with(['occupant', 'assets', 'latestAudit'])->get()
+            : collect();
+
+        if ($elsewhere->isNotEmpty() && !$request->boolean('move')) {
+            throw ValidationException::withMessages([
+                'occupant_id' => "{$employee->name} already sits at " . $elsewhere->pluck('name')->join(', ') . '. Confirm to move them here.',
+            ]);
+        }
+
+        DB::transaction(function () use ($workstation, $employee, $elsewhere) {
+            $elsewhere->each(fn (Workstation $w) => $w->update(['occupant_id' => null]));
+            $workstation->update(['occupant_id' => $employee?->id]);
+        });
+
+        $changed = collect([$workstation->fresh(['occupant', 'assets', 'latestAudit'])])
+            ->concat($elsewhere->map(fn (Workstation $w) => $w->fresh(['occupant', 'assets', 'latestAudit'])));
+
+        $message = $employee
+            ? "{$employee->name} now sits at {$workstation->name}."
+                . ($elsewhere->isNotEmpty() ? ' ' . $elsewhere->pluck('name')->join(', ') . ' is now a hot desk.' : '')
+            : "{$workstation->name} is now a hot desk.";
+
+        return response()->json([
+            'message' => $message,
+            'desks' => $changed->map(fn (Workstation $w) => $this->deskData($w))->values(),
+        ]);
     }
 
     public function upload(Request $request, Location $location)
@@ -150,6 +215,8 @@ class FloorPlanController extends Controller
             'room' => $w->room,
             'label' => trim(($w->room ? $w->room . ' ' : '') . $w->desk_code),
             'occupant' => $w->occupant?->name,
+            'occupant_id' => $w->occupant_id,
+            'occupant_url' => route('workstations.occupant', $w),
             'status' => $w->occupant ? 'assigned' : ($assets->isEmpty() ? 'empty' : 'hotdesk'),
             'audit_due' => $w->isAuditDue(),
             'audit_issues' => (bool) $w->latestAudit?->hasDiscrepancies(),

@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/locations/{location}/floor-plan', [FloorPlanController::class, 'upload'])->name('locations.floor-plan.upload');
     Route::delete('/locations/{location}/floor-plan', [FloorPlanController::class, 'destroy'])->name('locations.floor-plan.destroy');
     Route::put('/locations/{location}/floor-plan/layout', [FloorPlanController::class, 'saveLayout'])->name('locations.floor-plan.layout');
+    Route::put('/workstations/{workstation}/occupant', [FloorPlanController::class, 'setOccupant'])->name('workstations.occupant');
     Route::get('/workstations/movements', [WorkstationController::class, 'movements'])->name('workstations.movements');
     Route::get('/workstations/movements/export', [WorkstationController::class, 'exportMovements'])->name('workstations.movements.export');
     Route::get('/workstations/export', [WorkstationController::class, 'export'])->name('workstations.export');

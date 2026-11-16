@@ -237,6 +237,92 @@ class FloorPlanTest extends TestCase
         $this->get(route('workstations.show', $desk))->assertOk()->assertSee('Show on Floor Plan');
     }
 
+    private function employee(string $name, string $idNumber, string $status = 'active'): Employee
+    {
+        return Employee::create(['name' => $name, 'id_number' => $idNumber, 'email' => strtolower($idNumber) . '@example.com', 'status' => $status]);
+    }
+
+    private function planData(): array
+    {
+        $response = $this->get(route('workstations.floor-plan', ['location' => $this->office->id]))->assertOk();
+        preg_match('~<script type="application/json" id="floor-plan-data">(.*?)</script>~s', $response->getContent(), $m);
+
+        return json_decode($m[1] ?? 'null', true);
+    }
+
+    public function test_page_lists_active_employees_and_where_they_sit(): void
+    {
+        $this->withPlan();
+        $seated = $this->employee('Nur Aisyah', 'INF001');
+        $this->employee('Ali Bakar', 'INF002');
+        $this->employee('Gone Person', 'INF003', 'resigned');
+        $leftButSeated = $this->employee('Still Seated', 'INF004', 'resigned');
+        $desk = $this->desk(1, null, ['occupant_id' => $seated->id]);
+        $this->desk(2, null, ['occupant_id' => $leftButSeated->id]);
+
+        $data = $this->planData();
+
+        $this->assertSame(['Ali Bakar', 'Nur Aisyah', 'Still Seated'], array_column($data['employees'], 'name'));
+        $aisyah = collect($data['employees'])->firstWhere('name', 'Nur Aisyah');
+        $this->assertSame([['id' => $desk->id, 'code' => 'INFP1ARAWS01']], $aisyah['desks']);
+        $this->assertFalse(collect($data['employees'])->firstWhere('name', 'Still Seated')['active']);
+        $this->assertSame(route('workstations.occupant', $desk), $data['desks'][0]['occupant_url']);
+    }
+
+    public function test_assigning_an_occupant_from_the_floor_plan(): void
+    {
+        $employee = $this->employee('Nur Aisyah', 'INF001');
+        $desk = $this->desk(1, null, ['plan_x' => 10, 'plan_y' => 20]);
+
+        $this->putJson(route('workstations.occupant', $desk), ['occupant_id' => $employee->id])
+            ->assertOk()
+            ->assertJsonPath('message', 'Nur Aisyah now sits at INFP1ARAWS01.')
+            ->assertJsonPath('desks.0.occupant', 'Nur Aisyah')
+            ->assertJsonPath('desks.0.status', 'assigned');
+
+        $this->assertSame($employee->id, $desk->fresh()->occupant_id);
+        $this->assertSame([10.0, 20.0], [$desk->fresh()->plan_x, $desk->fresh()->plan_y]);
+
+        $this->putJson(route('workstations.occupant', $desk), ['occupant_id' => null])
+            ->assertOk()
+            ->assertJsonPath('message', 'INFP1ARAWS01 is now a hot desk.')
+            ->assertJsonPath('desks.0.status', 'empty');
+        $this->assertNull($desk->fresh()->occupant_id);
+    }
+
+    public function test_seating_someone_who_sits_elsewhere_needs_a_move(): void
+    {
+        $employee = $this->employee('Nur Aisyah', 'INF001');
+        $old = $this->desk(1, null, ['occupant_id' => $employee->id]);
+        $new = $this->desk(2);
+
+        $this->putJson(route('workstations.occupant', $new), ['occupant_id' => $employee->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('occupant_id');
+        $this->assertSame($employee->id, $old->fresh()->occupant_id);
+        $this->assertNull($new->fresh()->occupant_id);
+
+        $this->putJson(route('workstations.occupant', $new), ['occupant_id' => $employee->id, 'move' => true])
+            ->assertOk()
+            ->assertJsonPath('message', 'Nur Aisyah now sits at INFP1ARAWS02. INFP1ARAWS01 is now a hot desk.')
+            ->assertJsonCount(2, 'desks');
+        $this->assertNull($old->fresh()->occupant_id);
+        $this->assertSame($employee->id, $new->fresh()->occupant_id);
+    }
+
+    public function test_only_active_employees_can_be_seated(): void
+    {
+        $resigned = $this->employee('Gone Person', 'INF003', 'resigned');
+        $desk = $this->desk(1);
+
+        $this->putJson(route('workstations.occupant', $desk), ['occupant_id' => $resigned->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('occupant_id');
+        $this->putJson(route('workstations.occupant', $desk), ['occupant_id' => 999999])
+            ->assertUnprocessable();
+        $this->assertNull($desk->fresh()->occupant_id);
+    }
+
     public function test_non_admins_cannot_use_the_floor_plan(): void
     {
         $this->withPlan();
@@ -247,5 +333,6 @@ class FloorPlanTest extends TestCase
         $this->post(route('locations.floor-plan.upload', $this->office), ['floor_plan' => UploadedFile::fake()->image('p.png')])->assertForbidden();
         $this->putJson(route('locations.floor-plan.layout', $this->office), ['positions' => [['id' => $desk->id, 'x' => 1, 'y' => 1]]])->assertForbidden();
         $this->delete(route('locations.floor-plan.destroy', $this->office))->assertForbidden();
+        $this->putJson(route('workstations.occupant', $desk), ['occupant_id' => null])->assertForbidden();
     }
 }

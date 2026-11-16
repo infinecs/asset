@@ -58,7 +58,7 @@
 </div>
 @else
 @php
-    $planData = ['desks' => $desks->values(), 'selected' => $selectedDesk, 'saveUrl' => route('locations.floor-plan.layout', $location)];
+    $planData = ['desks' => $desks->values(), 'employees' => $employees->values(), 'selected' => $selectedDesk, 'saveUrl' => route('locations.floor-plan.layout', $location)];
 @endphp
 <script type="application/json" id="floor-plan-data">@json($planData)</script>
 
@@ -213,8 +213,44 @@
                             <span x-show="selected().x === null" class="badge badge-secondary">Not on the plan</span>
                         </div>
                         <div>
-                            <div class="text-xs text-slate-500 dark:text-slate-400">Occupant</div>
-                            <div class="font-semibold text-slate-800 dark:text-slate-100" x-text="selected().occupant || 'Nobody / hot desk'"></div>
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="text-xs text-slate-500 dark:text-slate-400">Occupant</div>
+                                <button type="button" x-show="!seating" class="text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400"
+                                        @click="openSeating()" x-text="selected().occupant ? 'Change' : 'Assign someone'"></button>
+                            </div>
+                            <div x-show="!seating" class="font-semibold text-slate-800 dark:text-slate-100" x-text="selected().occupant || 'Nobody / hot desk'"></div>
+
+                            {{-- Pick who sits here; saved straight away --}}
+                            <div x-show="seating" class="mt-1 space-y-1.5" @keydown.escape.stop.prevent="closeSeating()">
+                                <input type="text" x-ref="seatSearch" x-model="seatQuery" class="field-input" placeholder="Search name or ID number..."
+                                       :disabled="seatSaving" @keydown.enter.prevent="seatOptions()[0] && assign(seatOptions()[0])">
+                                <ul class="max-h-60 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-700"
+                                    :class="seatSaving ? 'pointer-events-none opacity-60' : ''">
+                                    <li x-show="selected().occupant_id">
+                                        <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800" @click="assign(null)">
+                                            <i class="bi bi-person-dash"></i>Nobody (make it a hot desk)
+                                        </button>
+                                    </li>
+                                    <template x-for="person in seatOptions()" :key="person.id">
+                                        <li>
+                                            <button type="button" class="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800" @click="assign(person)">
+                                                <span class="flex items-center gap-2">
+                                                    <span class="truncate text-sm text-slate-800 dark:text-slate-100" x-text="person.name"></span>
+                                                    <i x-show="person.id === selected().occupant_id" class="bi bi-check2 text-primary-600"></i>
+                                                    <span class="ms-auto shrink-0 font-mono text-[10px] text-slate-400" x-text="person.id_number"></span>
+                                                </span>
+                                                <span x-show="elsewhere(person).length" class="block truncate text-[11px] text-amber-600 dark:text-amber-400"
+                                                      x-text="'Sits at ' + elsewhere(person).map((d) => d.code).join(', ')"></span>
+                                            </button>
+                                        </li>
+                                    </template>
+                                    <li x-show="seatOptions().length === 0" class="px-3 py-2 text-xs text-slate-400">No active employee matches.</li>
+                                </ul>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] text-slate-400" x-text="seatSaving ? 'Saving...' : 'Saved as soon as you pick someone.'"></span>
+                                    <button type="button" class="text-xs text-slate-500 hover:underline" @click="closeSeating()" :disabled="seatSaving">Cancel</button>
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <div class="text-xs text-slate-500 dark:text-slate-400" x-text="'Equipment (' + selected().assets.length + ')'"></div>
@@ -332,8 +368,14 @@
             zoomLevels: [1, 1.5, 2, 3],
             snapshot: null,
             matchSizes: true,
+            employees: config.employees,
+            seating: false,
+            seatQuery: '',
+            seatSaving: false,
+            flashTimer: null,
 
             init() {
+                this.$watch('selectedId', () => this.closeSeating());
                 // The switch is remembered per browser; it's only a convenience.
                 try { if (localStorage.getItem('floorPlan.matchSizes') === '0') this.matchSizes = false; } catch (e) {}
                 this.$watch('matchSizes', (value) => {
@@ -576,27 +618,106 @@
                 this.dirty = true;
             },
 
-            async save() {
-                this.saving = true;
-                this.error = '';
+            /**
+             * PUT JSON to the server. Resolves with the response data, or throws with the first
+             * validation message (or `failure` when there isn't one).
+             */
+            async put(url, body, failure) {
+                let response;
                 try {
-                    const response = await fetch(this.saveUrl, {
+                    response = await fetch(url, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         },
-                        body: JSON.stringify({ positions: this.positions() }),
+                        body: JSON.stringify(body),
                     });
-                    const data = await response.json().catch(() => ({}));
-                    if (!response.ok) {
-                        throw new Error(data.message || 'The layout could not be saved. Check your connection and try again.');
-                    }
+                } catch (e) {
+                    throw new Error(failure);
+                }
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const first = data.errors ? Object.values(data.errors)[0] : null;
+                    throw new Error((first && first[0]) || data.message || failure);
+                }
+                return data;
+            },
+            flash(text) {
+                this.message = text;
+                clearTimeout(this.flashTimer);
+                this.flashTimer = setTimeout(() => { this.message = ''; }, 5000);
+            },
+
+            openSeating() {
+                this.seatQuery = '';
+                this.seating = true;
+                this.error = '';
+                this.$nextTick(() => this.$refs.seatSearch?.focus());
+            },
+            closeSeating() {
+                if (this.seatSaving) return;
+                this.seating = false;
+                this.seatQuery = '';
+            },
+            /** Active employees (plus whoever sits here now) matching the search, at most 50. */
+            seatOptions() {
+                const desk = this.selected();
+                const q = this.seatQuery.trim().toLowerCase();
+                return this.employees
+                    .filter((e) => e.active || (desk && e.id === desk.occupant_id))
+                    .filter((e) => !q || e.name.toLowerCase().includes(q) || String(e.id_number || '').toLowerCase().includes(q))
+                    .slice(0, 50);
+            },
+            /** The other desks this person sits at. */
+            elsewhere(person) {
+                return person.desks.filter((d) => d.id !== this.selectedId);
+            },
+            async assign(person) {
+                const desk = this.selected();
+                if (!desk || this.seatSaving) return;
+                if ((person ? person.id : null) === desk.occupant_id) { this.closeSeating(); return; }
+
+                const others = person ? this.elsewhere(person) : [];
+                if (others.length) {
+                    const codes = others.map((d) => d.code).join(', ');
+                    if (!confirm(person.name + ' already sits at ' + codes + '.\n\nMove them to ' + desk.code + '? ' + codes + ' will become a hot desk.')) return;
+                }
+
+                this.seatSaving = true;
+                this.error = '';
+                try {
+                    const data = await this.put(desk.occupant_url, { occupant_id: person ? person.id : null, move: others.length > 0 },
+                        'The occupant could not be saved. Check your connection and try again.');
+
+                    // Refresh the desks that changed, keeping any unsaved layout changes on them.
+                    data.desks.forEach((fresh) => {
+                        const local = this.desks.find((d) => d.id === fresh.id);
+                        if (local) Object.assign(local, fresh, { x: local.x, y: local.y, w: local.w, h: local.h });
+                    });
+                    this.employees.forEach((e) => { e.desks = e.desks.filter((d) => d.id !== desk.id); });
+                    if (person) person.desks = [{ id: desk.id, code: desk.code }];
+
+                    this.seatSaving = false;
+                    this.closeSeating();
+                    this.flash(data.message);
+                } catch (e) {
+                    this.error = e.message;
+                } finally {
+                    this.seatSaving = false;
+                }
+            },
+
+            async save() {
+                this.saving = true;
+                this.error = '';
+                try {
+                    const data = await this.put(this.saveUrl, { positions: this.positions() },
+                        'The layout could not be saved. Check your connection and try again.');
                     this.dirty = false;
                     this.editing = false;
-                    this.message = data.message || 'Layout saved.';
-                    setTimeout(() => { this.message = ''; }, 5000);
+                    this.flash(data.message || 'Layout saved.');
                 } catch (e) {
                     this.error = e.message;
                 } finally {
