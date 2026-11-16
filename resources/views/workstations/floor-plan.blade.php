@@ -126,7 +126,13 @@
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
         {{-- The plan --}}
         <div class="lg:col-span-9">
-            <div class="card overflow-hidden">
+            <div class="card relative overflow-hidden">
+                {{-- Shown while dragging: let go over it (or press Esc) to put the desk back where it was --}}
+                <div x-ref="cancelZone" x-show="drag && drag.moved" x-cloak
+                     class="pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-1.5 rounded-full border-2 px-3 py-2 text-xs font-semibold shadow-lg transition"
+                     :class="drag && drag.overCancel ? 'scale-110 border-red-600 bg-red-600 text-white' : 'border-red-300 bg-white text-red-600 dark:border-red-800 dark:bg-slate-900 dark:text-red-400'">
+                    <i class="bi bi-x-lg"></i><span>Drop here to cancel</span>
+                </div>
                 <div x-ref="viewport" class="max-h-[75vh] overflow-auto bg-slate-100 dark:bg-slate-950">
                     <div class="relative select-none" :style="'width:' + (zoom * 100) + '%'">
                         <img x-ref="plan" src="{{ asset('storage/' . $location->floor_plan_path) }}" alt="Floor plan of {{ $location->name }}"
@@ -134,14 +140,19 @@
 
                         <template x-for="desk in placed()" :key="desk.id">
                             <button type="button" :id="'desk-marker-' + desk.id"
-                                    class="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border px-1.5 py-0.5 font-mono text-[11px] font-semibold leading-4 shadow-sm transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                                    class="group absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-md border px-1.5 py-0.5 font-mono text-[11px] font-semibold leading-4 shadow-sm transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
                                     :class="[markerClass(desk), editing ? 'cursor-move touch-none' : 'cursor-pointer']"
-                                    :style="'left:' + desk.x + '%; top:' + desk.y + '%'"
+                                    :style="markerStyle(desk)"
                                     :title="desk.code + (desk.occupant ? ' — ' + desk.occupant : '')"
                                     @pointerdown="startDrag($event, desk)"
                                     @click="select(desk.id)"
                                     @keydown="nudge($event, desk)">
-                                <span x-text="desk.label"></span>
+                                <span class="min-w-0 truncate" x-text="desk.label"></span>
+                                {{-- Resize handle (edit mode): drag the corner to match the desk's size on the plan --}}
+                                <span x-show="editing" title="Drag to resize"
+                                      class="absolute -bottom-1.5 -right-1.5 h-3.5 w-3.5 cursor-se-resize touch-none rounded-sm border-2 border-white bg-amber-500 shadow transition-opacity dark:border-slate-900"
+                                      :class="selectedId === desk.id || (resizing && resizing.id === desk.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                                      @pointerdown.stop="startResize($event, desk)"></span>
                                 <span x-show="desk.audit_issues" class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"></span>
                                 <span x-show="desk.audit_due && !desk.audit_issues" class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900"></span>
                             </button>
@@ -151,6 +162,8 @@
             </div>
             <p x-show="editing" x-cloak class="mt-2 text-xs text-slate-500 dark:text-slate-400">
                 Drag desks onto the plan or to a new spot. Drag a desk back to the list to take it off the plan.
+                While dragging, let go over <strong>Drop here to cancel</strong> (or press Esc) to leave it where it was.
+                Drag the amber corner of a desk to resize it to the desk's real size.
                 Arrow keys nudge the selected desk (hold Shift for bigger steps).
             </p>
         </div>
@@ -217,6 +230,9 @@
                             <a :href="selected().url" class="btn btn-outline btn-sm flex-1"><i class="bi bi-box-arrow-up-right"></i>Open Desk</a>
                             <a :href="selected().audit_url" class="btn btn-outline-primary btn-sm flex-1"><i class="bi bi-clipboard-check"></i>Audit</a>
                         </div>
+                        <button type="button" x-show="editing && selected().w !== null" class="btn btn-outline btn-sm w-full" @click="resetSize(selected())">
+                            <i class="bi bi-arrows-angle-contract"></i>Reset Size
+                        </button>
                         <button type="button" x-show="editing && selected().x !== null" class="btn btn-outline-danger btn-sm w-full" @click="unplace(selected())">
                             <i class="bi bi-box-arrow-in-down"></i>Take Off the Plan
                         </button>
@@ -268,6 +284,7 @@
             message: '',
             error: '',
             drag: null,
+            resizing: null,
             zoom: 1,
             zoomLevels: [1, 1.5, 2, 3],
             snapshot: null,
@@ -305,11 +322,17 @@
                     empty: 'border-dashed border-slate-400 bg-white/90 text-slate-500 dark:bg-slate-900/90 dark:text-slate-400',
                 }[desk.status];
                 const state = [];
-                if (this.selectedId === desk.id) state.push('z-20 scale-110 ring-2 ring-amber-400 ring-offset-1 dark:ring-offset-slate-900');
+                if (this.selectedId === desk.id) state.push('z-20 ring-2 ring-amber-400 ring-offset-1 dark:ring-offset-slate-900' + (this.isSized(desk) ? '' : ' scale-110'));
                 else state.push('z-10');
                 if (!this.matches(desk)) state.push('opacity-25');
                 if (this.drag && this.drag.moved && this.drag.id === desk.id) state.push('opacity-30');
                 return classes + ' ' + state.join(' ');
+            },
+            isSized(desk) { return desk.w !== null && desk.h !== null; },
+            markerStyle(desk) {
+                let style = 'left:' + desk.x + '%; top:' + desk.y + '%;';
+                if (this.isSized(desk)) style += ' width:' + desk.w + '%; height:' + desk.h + '%;';
+                return style;
             },
 
             select(id) {
@@ -328,7 +351,7 @@
             zoomIn() { const i = this.zoomLevels.indexOf(this.zoom); if (i < this.zoomLevels.length - 1) this.zoom = this.zoomLevels[i + 1]; },
             zoomOut() { const i = this.zoomLevels.indexOf(this.zoom); if (i > 0) this.zoom = this.zoomLevels[i - 1]; },
 
-            positions() { return this.desks.map((d) => ({ id: d.id, x: d.x, y: d.y })); },
+            positions() { return this.desks.map((d) => ({ id: d.id, x: d.x, y: d.y, w: d.w, h: d.h })); },
             startEditing() {
                 this.snapshot = this.positions();
                 this.editing = true;
@@ -337,43 +360,63 @@
             },
             cancelEditing() {
                 const byId = Object.fromEntries(this.snapshot.map((p) => [p.id, p]));
-                this.desks.forEach((d) => { d.x = byId[d.id].x; d.y = byId[d.id].y; });
+                this.desks.forEach((d) => Object.assign(d, { x: byId[d.id].x, y: byId[d.id].y, w: byId[d.id].w, h: byId[d.id].h }));
                 this.editing = false;
                 this.dirty = false;
                 this.error = '';
             },
             unplace(desk) {
-                desk.x = null;
-                desk.y = null;
+                Object.assign(desk, { x: null, y: null, w: null, h: null });
                 this.dirty = true;
+            },
+            resetSize(desk) {
+                Object.assign(desk, { w: null, h: null });
+                this.dirty = true;
+            },
+
+            /**
+             * Follow the pointer until it's released; Esc stops early. onMove(e) runs on every move,
+             * onEnd(e, cancelled) once at the end.
+             */
+            track(onMove, onEnd) {
+                const move = (e) => onMove(e);
+                const finish = (e, cancelled) => {
+                    window.removeEventListener('pointermove', move);
+                    window.removeEventListener('pointerup', up);
+                    window.removeEventListener('pointercancel', up);
+                    window.removeEventListener('keydown', key);
+                    onEnd(e, cancelled);
+                };
+                const up = (e) => finish(e, e.type === 'pointercancel');
+                const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); finish(e, true); } };
+                window.addEventListener('pointermove', move);
+                window.addEventListener('pointerup', up);
+                window.addEventListener('pointercancel', up);
+                window.addEventListener('keydown', key);
+            },
+            inside(rect, e) {
+                return rect.width > 0 && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
             },
 
             startDrag(event, desk) {
                 if (!this.editing || event.button > 0) return;
                 event.preventDefault();
-                this.drag = { id: desk.id, label: desk.label, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false };
+                this.drag = { id: desk.id, label: desk.label, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false, overCancel: false };
 
-                const move = (e) => {
+                this.track((e) => {
                     this.drag.x = e.clientX;
                     this.drag.y = e.clientY;
                     if (Math.hypot(e.clientX - this.drag.startX, e.clientY - this.drag.startY) > 4) this.drag.moved = true;
-                };
-                const up = (e) => {
-                    window.removeEventListener('pointermove', move);
-                    window.removeEventListener('pointerup', up);
-                    window.removeEventListener('pointercancel', up);
-                    this.endDrag(e, desk);
-                };
-                window.addEventListener('pointermove', move);
-                window.addEventListener('pointerup', up);
-                window.addEventListener('pointercancel', up);
+                    this.drag.overCancel = this.drag.moved && this.inside(this.$refs.cancelZone.getBoundingClientRect(), e);
+                }, (e, cancelled) => this.endDrag(e, desk, cancelled));
             },
-            endDrag(event, desk) {
+            endDrag(event, desk, cancelled) {
                 const drag = this.drag;
                 this.drag = null;
-                if (!drag || !drag.moved || event.type === 'pointercancel') return;
+                // Esc, or let go over "Drop here to cancel": the desk stays where it was.
+                if (!drag || !drag.moved || cancelled || drag.overCancel) return;
 
-                const inside = (rect) => event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+                const inside = (rect) => this.inside(rect, event);
                 const plan = this.$refs.plan.getBoundingClientRect();
                 const viewport = this.$refs.viewport.getBoundingClientRect();
 
@@ -388,6 +431,43 @@
                     this.unplace(desk);
                 }
             },
+            /**
+             * Drag the marker's bottom-right corner. The top-left corner stays put, so the centre
+             * (x, y) moves by half the change. Esc puts the desk back to how it was.
+             */
+            startResize(event, desk) {
+                if (!this.editing || event.button > 0) return;
+                event.preventDefault();
+                this.select(desk.id);
+
+                const original = { x: desk.x, y: desk.y, w: desk.w, h: desk.h };
+                const wasDirty = this.dirty;
+                const planRect = () => this.$refs.plan.getBoundingClientRect();
+                const marker = document.getElementById('desk-marker-' + desk.id).getBoundingClientRect();
+                const start = planRect();
+                const left = (marker.left - start.left) / start.width * 100;
+                const top = (marker.top - start.top) / start.height * 100;
+                const round = (v) => Math.round(v * 1000) / 1000;
+                this.resizing = { id: desk.id };
+
+                this.track((e) => {
+                    const plan = planRect();
+                    // At least about 28 x 18 px on screen, so the label stays readable.
+                    const minW = Math.max(0.5, 28 / plan.width * 100);
+                    const minH = Math.max(0.5, 18 / plan.height * 100);
+                    const w = Math.min(100 - left, Math.max(minW, (e.clientX - plan.left) / plan.width * 100 - left));
+                    const h = Math.min(100 - top, Math.max(minH, (e.clientY - plan.top) / plan.height * 100 - top));
+                    Object.assign(desk, { w: round(w), h: round(h), x: round(left + w / 2), y: round(top + h / 2) });
+                    this.dirty = true;
+                }, (e, cancelled) => {
+                    this.resizing = null;
+                    if (cancelled) {
+                        Object.assign(desk, original);
+                        this.dirty = wasDirty;
+                    }
+                });
+            },
+
             nudge(event, desk) {
                 if (!this.editing || desk.x === null) return;
                 const step = event.shiftKey ? NUDGE_BIG : NUDGE;

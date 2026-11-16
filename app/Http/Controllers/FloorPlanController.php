@@ -82,7 +82,7 @@ class FloorPlanController extends Controller
                 Storage::disk('public')->delete($location->floor_plan_path);
             }
             $location->update(['floor_plan_path' => null]);
-            $location->workstations()->update(['plan_x' => null, 'plan_y' => null]);
+            $location->workstations()->update(['plan_x' => null, 'plan_y' => null, 'plan_w' => null, 'plan_h' => null]);
         });
 
         return redirect()->route('workstations.floor-plan', ['location' => $location->id])
@@ -106,6 +106,9 @@ class FloorPlanController extends Controller
             'positions.*.id' => 'required|integer|distinct',
             'positions.*.x' => 'nullable|numeric|between:0,100|required_with:positions.*.y',
             'positions.*.y' => 'nullable|numeric|between:0,100|required_with:positions.*.x',
+            // Optional marker size; leave both out (or null) for the default small label.
+            'positions.*.w' => 'nullable|numeric|between:0.5,100|required_with:positions.*.h',
+            'positions.*.h' => 'nullable|numeric|between:0.5,100|required_with:positions.*.w',
         ]);
 
         $positions = collect($validated['positions'])->keyBy('id');
@@ -120,7 +123,9 @@ class FloorPlanController extends Controller
                 $position = $positions[$desk->id];
                 $desk->plan_x = isset($position['x']) ? round((float) $position['x'], 3) : null;
                 $desk->plan_y = isset($position['y']) ? round((float) $position['y'], 3) : null;
-                if ($desk->isDirty(['plan_x', 'plan_y'])) {
+                $desk->plan_w = isset($position['w']) ? round((float) $position['w'], 3) : null;
+                $desk->plan_h = isset($position['h']) ? round((float) $position['h'], 3) : null;
+                if ($desk->isDirty(['plan_x', 'plan_y', 'plan_w', 'plan_h'])) {
                     $desk->save();
                 }
             }
@@ -161,6 +166,8 @@ class FloorPlanController extends Controller
             ]))),
             'x' => $w->plan_x,
             'y' => $w->plan_y,
+            'w' => $w->plan_w,
+            'h' => $w->plan_h,
             'url' => route('workstations.show', $w),
             'audit_url' => route('workstations.audit', $w),
         ];

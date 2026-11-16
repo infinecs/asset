@@ -25,12 +25,14 @@ class Workstation extends Model
      */
     public const AUDIT_INTERVAL_DAYS = 90;
 
-    protected $fillable = ['location_id', 'room', 'number', 'occupant_id', 'notes', 'plan_x', 'plan_y'];
+    protected $fillable = ['location_id', 'room', 'number', 'occupant_id', 'notes', 'plan_x', 'plan_y', 'plan_w', 'plan_h'];
 
     protected $casts = [
         'number' => 'integer',
         'plan_x' => 'float',
         'plan_y' => 'float',
+        'plan_w' => 'float',
+        'plan_h' => 'float',
     ];
 
     protected static function booted(): void
@@ -40,6 +42,12 @@ class Workstation extends Model
             if ($workstation->exists && $workstation->isDirty('location_id')) {
                 $workstation->plan_x = null;
                 $workstation->plan_y = null;
+            }
+
+            // A desk that's off the plan has no size on it either.
+            if ($workstation->plan_x === null || $workstation->plan_y === null) {
+                $workstation->plan_w = null;
+                $workstation->plan_h = null;
             }
 
             $workstation->room = $workstation->room !== null && $workstation->room !== '' ? strtoupper($workstation->room) : null;

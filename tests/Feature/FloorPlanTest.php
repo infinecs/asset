@@ -142,6 +142,37 @@ class FloorPlanTest extends TestCase
         $this->assertFalse($c->fresh()->isPlaced());
     }
 
+    public function test_layout_saves_resized_desks_and_resets_sizes(): void
+    {
+        $this->withPlan();
+        $sized = $this->desk(1);
+        $reset = $this->desk(2, null, ['plan_x' => 40, 'plan_y' => 40, 'plan_w' => 8, 'plan_h' => 6]);
+        $unplaced = $this->desk(3, null, ['plan_x' => 60, 'plan_y' => 60, 'plan_w' => 8, 'plan_h' => 6]);
+
+        $this->putJson(route('locations.floor-plan.layout', $this->office), [
+            'positions' => [
+                ['id' => $sized->id, 'x' => 20, 'y' => 30, 'w' => 12.5, 'h' => 7.25],
+                ['id' => $reset->id, 'x' => 40, 'y' => 40, 'w' => null, 'h' => null],
+                // Off the plan: a stray size is dropped along with the position.
+                ['id' => $unplaced->id, 'x' => null, 'y' => null, 'w' => 8, 'h' => 6],
+            ],
+        ])->assertOk();
+
+        $this->assertSame([12.5, 7.25], [$sized->fresh()->plan_w, $sized->fresh()->plan_h]);
+        $this->assertSame([null, null], [$reset->fresh()->plan_w, $reset->fresh()->plan_h]);
+        $this->assertSame([null, null, null, null], [
+            $unplaced->fresh()->plan_x, $unplaced->fresh()->plan_y, $unplaced->fresh()->plan_w, $unplaced->fresh()->plan_h,
+        ]);
+
+        // Width and height go together, and can't be tiny or larger than the plan.
+        foreach ([['w' => 10, 'h' => null], ['w' => 0.1, 'h' => 5], ['w' => 150, 'h' => 5]] as $size) {
+            $this->putJson(route('locations.floor-plan.layout', $this->office), [
+                'positions' => [['id' => $sized->id, 'x' => 20, 'y' => 30] + $size],
+            ])->assertUnprocessable();
+        }
+        $this->assertSame([12.5, 7.25], [$sized->fresh()->plan_w, $sized->fresh()->plan_h]);
+    }
+
     public function test_layout_rejects_desks_from_another_location_and_bad_positions(): void
     {
         $this->withPlan();
@@ -176,13 +207,14 @@ class FloorPlanTest extends TestCase
     public function test_removing_the_floor_plan_deletes_the_image_and_unplaces_desks(): void
     {
         $path = $this->withPlan()->floor_plan_path;
-        $desk = $this->desk(1, null, ['plan_x' => 10, 'plan_y' => 20]);
+        $desk = $this->desk(1, null, ['plan_x' => 10, 'plan_y' => 20, 'plan_w' => 8, 'plan_h' => 6]);
 
         $this->delete(route('locations.floor-plan.destroy', $this->office))->assertRedirect();
 
         $this->assertNull($this->office->fresh()->floor_plan_path);
         Storage::disk('public')->assertMissing($path);
         $this->assertFalse($desk->fresh()->isPlaced());
+        $this->assertNull($desk->fresh()->plan_w);
     }
 
     public function test_moving_a_desk_to_another_location_takes_it_off_the_plan(): void
