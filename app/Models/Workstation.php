@@ -25,15 +25,23 @@ class Workstation extends Model
      */
     public const AUDIT_INTERVAL_DAYS = 90;
 
-    protected $fillable = ['location_id', 'room', 'number', 'occupant_id', 'notes'];
+    protected $fillable = ['location_id', 'room', 'number', 'occupant_id', 'notes', 'plan_x', 'plan_y'];
 
     protected $casts = [
         'number' => 'integer',
+        'plan_x' => 'float',
+        'plan_y' => 'float',
     ];
 
     protected static function booted(): void
     {
         static::saving(function (Workstation $workstation) {
+            // A spot on the old office's floor plan means nothing on the new one.
+            if ($workstation->exists && $workstation->isDirty('location_id')) {
+                $workstation->plan_x = null;
+                $workstation->plan_y = null;
+            }
+
             $workstation->room = $workstation->room !== null && $workstation->room !== '' ? strtoupper($workstation->room) : null;
             $workstation->name = static::buildCode(
                 Location::whereKey($workstation->location_id)->value('code'),
@@ -85,6 +93,11 @@ class Workstation extends Model
         $last = $this->latestAudit?->created_at;
 
         return !$last || $last->lt(now()->subDays(self::AUDIT_INTERVAL_DAYS));
+    }
+
+    public function isPlaced(): bool
+    {
+        return $this->plan_x !== null && $this->plan_y !== null;
     }
 
     /**

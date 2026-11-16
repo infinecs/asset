@@ -12,6 +12,7 @@
     </div>
     <div class="flex flex-wrap gap-2">
         <a href="{{ route('workstations.audit', $workstation) }}" class="btn btn-primary btn-sm"><i class="bi bi-clipboard-check"></i>Audit Desk</a>
+        <a href="{{ route('workstations.floor-plan', ['location' => $workstation->location_id, 'desk' => $workstation->id]) }}" class="btn btn-outline btn-sm" title="{{ $workstation->isPlaced() ? 'See where this desk is in the office' : 'This desk is not on the floor plan yet' }}"><i class="bi bi-map"></i>{{ $workstation->isPlaced() ? 'Show on Floor Plan' : 'Floor Plan' }}</a>
         <a href="{{ route('workstations.label', $workstation) }}" class="btn btn-outline btn-sm" target="_blank"><i class="bi bi-qr-code"></i>Label</a>
         <a href="{{ route('workstations.edit', $workstation) }}" class="btn btn-outline btn-sm"><i class="bi bi-pencil"></i>Edit</a>
         <a href="{{ route('workstations.index', ['location' => $workstation->location_id]) }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>

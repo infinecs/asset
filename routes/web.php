@@ -13,6 +13,7 @@ use App\Http\Controllers\DigitalProductController;
 use App\Http\Controllers\GiftCardController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\FloorPlanController;
 use App\Http\Controllers\OutcomeAdminController;
 use App\Http\Controllers\OutcomeController;
 use App\Http\Controllers\ClientController;
@@ -83,6 +84,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('assets', AssetController::class);
 
     // Workstations (desks within a location; fixed assets such as monitors are bound to them)
+    Route::get('/workstations/floor-plan', [FloorPlanController::class, 'show'])->name('workstations.floor-plan');
+    Route::post('/locations/{location}/floor-plan', [FloorPlanController::class, 'upload'])->name('locations.floor-plan.upload');
+    Route::delete('/locations/{location}/floor-plan', [FloorPlanController::class, 'destroy'])->name('locations.floor-plan.destroy');
+    Route::put('/locations/{location}/floor-plan/layout', [FloorPlanController::class, 'saveLayout'])->name('locations.floor-plan.layout');
     Route::get('/workstations/movements', [WorkstationController::class, 'movements'])->name('workstations.movements');
     Route::get('/workstations/movements/export', [WorkstationController::class, 'exportMovements'])->name('workstations.movements.export');
     Route::get('/workstations/export', [WorkstationController::class, 'export'])->name('workstations.export');

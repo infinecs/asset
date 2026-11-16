@@ -75,6 +75,7 @@
 <div class="mb-4 inline-flex rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
     <a href="{{ route('workstations.index', $filters + ['view' => 'list']) }}" class="btn btn-sm {{ $view === 'list' ? 'btn-primary' : 'text-slate-600 dark:text-slate-300' }}"><i class="bi bi-list-ul"></i>List</a>
     <a href="{{ route('workstations.index', $filters + ['view' => 'rooms']) }}" class="btn btn-sm {{ $view === 'rooms' ? 'btn-primary' : 'text-slate-600 dark:text-slate-300' }}"><i class="bi bi-grid-3x3-gap"></i>Room view</a>
+    <a href="{{ route('workstations.floor-plan', array_filter(['location' => request('location')])) }}" class="btn btn-sm text-slate-600 dark:text-slate-300"><i class="bi bi-map"></i>Floor plan</a>
 </div>
 
 @if($view === 'rooms')

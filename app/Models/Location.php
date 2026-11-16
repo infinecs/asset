@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Location extends Model
 {
-    protected $fillable = ['name', 'code', 'building', 'floor', 'room', 'postcode', 'city', 'state', 'description'];
+    protected $fillable = ['name', 'code', 'building', 'floor', 'room', 'postcode', 'city', 'state', 'description', 'floor_plan_path'];
 
     protected static function booted(): void
     {
@@ -15,6 +15,12 @@ class Location extends Model
         static::updated(function (Location $location) {
             if ($location->wasChanged('code')) {
                 $location->workstations()->get()->each->save();
+            }
+        });
+
+        static::deleted(function (Location $location) {
+            if ($location->floor_plan_path) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($location->floor_plan_path);
             }
         });
     }
