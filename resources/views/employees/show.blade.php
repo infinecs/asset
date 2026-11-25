@@ -10,11 +10,29 @@
         <a href="{{ route('employees.individual-org-chart', $employee) }}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-diagram-3"></i>Org Chart</a>
         @endif
         @if(auth()->user()->isAdmin())
+        <a href="{{ route('employees.statement', $employee) }}" target="_blank" class="btn btn-outline btn-sm" title="A printable list of everything they hold, with a sign-off section">
+            <i class="bi bi-printer"></i>{{ $employee->status === 'resigned' ? 'Clearance Form' : 'Statement' }}
+        </a>
         <a href="{{ route('employees.edit', $employee) }}{{ $safeReturn ? '?return=' . urlencode($safeReturn) : '' }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i>Edit</a>
         @endif
         <a href="{{ $safeReturn ? url($safeReturn) : route('employees.index') }}" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i>Back</a>
     </div>
 </div>
+
+@if($recordIssues)
+<div class="mb-4 flex gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300">
+    <i class="bi bi-exclamation-triangle mt-0.5"></i>
+    <div class="flex-1">
+        <div class="font-semibold">This record needs attention</div>
+        <ul class="mt-1 list-disc space-y-0.5 ps-4">
+            @foreach($recordIssues as $message)
+            <li>{{ $message }}</li>
+            @endforeach
+        </ul>
+    </div>
+    <a href="{{ route('employees.edit', $employee) }}" class="shrink-0 self-start font-semibold hover:underline">Fix it</a>
+</div>
+@endif
 
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
     <div class="lg:col-span-4">
@@ -77,6 +95,79 @@
             </div>
         </div>
 
+        @if($onboarding)
+        @php
+            $steps = collect($employee->onboardingSteps());
+            $doneCount = $steps->where('done', true)->count();
+            $firstUnsigned = $employee->assets->whereNull('agreement_signed_at')->first();
+            $stepLinks = [
+                'equipment' => [route('assets.index', ['status' => 'available']), 'Find available assets'],
+                'agreements' => $firstUnsigned ? [route('assets.show', $firstUnsigned), 'Send or check ' . $firstUnsigned->asset_tag] : null,
+                'licences' => [route('digital-products.index'), 'Open digital products'],
+                'profile' => [route('employees.edit', $employee), 'Edit profile'],
+            ];
+        @endphp
+        <!-- Onboarding Checklist -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="text-sm font-semibold text-slate-800 dark:text-slate-100"><i class="bi bi-person-plus me-2 text-slate-400"></i>Onboarding</h6>
+                <span class="badge {{ $doneCount === $steps->count() ? 'badge-success' : 'badge-primary' }}">{{ $doneCount }} of {{ $steps->count() }} done</span>
+            </div>
+            <div class="card-body space-y-3">
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    @if($employee->join_date?->isFuture())
+                    Starts {{ $employee->join_date->format('d M Y') }} ({{ $employee->join_date->diffForHumans() }}).
+                    @elseif($employee->join_date)
+                    Joined {{ $employee->join_date->format('d M Y') }}.
+                    @else
+                    No join date yet.
+                    @endif
+                    Each step ticks itself off once the records show it's done.
+                </p>
+                @foreach($steps as $step)
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $step['done'] ? 'check-circle-fill text-green-600' : 'circle text-slate-300 dark:text-slate-600' }} mt-0.5"></i>
+                    <div class="min-w-0 flex-1 text-sm">
+                        <div class="{{ $step['done'] ? 'text-slate-500 dark:text-slate-400' : 'font-medium text-slate-800 dark:text-slate-100' }}">{{ $step['label'] }}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ $step['detail'] }}</div>
+
+                        @if($step['key'] === 'desk' && !$step['done'])
+                        @if($freeDesks->isEmpty())
+                        <p class="mt-1 text-xs text-slate-400">No free desks. <a href="{{ route('workstations.floor-plan') }}" class="text-primary-600 hover:underline dark:text-primary-400">Open the floor plan</a></p>
+                        @else
+                        <form method="POST" action="{{ route('employees.seat', $employee) }}" class="mt-1.5 flex gap-1.5">
+                            @csrf
+                            <label for="seat-desk" class="sr-only">Free desk</label>
+                            <select id="seat-desk" name="workstation_id" class="field-input min-w-0 flex-1 py-1 text-xs" required>
+                                <option value="">Choose a free desk...</option>
+                                @foreach($freeDesks as $locationName => $desks)
+                                <optgroup label="{{ $locationName }} ({{ $desks->count() }} free)">
+                                    @foreach($desks as $desk)
+                                    <option value="{{ $desk->id }}">{{ $desk->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                                @endforeach
+                            </select>
+                            <button class="btn btn-primary btn-sm shrink-0">Seat</button>
+                        </form>
+                        @error('workstation_id')<p class="field-error">{{ $message }}</p>@enderror
+                        <a href="{{ route('workstations.floor-plan') }}" class="mt-1 inline-block text-xs text-primary-600 hover:underline dark:text-primary-400">See free desks on the floor plan</a>
+                        @endif
+                        @elseif(!$step['done'] && !empty($stepLinks[$step['key']]))
+                        <a href="{{ $stepLinks[$step['key']][0] }}" class="mt-0.5 inline-block text-xs text-primary-600 hover:underline dark:text-primary-400">{{ $stepLinks[$step['key']][1] }}</a>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+                <form method="POST" action="{{ route('employees.onboarding.complete', $employee) }}"
+                      @if($doneCount < $steps->count()) onsubmit="return confirm('{{ $steps->count() - $doneCount }} step(s) are not done yet. Mark onboarding complete anyway? They will be noted in the history.')" @endif>
+                    @csrf
+                    <button class="btn btn-sm w-full {{ $doneCount === $steps->count() ? 'btn-primary' : 'btn-outline' }}"><i class="bi bi-check2-all"></i>Mark Onboarding Complete</button>
+                </form>
+            </div>
+        </div>
+        @endif
+
         @if($employee->status === 'resigned')
         @php
             $offboardAssetsRemaining = $employee->assets->count();
@@ -118,6 +209,22 @@
                         @endif
                     </div>
                 </div>
+                @php $offboardDesks = $employee->workstations; @endphp
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-{{ $offboardDesks->isEmpty() ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
+                    <div class="flex-1 text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">Free up their desk</span>
+                        @if($offboardDesks->isNotEmpty())
+                        @if(auth()->user()->isAdmin())
+                        <a href="{{ route('workstations.floor-plan', ['location' => $offboardDesks->first()->location_id, 'desk' => $offboardDesks->first()->id]) }}" class="ms-1 text-primary-600 hover:underline dark:text-primary-400">(still seated at {{ $offboardDesks->pluck('name')->join(', ') }})</a>
+                        @else
+                        <span class="text-slate-400">(still seated at {{ $offboardDesks->pluck('name')->join(', ') }})</span>
+                        @endif
+                        @else
+                        <span class="text-slate-400"> — done</span>
+                        @endif
+                    </div>
+                </div>
                 @if($employee->is_manager)
                 <div class="flex items-start gap-2">
                     <i class="bi bi-{{ $offboardReportsRemaining === 0 ? 'check-circle-fill text-green-600' : 'exclamation-circle text-amber-500' }} mt-0.5"></i>
@@ -148,6 +255,9 @@
                         {{ $employee->documents->count() }} document(s) on file — kept for records, no action needed.
                     </div>
                 </div>
+                @if(auth()->user()->isAdmin())
+                <a href="{{ route('employees.statement', $employee) }}" target="_blank" class="btn btn-outline btn-sm w-full"><i class="bi bi-printer"></i>Print Clearance Form</a>
+                @endif
             </div>
         </div>
         @endif

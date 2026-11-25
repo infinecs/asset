@@ -8,10 +8,18 @@
         <h5 class="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Employees</h5>
         <p class="mb-0 text-sm text-slate-500 dark:text-slate-400">Manage and track all employees</p>
     </div>
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2">
         <a href="{{ route('employees.org-chart') }}" class="btn btn-outline">
             <i class="bi bi-diagram-3"></i>Org Chart
         </a>
+        @if(auth()->user()->isAdmin())
+        <a href="{{ route('employees.calendar') }}" class="btn btn-outline">
+            <i class="bi bi-calendar-event"></i>People Calendar
+        </a>
+        <a href="{{ route('employees.headcount') }}" class="btn btn-outline">
+            <i class="bi bi-graph-up"></i>Headcount
+        </a>
+        @endif
         <a href="{{ route('employees.export', request()->query()) }}" class="btn btn-outline">
             <i class="bi bi-download"></i>Export CSV
         </a>
@@ -47,9 +55,42 @@
         'assets' => fn ($v) => $v === 'with' ? 'Has assets' : 'No assets',
         'dob_month' => fn ($v) => 'Birthday in ' . \Carbon\Carbon::create(null, (int) $v, 1)->format('F'),
         'missing_dob' => fn ($v) => 'Missing date of birth',
+        'issue' => fn ($v) => $v === 'any' ? 'Records that need attention' : 'Record: ' . (\App\Models\Employee::RECORD_CHECKS[$v] ?? $v),
+        'onboarding' => fn ($v) => 'New joiners being set up',
     ];
     $sort = request('sort', request()->filled('search') ? 'relevance' : 'id');
 @endphp
+
+@if($onboardingCount > 0 && request('onboarding') !== '1')
+<div class="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-800 dark:border-primary-900/50 dark:bg-primary-950/30 dark:text-primary-300">
+    <i class="bi bi-person-plus"></i>
+    <span class="flex-1">{{ $onboardingCount }} new joiner(s) are still being set up (desk, equipment, agreements, licences).</span>
+    <a href="{{ route('employees.index', ['onboarding' => 1]) }}" class="font-semibold hover:underline">Show them</a>
+</div>
+@endif
+
+@if($attentionCount > 0 && !request()->filled('issue'))
+<div class="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300" x-data="{ open: false }">
+    <div class="flex flex-wrap items-center gap-2">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span class="flex-1">{{ $attentionCount }} employee record(s) are incomplete or out of date. Gaps break the org chart, birthday emails and reports.</span>
+        <button type="button" class="font-semibold hover:underline" @click="open = !open" :aria-expanded="open">
+            <span x-text="open ? 'Hide details' : 'What\'s wrong?'"></span>
+        </button>
+        <a href="{{ route('employees.index', ['issue' => 'any']) }}" class="font-semibold hover:underline">Show them</a>
+    </div>
+    <div x-show="open" x-collapse x-cloak>
+        <ul class="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 border-t border-orange-200 pt-3 sm:grid-cols-2 lg:grid-cols-3 dark:border-orange-900/50">
+            @foreach($recordCheckCounts as $check => $count)
+            <li class="flex items-center justify-between gap-2">
+                <a href="{{ route('employees.index', ['issue' => $check]) }}" class="hover:underline">{{ \App\Models\Employee::RECORD_CHECKS[$check] }}</a>
+                <span class="font-semibold tabular-nums">{{ $count }}</span>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+</div>
+@endif
 <div class="card mb-6" x-data="{ advanced: {{ $advancedActive->isNotEmpty() ? 'true' : 'false' }}, employedOn: @js((string) request('employed_on')) }">
     <div class="card-body">
         <form method="GET" action="{{ route('employees.index') }}" class="grid grid-cols-1 gap-3 md:grid-cols-12">
@@ -69,7 +110,8 @@
             <div class="md:col-span-2">
                 <select name="sort" class="field-input" aria-label="Sort by">
                     <option value="relevance" {{ $sort === 'relevance' ? 'selected' : '' }}>Sort: Best match</option>
-                    <option value="id" {{ $sort === 'id' ? 'selected' : '' }}>Sort: ID number</option>
+                    <option value="id" {{ $sort === 'id' ? 'selected' : '' }}>Sort: ID number (earliest first)</option>
+                    <option value="id_desc" {{ $sort === 'id_desc' ? 'selected' : '' }}>Sort: ID number (recent first)</option>
                     <option value="name_asc" {{ $sort === 'name_asc' ? 'selected' : '' }}>Sort: Name A–Z</option>
                     <option value="name_desc" {{ $sort === 'name_desc' ? 'selected' : '' }}>Sort: Name Z–A</option>
                     <option value="newest" {{ $sort === 'newest' ? 'selected' : '' }}>Sort: Newest added</option>
@@ -200,6 +242,24 @@
                                 Missing date of birth
                             </label>
                         </div>
+                        @if(auth()->user()->isAdmin())
+                        <div>
+                            <label class="field-label">Record Check</label>
+                            <select name="issue" class="field-input">
+                                <option value="">Any</option>
+                                <option value="any" {{ request('issue') === 'any' ? 'selected' : '' }}>Any problem</option>
+                                @foreach(\App\Models\Employee::RECORD_CHECKS as $check => $label)
+                                <option value="{{ $check }}" {{ request('issue') === $check ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <label class="inline-flex items-center gap-2 pb-2 text-sm text-slate-700 dark:text-slate-300">
+                                <input type="checkbox" name="onboarding" value="1" class="rounded border-slate-300" {{ request('onboarding') === '1' ? 'checked' : '' }}>
+                                New joiners being set up
+                            </label>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -245,6 +305,18 @@
                                 <span class="text-xs font-bold text-white">{{ substr($employee->name, 0, 1) }}</span>
                             </div>
                             <span class="font-semibold text-slate-800 dark:text-slate-100">{{ $employee->name }}</span>
+                            @if(auth()->user()->isAdmin())
+                            @if($issues = $employee->recordIssues())
+                            <i class="bi bi-exclamation-triangle-fill text-orange-500" title="{{ implode("\n", $issues) }}"></i>
+                            <span class="sr-only">Record needs attention: {{ implode(' ', $issues) }}</span>
+                            @endif
+                            @if($employee->isOnboarding())
+                            @php $steps = collect($employee->onboardingSteps()); @endphp
+                            <span class="badge badge-primary" title="{{ $steps->map(fn ($s) => ($s['done'] ? '✓ ' : '○ ') . $s['label'])->implode("\n") }}">
+                                <i class="bi bi-person-plus me-1"></i>Onboarding {{ $steps->where('done', true)->count() }}/{{ $steps->count() }}
+                            </span>
+                            @endif
+                            @endif
                         </div>
                     </td>
                     <td><code class="text-primary-600 dark:text-primary-400">{{ $employee->id_number }}</code></td>

@@ -67,10 +67,20 @@
                     <i class="bi bi-journal-bookmark"></i><span x-show="!sidebarCollapsed || mobileOpen">Directory</span>
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Directory</span>
                 </a>
-                <a href="{{ route('employees.index') }}" class="sidebar-link {{ request()->routeIs('employees.*') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                <a href="{{ route('employees.index') }}" class="sidebar-link {{ request()->routeIs('employees.*') && !request()->routeIs('employees.calendar', 'employees.headcount') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
                     <i class="bi bi-people"></i><span x-show="!sidebarCollapsed || mobileOpen">Employees</span>
                     <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Employees</span>
                 </a>
+                @if(auth()->user()->isAdmin())
+                <a href="{{ route('employees.calendar') }}" class="sidebar-link {{ request()->routeIs('employees.calendar') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-calendar-event"></i><span x-show="!sidebarCollapsed || mobileOpen">People Calendar</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">People Calendar</span>
+                </a>
+                <a href="{{ route('employees.headcount') }}" class="sidebar-link {{ request()->routeIs('employees.headcount') ? 'active' : '' }} group relative" :class="{ 'justify-center': sidebarCollapsed && !mobileOpen }">
+                    <i class="bi bi-graph-up"></i><span x-show="!sidebarCollapsed || mobileOpen">Headcount</span>
+                    <span x-show="sidebarCollapsed && !mobileOpen" x-cloak class="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">Headcount</span>
+                </a>
+                @endif
 
                 @if(auth()->user()->isStaff())
                 <div class="sidebar-section" x-show="!sidebarCollapsed || mobileOpen">Assets</div>

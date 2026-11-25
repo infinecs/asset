@@ -11,6 +11,7 @@ use App\Models\EmployeeHistory;
 use App\Models\Location;
 use App\Models\Role;
 use App\Models\Team;
+use App\Models\Workstation;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,7 @@ class EmployeeController extends Controller
     /**
      * Query-string keys that belong to the Advanced Search panel (used to keep it open when active).
      */
-    public const ADVANCED_FILTERS = ['employed_on', 'resigned_from', 'resigned_to', 'role', 'team', 'team_type', 'client', 'manager', 'location', 'is_manager', 'assets', 'dob_month', 'missing_dob'];
+    public const ADVANCED_FILTERS = ['employed_on', 'resigned_from', 'resigned_to', 'role', 'team', 'team_type', 'client', 'manager', 'location', 'is_manager', 'assets', 'dob_month', 'missing_dob', 'issue', 'onboarding'];
 
     private function authorizeAdmin(): void
     {
@@ -156,6 +157,18 @@ class EmployeeController extends Controller
             $query->whereNull('date_of_birth');
         }
 
+        // Record checks: "any" for every problem, or one RECORD_CHECKS key.
+        $issue = $request->input('issue');
+        if ($issue === 'any') {
+            $query->needsAttention();
+        } elseif (is_string($issue) && array_key_exists($issue, Employee::RECORD_CHECKS)) {
+            $query->withRecordIssue($issue);
+        }
+
+        if ($request->input('onboarding') === '1') {
+            $query->onboarding();
+        }
+
         $sort = $request->input('sort', $search !== '' ? 'relevance' : 'id');
 
         match ($sort) {
@@ -163,6 +176,7 @@ class EmployeeController extends Controller
             'name_asc' => $query->orderBy('name'),
             'name_desc' => $query->orderByDesc('name'),
             'newest' => $query->latest(),
+            'id_desc' => $query->orderByRaw('CAST(SUBSTRING(id_number, 4) AS UNSIGNED) DESC'),
             default => $query->orderByRaw('CAST(SUBSTRING(id_number, 4) AS UNSIGNED) ASC'),
         };
 
@@ -171,7 +185,19 @@ class EmployeeController extends Controller
 
     public function index(Request $request)
     {
-        $employees = $this->filteredEmployeesQuery($request)->paginate(15)->withQueryString();
+        $isAdmin = auth()->user()->isAdmin();
+
+        $employees = $this->filteredEmployeesQuery($request)
+            ->when($isAdmin, fn ($q) => $q->withRecordCounts())
+            ->paginate(15)
+            ->withQueryString();
+
+        // Record checks and new joiners are for admins, who can fix them.
+        $recordCheckCounts = $isAdmin
+            ? collect(Employee::RECORD_CHECKS)->map(fn ($label, $check) => Employee::withRecordIssue($check)->count())->filter()
+            : collect();
+        $attentionCount = $isAdmin && $recordCheckCounts->isNotEmpty() ? Employee::needsAttention()->count() : 0;
+        $onboardingCount = $isAdmin ? Employee::onboarding()->count() : 0;
 
         $filterOptions = [
             'roles' => Role::orderBy('name')->get(['id', 'name']),
@@ -182,7 +208,7 @@ class EmployeeController extends Controller
                 ->distinct()->orderBy('work_location')->pluck('work_location'),
         ];
 
-        return view('employees.index', compact('employees', 'filterOptions'));
+        return view('employees.index', compact('employees', 'filterOptions', 'recordCheckCounts', 'attentionCount', 'onboardingCount'));
     }
 
     public function export(Request $request)
@@ -452,6 +478,29 @@ class EmployeeController extends Controller
     {
         $employee->load(['assets.category', 'workstations.location', 'workstations.assets', 'documents', 'digitalProducts.brand', 'role', 'team', 'manager', 'subordinates.team', 'subordinates.role', 'managedTeams', 'histories.user']);
 
+        $isAdmin = auth()->user()->isAdmin();
+
+        // Record problems. For someone who has left, the offboarding checklist already covers
+        // assets, licences, desk and reports, so only the rest is listed separately.
+        $recordIssues = $isAdmin ? $employee->recordIssues() : [];
+        if ($employee->status === 'resigned') {
+            unset($recordIssues['left_with_assets'], $recordIssues['left_with_licences'], $recordIssues['left_still_seated'], $recordIssues['left_with_reports']);
+        }
+
+        // New joiner: the onboarding checklist, and the free desks they could be seated at
+        // (in their work location first).
+        $onboarding = $isAdmin && $employee->isOnboarding();
+        $freeDesks = $onboarding && $employee->workstations->isEmpty()
+            ? Workstation::with('location')->whereNull('occupant_id')->get()
+                ->sortBy(fn (Workstation $w) => [
+                    $w->location?->name === $employee->work_location ? 0 : 1,
+                    $w->location?->name,
+                    (string) $w->room,
+                    $w->number,
+                ])
+                ->groupBy(fn (Workstation $w) => $w->location?->name ?? 'No location')
+            : collect();
+
         $relationNameMaps = [
             'role_id' => Role::pluck('name', 'id'),
             'team_id' => Team::pluck('name', 'id'),
@@ -505,12 +554,32 @@ class EmployeeController extends Controller
                 'icon' => match ($history->action) {
                     'created' => 'plus',
                     'status_changed' => 'arrow-repeat',
+                    'onboarded' => 'person-check',
                     default => 'pencil',
                 },
             ];
         })->sortByDesc('at')->take(15)->values();
 
-        return view('employees.show', compact('employee', 'activityTimeline'));
+        return view('employees.show', compact('employee', 'activityTimeline', 'recordIssues', 'onboarding', 'freeDesks'));
+    }
+
+    /**
+     * A printable statement of everything an employee holds: assigned assets, their desk and its
+     * equipment, and software licences, with a sign-off section. For someone who has left it's
+     * an offboarding clearance form with a "returned" tick box per item. ?type=holdings|clearance
+     * overrides the default.
+     */
+    public function statement(Request $request, Employee $employee)
+    {
+        $this->authorizeAdmin();
+
+        $employee->load(['assets.category', 'workstations.location', 'workstations.assets', 'digitalProducts', 'role', 'team', 'manager', 'managedTeams']);
+
+        $type = in_array($request->input('type'), ['holdings', 'clearance'], true)
+            ? $request->input('type')
+            : ($employee->status === 'resigned' ? 'clearance' : 'holdings');
+
+        return view('employees.statement', compact('employee', 'type'));
     }
 
     /**
