@@ -36,7 +36,7 @@ class EmployeeInsightsTest extends TestCase
         $ceo = Role::create(['name' => 'CEO', 'is_top_level' => true]);
         $this->role = Role::create(['name' => 'Engineer']);
         $this->team = Team::create(['name' => 'Platform']);
-        $this->boss = $this->person('Big Boss', ['role_id' => $ceo->id, 'is_manager' => true, 'team_id' => null, 'manager_id' => null]);
+        $this->boss = $this->person('BIG BOSS', ['role_id' => $ceo->id, 'is_manager' => true, 'team_id' => null, 'manager_id' => null]);
     }
 
     /**
@@ -71,31 +71,49 @@ class EmployeeInsightsTest extends TestCase
         ], $attributes));
     }
 
+    // ---- Names in capitals --------------------------------------------------------------------
+
+    public function test_names_are_saved_in_capital_letters(): void
+    {
+        $form = ['name' => '  siti   noor binti Ahmad ', 'id_number_suffix' => '900', 'email' => 'siti@example.com', 'status' => 'active'];
+
+        $this->post(route('employees.store'), $form)->assertRedirect();
+        $siti = Employee::where('email', 'siti@example.com')->firstOrFail();
+        $this->assertSame('SITI NOOR BINTI AHMAD', $siti->name);
+
+        // Saving the same name in another case isn't a change.
+        $this->put(route('employees.update', $siti), ['name' => 'Siti Noor binti Ahmad'] + $form)->assertRedirect();
+        $this->assertSame('SITI NOOR BINTI AHMAD', $siti->fresh()->name);
+        $this->assertFalse($siti->histories()->where('action', 'updated')->get()->contains(fn ($h) => isset($h->changes['name'])));
+
+        $this->assertSame('ÉLODIE ÇA', Employee::normalizeName('élodie ça'));
+    }
+
     // ---- Record checks ------------------------------------------------------------------------
 
     public function test_record_checks_find_and_explain_each_problem(): void
     {
-        $gone = $this->person('Gone Boss', ['status' => 'resigned', 'resigned_date' => '2026-10-01']);
+        $gone = $this->person('GONE BOSS', ['status' => 'resigned', 'resigned_date' => '2026-10-01']);
         $cases = [
-            'no_manager' => $this->person('No Manager', ['manager_id' => null]),
-            'no_team' => $this->person('No Team', ['team_id' => null]),
-            'no_role' => $this->person('No Role', ['role_id' => null]),
-            'no_join_date' => $this->person('No Join', ['join_date' => null]),
-            'no_birthday' => $this->person('No Birthday', ['date_of_birth' => null]),
-            'manager_left' => $this->person('Orphan', ['manager_id' => $gone->id]),
-            'left_with_assets' => $withAssets = $this->person('Left With Laptop', ['status' => 'resigned', 'resigned_date' => '2026-10-01']),
-            'left_with_licences' => $withLicence = $this->person('Left With Licence', ['status' => 'resigned', 'resigned_date' => '2026-10-01']),
-            'left_still_seated' => $seated = $this->person('Left Seated', ['status' => 'resigned', 'resigned_date' => '2026-10-01']),
+            'no_manager' => $this->person('NO MANAGER', ['manager_id' => null]),
+            'no_team' => $this->person('NO TEAM', ['team_id' => null]),
+            'no_role' => $this->person('NO ROLE', ['role_id' => null]),
+            'no_join_date' => $this->person('NO JOIN', ['join_date' => null]),
+            'no_birthday' => $this->person('NO BIRTHDAY', ['date_of_birth' => null]),
+            'manager_left' => $this->person('ORPHAN', ['manager_id' => $gone->id]),
+            'left_with_assets' => $withAssets = $this->person('LEFT WITH LAPTOP', ['status' => 'resigned', 'resigned_date' => '2026-10-01']),
+            'left_with_licences' => $withLicence = $this->person('LEFT WITH LICENCE', ['status' => 'resigned', 'resigned_date' => '2026-10-01']),
+            'left_still_seated' => $seated = $this->person('LEFT SEATED', ['status' => 'resigned', 'resigned_date' => '2026-10-01']),
             'left_with_reports' => $gone,
-            'no_resigned_date' => $this->person('Left Undated', ['status' => 'resigned', 'resigned_date' => null]),
+            'no_resigned_date' => $this->person('LEFT UNDATED', ['status' => 'resigned', 'resigned_date' => null]),
         ];
         $this->asset(['assigned_to' => $withAssets->id]);
         $withLicence->digitalProducts()->attach(DigitalProduct::create(['name' => 'Figma'])->id, ['assigned_at' => now()]);
         $location = Location::create(['name' => 'HQ', 'code' => 'HQ']);
         Workstation::create(['location_id' => $location->id, 'room' => 'RA', 'number' => 1, 'occupant_id' => $seated->id]);
         // Not flagged: opted out of gift cards, and a manager with no personal team.
-        $this->person('Opted Out', ['date_of_birth' => null, 'gift_card_opt_out' => true]);
-        $this->person('A Manager', ['is_manager' => true, 'team_id' => null]);
+        $this->person('OPTED OUT', ['date_of_birth' => null, 'gift_card_opt_out' => true]);
+        $this->person('A MANAGER', ['is_manager' => true, 'team_id' => null]);
 
         foreach ($cases as $check => $employee) {
             $found = Employee::withRecordIssue($check)->pluck('name')->all();
@@ -105,16 +123,16 @@ class EmployeeInsightsTest extends TestCase
 
         $this->assertSame([], $this->boss->fresh()->recordIssues(), 'A top-level role needs no manager');
         $flagged = Employee::needsAttention()->pluck('name')->all();
-        $this->assertNotContains('Opted Out', $flagged);
-        $this->assertNotContains('A Manager', $flagged);
-        $this->assertNotContains('Big Boss', $flagged);
+        $this->assertNotContains('OPTED OUT', $flagged);
+        $this->assertNotContains('A MANAGER', $flagged);
+        $this->assertNotContains('BIG BOSS', $flagged);
         $this->assertSame('Has left but still holds 1 asset(s).', $withAssets->fresh()->recordIssues()['left_with_assets']);
     }
 
     public function test_list_shows_the_record_check_banner_and_filters_by_it(): void
     {
-        $this->person('Complete Person');
-        $this->person('No Join', ['join_date' => null]);
+        $this->person('COMPLETE PERSON');
+        $this->person('NO JOIN', ['join_date' => null]);
 
         $this->get(route('employees.index'))
             ->assertOk()
@@ -123,11 +141,11 @@ class EmployeeInsightsTest extends TestCase
 
         $this->get(route('employees.index', ['issue' => 'any']))
             ->assertOk()
-            ->assertSee('No Join')
-            ->assertDontSee('Complete Person')
+            ->assertSee('NO JOIN')
+            ->assertDontSee('COMPLETE PERSON')
             ->assertSee('Records that need attention');
 
-        $this->get(route('employees.show', Employee::where('name', 'No Join')->first()))
+        $this->get(route('employees.show', Employee::where('name', 'NO JOIN')->first()))
             ->assertOk()
             ->assertSee('This record needs attention')
             ->assertSee('No join date, so work anniversaries');
@@ -137,16 +155,16 @@ class EmployeeInsightsTest extends TestCase
 
     public function test_recent_joiners_get_the_onboarding_checklist(): void
     {
-        $new = $this->person('New Joiner', ['join_date' => '2026-11-20']);
-        $future = $this->person('Starts Soon', ['join_date' => '2026-12-05']);
-        $old = $this->person('Old Hand', ['join_date' => '2020-01-01']);
-        $done = $this->person('Set Up', ['join_date' => '2026-11-01', 'onboarded_at' => now()]);
+        $new = $this->person('NEW JOINER', ['join_date' => '2026-11-20']);
+        $future = $this->person('STARTS SOON', ['join_date' => '2026-12-05']);
+        $old = $this->person('OLD HAND', ['join_date' => '2020-01-01']);
+        $done = $this->person('SET UP', ['join_date' => '2026-11-01', 'onboarded_at' => now()]);
 
         $this->assertTrue($new->isOnboarding());
         $this->assertTrue($future->isOnboarding());
         $this->assertFalse($old->isOnboarding());
         $this->assertFalse($done->isOnboarding());
-        $this->assertEqualsCanonicalizing(['New Joiner', 'Starts Soon'], Employee::onboarding()->pluck('name')->all());
+        $this->assertEqualsCanonicalizing(['NEW JOINER', 'STARTS SOON'], Employee::onboarding()->pluck('name')->all());
 
         $steps = collect($new->onboardingSteps())->pluck('done', 'key');
         $this->assertSame(['desk' => false, 'equipment' => false, 'agreements' => false, 'licences' => false, 'profile' => true], $steps->all());
@@ -159,7 +177,7 @@ class EmployeeInsightsTest extends TestCase
         $this->assertSame('1 of 2 signed.', $steps['agreements']['detail']);
 
         $this->get(route('employees.index'))->assertSee('2 new joiner(s) are still being set up');
-        $this->get(route('employees.index', ['onboarding' => 1]))->assertSee('Onboarding 2/5')->assertDontSee('Old Hand');
+        $this->get(route('employees.index', ['onboarding' => 1]))->assertSee('Onboarding 2/5')->assertDontSee('OLD HAND');
         $this->get(route('employees.show', $new))->assertOk()->assertSee('Mark Onboarding Complete')->assertSee('No free desks');
         $location = Location::create(['name' => 'HQ', 'code' => 'HQ']);
         Workstation::create(['location_id' => $location->id, 'room' => 'RA', 'number' => 1]);
@@ -169,8 +187,8 @@ class EmployeeInsightsTest extends TestCase
 
     public function test_seating_a_new_joiner_at_a_free_desk(): void
     {
-        $new = $this->person('New Joiner', ['join_date' => '2026-11-20']);
-        $other = $this->person('Sitting Already');
+        $new = $this->person('NEW JOINER', ['join_date' => '2026-11-20']);
+        $other = $this->person('SITTING ALREADY');
         $location = Location::create(['name' => 'HQ', 'code' => 'HQ']);
         $free = Workstation::create(['location_id' => $location->id, 'room' => 'RA', 'number' => 1]);
         $taken = Workstation::create(['location_id' => $location->id, 'room' => 'RA', 'number' => 2, 'occupant_id' => $other->id]);
@@ -181,7 +199,7 @@ class EmployeeInsightsTest extends TestCase
 
         $this->post(route('employees.seat', $new), ['workstation_id' => $free->id])
             ->assertRedirect(route('employees.show', $new))
-            ->assertSessionHas('success', 'New Joiner now sits at INFHQRAWS01.');
+            ->assertSessionHas('success', 'NEW JOINER now sits at INFHQRAWS01.');
         $this->assertSame($new->id, $free->fresh()->occupant_id);
 
         // Seating them again moves them; the old desk becomes a hot desk.
@@ -193,7 +211,7 @@ class EmployeeInsightsTest extends TestCase
 
     public function test_marking_onboarding_complete_notes_open_steps(): void
     {
-        $new = $this->person('New Joiner', ['join_date' => '2026-11-20']);
+        $new = $this->person('NEW JOINER', ['join_date' => '2026-11-20']);
 
         $this->post(route('employees.onboarding.complete', $new))->assertRedirect(route('employees.show', $new));
 
@@ -207,7 +225,7 @@ class EmployeeInsightsTest extends TestCase
 
     public function test_statement_lists_everything_held_and_becomes_a_clearance_form_for_leavers(): void
     {
-        $person = $this->person('Nur Aisyah');
+        $person = $this->person('NUR AISYAH');
         $this->asset(['assigned_to' => $person->id, 'asset_tag' => 'ISSBM777', 'serial_number' => 'SN-12345']);
         $person->digitalProducts()->attach(DigitalProduct::create(['name' => 'Figma', 'plan' => 'Pro'])->id, ['assigned_at' => now()]);
         $location = Location::create(['name' => 'HQ', 'code' => 'HQ']);
@@ -236,19 +254,19 @@ class EmployeeInsightsTest extends TestCase
     public function test_headcount_counts_joiners_leavers_and_turnover(): void
     {
         // Boss joined 2024-03-01 like everyone by default; four more over the year.
-        $this->person('Joined In March', ['join_date' => '2026-03-10']);
-        $this->person('Joined In October', ['join_date' => '2026-10-05']);
-        $this->person('Left In June', ['join_date' => '2023-01-01', 'status' => 'resigned', 'resigned_date' => '2026-06-30']);
-        $this->person('Left Long Ago', ['join_date' => '2020-01-01', 'status' => 'resigned', 'resigned_date' => '2024-01-31']);
-        $this->person('Starts Next Month', ['join_date' => '2026-12-01']);
-        $this->person('No Join Date', ['join_date' => null]);
-        $this->person('Left Undated', ['status' => 'resigned', 'resigned_date' => null]);
+        $this->person('JOINED IN MARCH', ['join_date' => '2026-03-10']);
+        $this->person('JOINED IN OCTOBER', ['join_date' => '2026-10-05']);
+        $this->person('LEFT IN JUNE', ['join_date' => '2023-01-01', 'status' => 'resigned', 'resigned_date' => '2026-06-30']);
+        $this->person('LEFT LONG AGO', ['join_date' => '2020-01-01', 'status' => 'resigned', 'resigned_date' => '2024-01-31']);
+        $this->person('STARTS NEXT MONTH', ['join_date' => '2026-12-01']);
+        $this->person('NO JOIN DATE', ['join_date' => null]);
+        $this->person('LEFT UNDATED', ['status' => 'resigned', 'resigned_date' => null]);
 
         $response = $this->get(route('employees.headcount'))->assertOk();
         $series = collect($response->viewData('series'))->keyBy('key');
         $summary = $response->viewData('summary');
 
-        // Dec 2025 to Nov 2026. At the start: boss, Left In June and No Join Date = 3.
+        // Dec 2025 to Nov 2026. At the start: boss, LEFT IN JUNE and NO JOIN DATE = 3.
         $this->assertCount(12, $series);
         $this->assertSame(3, $series['2025-12']['headcount']);
         $this->assertSame(1, $series['2026-03']['joined']);
@@ -265,14 +283,14 @@ class EmployeeInsightsTest extends TestCase
         $this->assertEqualsWithDelta(1 / ((3 + array_sum($series->pluck('headcount')->all())) / 13) * 100, $summary['turnover'], 0.1);
         $this->assertSame(['noJoinDate' => 1, 'noResignedDate' => 1], $response->viewData('caveats'));
 
-        $response->assertSee('Headcount &amp; Turnover', false)->assertSee('Left In June');
+        $response->assertSee('Headcount &amp; Turnover', false)->assertSee('LEFT IN JUNE');
     }
 
     public function test_headcount_filters_by_team(): void
     {
         $other = Team::create(['name' => 'Sales']);
-        $this->person('Platform Person');
-        $this->person('Sales Person', ['team_id' => $other->id]);
+        $this->person('PLATFORM PERSON');
+        $this->person('SALES PERSON', ['team_id' => $other->id]);
 
         $summary = $this->get(route('employees.headcount', ['team' => $other->id]))->assertOk()->viewData('summary');
 
@@ -283,30 +301,30 @@ class EmployeeInsightsTest extends TestCase
 
     public function test_calendar_shows_birthdays_anniversaries_joins_and_last_days(): void
     {
-        $this->person('Birthday Person', ['date_of_birth' => '1992-02-29', 'join_date' => '2025-07-01']);
-        $this->person('Five Years', ['join_date' => '2022-02-10']);
-        $this->person('Six Years', ['join_date' => '2021-02-11']);
-        $this->person('New In Feb', ['join_date' => '2027-02-02', 'date_of_birth' => '1990-08-01']);
-        $this->person('Leaves In Feb', ['status' => 'resigned', 'resigned_date' => '2027-02-26', 'date_of_birth' => '1990-02-03']);
+        $this->person('BIRTHDAY PERSON', ['date_of_birth' => '1992-02-29', 'join_date' => '2025-07-01']);
+        $this->person('FIVE YEARS', ['join_date' => '2022-02-10']);
+        $this->person('SIX YEARS', ['join_date' => '2021-02-11']);
+        $this->person('NEW IN FEB', ['join_date' => '2027-02-02', 'date_of_birth' => '1990-08-01']);
+        $this->person('LEAVES IN FEB', ['status' => 'resigned', 'resigned_date' => '2027-02-26', 'date_of_birth' => '1990-02-03']);
 
         $events = $this->get(route('employees.calendar', ['month' => '2027-02']))->assertOk()->viewData('events');
         $byName = $events->groupBy(fn ($e) => $e['employee']->name)->map(fn ($list) => $list->map(fn ($e) => $e['type'] . '@' . $e['date']->format('m-d'))->all());
 
         // 29 Feb falls on the 28th in 2027; a leaver's birthday isn't shown.
-        $this->assertSame(['birthday@02-28'], $byName['Birthday Person']);
-        $this->assertSame(['anniversary@02-10'], $byName['Five Years']);
-        $this->assertSame(['anniversary@02-11'], $byName['Six Years']);
-        $this->assertSame(['joining@02-02'], $byName['New In Feb']);
-        $this->assertSame(['leaving@02-26'], $byName['Leaves In Feb']);
+        $this->assertSame(['birthday@02-28'], $byName['BIRTHDAY PERSON']);
+        $this->assertSame(['anniversary@02-10'], $byName['FIVE YEARS']);
+        $this->assertSame(['anniversary@02-11'], $byName['SIX YEARS']);
+        $this->assertSame(['joining@02-02'], $byName['NEW IN FEB']);
+        $this->assertSame(['leaving@02-26'], $byName['LEAVES IN FEB']);
 
         $anniversaries = $events->where('type', 'anniversary')->keyBy(fn ($e) => $e['employee']->name);
-        $this->assertSame(['5 years', true], [$anniversaries['Five Years']['detail'], $anniversaries['Five Years']['milestone']]);
-        $this->assertSame(['6 years', false], [$anniversaries['Six Years']['detail'], $anniversaries['Six Years']['milestone']]);
+        $this->assertSame(['5 years', true], [$anniversaries['FIVE YEARS']['detail'], $anniversaries['FIVE YEARS']['milestone']]);
+        $this->assertSame(['6 years', false], [$anniversaries['SIX YEARS']['detail'], $anniversaries['SIX YEARS']['milestone']]);
     }
 
     public function test_new_pages_are_for_admins_only(): void
     {
-        $person = $this->person('Someone');
+        $person = $this->person('SOMEONE');
         $this->actingAs(User::factory()->create(['role' => 'staff']));
 
         $this->get(route('employees.calendar'))->assertForbidden();

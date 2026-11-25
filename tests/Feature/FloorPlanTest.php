@@ -56,7 +56,7 @@ class FloorPlanTest extends TestCase
     public function test_page_shows_the_plan_with_its_desks(): void
     {
         $this->withPlan();
-        $employee = Employee::create(['name' => 'Nur Aisyah', 'id_number' => 'INF001', 'email' => 'aisyah@example.com', 'status' => 'active']);
+        $employee = Employee::create(['name' => 'NUR AISYAH', 'id_number' => 'INF001', 'email' => 'aisyah@example.com', 'status' => 'active']);
         $this->desk(1, null, ['occupant_id' => $employee->id, 'plan_x' => 25.5, 'plan_y' => 40]);
         $this->desk(2);
 
@@ -69,7 +69,7 @@ class FloorPlanTest extends TestCase
 
         $this->assertSame(route('locations.floor-plan.layout', $this->office), $data['saveUrl']);
         $this->assertSame(['INFP1ARAWS01', 'INFP1ARAWS02'], array_column($data['desks'], 'code'));
-        $this->assertSame(['Nur Aisyah', 'assigned', 25.5, 40.0], [
+        $this->assertSame(['NUR AISYAH', 'assigned', 25.5, 40.0], [
             $data['desks'][0]['occupant'], $data['desks'][0]['status'], (float) $data['desks'][0]['x'], (float) $data['desks'][0]['y'],
         ]);
         $this->assertSame(['empty', null], [$data['desks'][1]['status'], $data['desks'][1]['x']]);
@@ -242,9 +242,9 @@ class FloorPlanTest extends TestCase
     public function test_page_flags_desks_that_need_attention(): void
     {
         $this->withPlan();
-        $left = $this->employee('Gone Person', 'INF003', 'resigned');
-        $seated = $this->employee('Nur Aisyah', 'INF001');
-        $other = $this->employee('Ali Bakar', 'INF002');
+        $left = $this->employee('GONE PERSON', 'INF003', 'resigned');
+        $seated = $this->employee('NUR AISYAH', 'INF001');
+        $other = $this->employee('ALI BAKAR', 'INF002');
         $leftDesk = $this->desk(1, null, ['occupant_id' => $left->id]);
         $bareDesk = $this->desk(2, null, ['occupant_id' => $seated->id]);
         $mixedDesk = $this->desk(3);
@@ -255,9 +255,9 @@ class FloorPlanTest extends TestCase
 
         $warnings = collect($this->planData()['desks'])->pluck('warnings', 'code');
 
-        $this->assertSame(['Gone Person has left the company but is still seated here.'], $warnings['INFP1ARAWS01']);
-        $this->assertSame(['Nur Aisyah sits here, but no equipment is recorded at the desk.'], $warnings['INFP1ARAWS02']);
-        $this->assertSame(['ISSBM900 is assigned to Ali Bakar, who does not sit here.'], $warnings['INFP1ARAWS03']);
+        $this->assertSame(['GONE PERSON has left the company but is still seated here.'], $warnings['INFP1ARAWS01']);
+        $this->assertSame(['NUR AISYAH sits here, but no equipment is recorded at the desk.'], $warnings['INFP1ARAWS02']);
+        $this->assertSame(['ISSBM900 is assigned to ALI BAKAR, who does not sit here.'], $warnings['INFP1ARAWS03']);
         $this->assertSame([], $warnings['INFP1ARAWS04']);
 
         // The list's "needs attention" filter finds the same desks.
@@ -289,7 +289,7 @@ class FloorPlanTest extends TestCase
     public function test_print_page_shows_the_plan_with_labelled_desks(): void
     {
         $this->withPlan();
-        $employee = $this->employee('Nur Aisyah', 'INF001');
+        $employee = $this->employee('NUR AISYAH', 'INF001');
         $this->desk(1, null, ['occupant_id' => $employee->id, 'plan_x' => 25, 'plan_y' => 40, 'plan_rotation' => 90]);
         $this->desk(2);
 
@@ -299,7 +299,7 @@ class FloorPlanTest extends TestCase
             ->assertSee('storage/' . $this->office->floor_plan_path, false)
             ->assertSee('class="by-audit', false)
             ->assertSee('rotate(90deg)', false)
-            ->assertSee('Nur Aisyah')
+            ->assertSee('NUR AISYAH')
             ->assertSee('1 of 2 desk(s) on the plan');
 
         $noPlan = Location::create(['name' => 'Infinecs P2', 'code' => 'P2']);
@@ -402,31 +402,31 @@ class FloorPlanTest extends TestCase
     public function test_page_lists_active_employees_and_where_they_sit(): void
     {
         $this->withPlan();
-        $seated = $this->employee('Nur Aisyah', 'INF001');
-        $this->employee('Ali Bakar', 'INF002');
-        $this->employee('Gone Person', 'INF003', 'resigned');
-        $leftButSeated = $this->employee('Still Seated', 'INF004', 'resigned');
+        $seated = $this->employee('NUR AISYAH', 'INF001');
+        $this->employee('ALI BAKAR', 'INF002');
+        $this->employee('GONE PERSON', 'INF003', 'resigned');
+        $leftButSeated = $this->employee('STILL SEATED', 'INF004', 'resigned');
         $desk = $this->desk(1, null, ['occupant_id' => $seated->id]);
         $this->desk(2, null, ['occupant_id' => $leftButSeated->id]);
 
         $data = $this->planData();
 
-        $this->assertSame(['Ali Bakar', 'Nur Aisyah', 'Still Seated'], array_column($data['employees'], 'name'));
-        $aisyah = collect($data['employees'])->firstWhere('name', 'Nur Aisyah');
+        $this->assertSame(['ALI BAKAR', 'NUR AISYAH', 'STILL SEATED'], array_column($data['employees'], 'name'));
+        $aisyah = collect($data['employees'])->firstWhere('name', 'NUR AISYAH');
         $this->assertSame([['id' => $desk->id, 'code' => 'INFP1ARAWS01']], $aisyah['desks']);
-        $this->assertFalse(collect($data['employees'])->firstWhere('name', 'Still Seated')['active']);
+        $this->assertFalse(collect($data['employees'])->firstWhere('name', 'STILL SEATED')['active']);
         $this->assertSame(route('workstations.occupant', $desk), $data['desks'][0]['occupant_url']);
     }
 
     public function test_assigning_an_occupant_from_the_floor_plan(): void
     {
-        $employee = $this->employee('Nur Aisyah', 'INF001');
+        $employee = $this->employee('NUR AISYAH', 'INF001');
         $desk = $this->desk(1, null, ['plan_x' => 10, 'plan_y' => 20]);
 
         $this->putJson(route('workstations.occupant', $desk), ['occupant_id' => $employee->id])
             ->assertOk()
-            ->assertJsonPath('message', 'Nur Aisyah now sits at INFP1ARAWS01.')
-            ->assertJsonPath('desks.0.occupant', 'Nur Aisyah')
+            ->assertJsonPath('message', 'NUR AISYAH now sits at INFP1ARAWS01.')
+            ->assertJsonPath('desks.0.occupant', 'NUR AISYAH')
             ->assertJsonPath('desks.0.status', 'assigned');
 
         $this->assertSame($employee->id, $desk->fresh()->occupant_id);
@@ -441,7 +441,7 @@ class FloorPlanTest extends TestCase
 
     public function test_seating_someone_who_sits_elsewhere_needs_a_move(): void
     {
-        $employee = $this->employee('Nur Aisyah', 'INF001');
+        $employee = $this->employee('NUR AISYAH', 'INF001');
         $old = $this->desk(1, null, ['occupant_id' => $employee->id]);
         $new = $this->desk(2);
 
@@ -453,7 +453,7 @@ class FloorPlanTest extends TestCase
 
         $this->putJson(route('workstations.occupant', $new), ['occupant_id' => $employee->id, 'move' => true])
             ->assertOk()
-            ->assertJsonPath('message', 'Nur Aisyah now sits at INFP1ARAWS02. INFP1ARAWS01 is now a hot desk.')
+            ->assertJsonPath('message', 'NUR AISYAH now sits at INFP1ARAWS02. INFP1ARAWS01 is now a hot desk.')
             ->assertJsonCount(2, 'desks');
         $this->assertNull($old->fresh()->occupant_id);
         $this->assertSame($employee->id, $new->fresh()->occupant_id);
@@ -461,7 +461,7 @@ class FloorPlanTest extends TestCase
 
     public function test_only_active_employees_can_be_seated(): void
     {
-        $resigned = $this->employee('Gone Person', 'INF003', 'resigned');
+        $resigned = $this->employee('GONE PERSON', 'INF003', 'resigned');
         $desk = $this->desk(1);
 
         $this->putJson(route('workstations.occupant', $desk), ['occupant_id' => $resigned->id])

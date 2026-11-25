@@ -660,6 +660,8 @@ class EmployeeController extends Controller
         $validated['team_id'] = $validated['is_manager'] ? null : ($validated['team_id'] ?? null);
         unset($validated['subordinate_ids'], $validated['managed_team_ids']);
         $validated = $this->normalizeEmploymentDates($validated);
+        // Compare the name as it will be stored (in capitals), so retyping it in another case isn't logged as a change.
+        $validated['name'] = Employee::normalizeName($validated['name']);
 
         if ($employee->wouldCreateCycle($validated['manager_id'] ?? null)) {
             return back()->withErrors(['manager_id' => 'Invalid manager selection: this would create a reporting loop.'])->withInput();

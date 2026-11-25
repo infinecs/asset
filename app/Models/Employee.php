@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -50,6 +51,22 @@ class Employee extends Model
         'gift_card_opt_out' => 'boolean',
         'is_manager' => 'boolean',
     ];
+
+    /**
+     * Names are kept in capital letters, however they're typed or imported.
+     */
+    protected function name(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value) => self::normalizeName($value));
+    }
+
+    /**
+     * A name as it's stored: trimmed, single-spaced and in capitals.
+     */
+    public static function normalizeName(?string $name): ?string
+    {
+        return $name === null ? null : mb_strtoupper(trim(preg_replace('/\s+/u', ' ', $name)));
+    }
 
     public function role(): BelongsTo
     {

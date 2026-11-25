@@ -20,7 +20,7 @@ class EmployeeAuthorizationTest extends TestCase
         parent::setUp();
 
         $this->employee = Employee::create([
-            'name' => 'Jane Doe',
+            'name' => 'JANE DOE',
             'id_number' => 'INF001',
             'email' => 'jane@example.com',
             'status' => 'active',
@@ -35,7 +35,7 @@ class EmployeeAuthorizationTest extends TestCase
     private function employeeForm(array $overrides = []): array
     {
         return array_merge([
-            'name' => 'John Smith',
+            'name' => 'JOHN SMITH',
             'id_number_suffix' => '002',
             'email' => 'john@example.com',
             'status' => 'active',
@@ -56,14 +56,14 @@ class EmployeeAuthorizationTest extends TestCase
         $this->get(route('employees.create'))->assertForbidden();
         $this->post(route('employees.store'), $this->employeeForm())->assertForbidden();
         $this->get(route('employees.edit', $this->employee))->assertForbidden();
-        $this->put(route('employees.update', $this->employee), $this->employeeForm(['name' => 'Hacked']))->assertForbidden();
+        $this->put(route('employees.update', $this->employee), $this->employeeForm(['name' => 'HACKED']))->assertForbidden();
         $this->delete(route('employees.destroy', $this->employee))->assertForbidden();
         $this->delete(route('employees.delete-document', [$this->employee, $document]))->assertForbidden();
         $this->post(route('employees.import'), [
             'file' => UploadedFile::fake()->createWithContent('employees.csv', "name,id_number,email\n"),
         ])->assertForbidden();
 
-        $this->assertDatabaseHas('employees', ['id' => $this->employee->id, 'name' => 'Jane Doe']);
+        $this->assertDatabaseHas('employees', ['id' => $this->employee->id, 'name' => 'JANE DOE']);
         $this->assertDatabaseMissing('employees', ['email' => 'john@example.com']);
         $this->assertDatabaseHas('employee_documents', ['id' => $document->id]);
     }
@@ -72,7 +72,7 @@ class EmployeeAuthorizationTest extends TestCase
     {
         $this->actingAsRole('staff');
 
-        $this->get(route('employees.index'))->assertOk()->assertSee('Jane Doe');
+        $this->get(route('employees.index'))->assertOk()->assertSee('JANE DOE');
         $this->get(route('employees.show', $this->employee))->assertOk();
     }
 
@@ -88,9 +88,9 @@ class EmployeeAuthorizationTest extends TestCase
         $this->put(route('employees.update', $this->employee), $this->employeeForm([
             'id_number_suffix' => '001',
             'email' => 'jane@example.com',
-            'name' => 'Jane Renamed',
+            'name' => 'JANE RENAMED',
         ]))->assertRedirect();
-        $this->assertDatabaseHas('employees', ['id' => $this->employee->id, 'name' => 'Jane Renamed']);
+        $this->assertDatabaseHas('employees', ['id' => $this->employee->id, 'name' => 'JANE RENAMED']);
 
         $this->delete(route('employees.destroy', $this->employee))->assertRedirect(route('employees.index'));
         $this->assertDatabaseMissing('employees', ['id' => $this->employee->id]);
