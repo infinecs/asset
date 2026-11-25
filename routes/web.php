@@ -13,6 +13,9 @@ use App\Http\Controllers\DigitalProductController;
 use App\Http\Controllers\GiftCardController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeOnboardingController;
+use App\Http\Controllers\HeadcountController;
+use App\Http\Controllers\PeopleCalendarController;
 use App\Http\Controllers\FloorPlanController;
 use App\Http\Controllers\OutcomeAdminController;
 use App\Http\Controllers\OutcomeController;
@@ -85,6 +88,7 @@ Route::middleware('auth')->group(function () {
 
     // Workstations (desks within a location; fixed assets such as monitors are bound to them)
     Route::get('/workstations/floor-plan', [FloorPlanController::class, 'show'])->name('workstations.floor-plan');
+    Route::get('/workstations/floor-plan/print', [FloorPlanController::class, 'print'])->name('workstations.floor-plan.print');
     Route::post('/locations/{location}/floor-plan', [FloorPlanController::class, 'upload'])->name('locations.floor-plan.upload');
     Route::delete('/locations/{location}/floor-plan', [FloorPlanController::class, 'destroy'])->name('locations.floor-plan.destroy');
     Route::put('/locations/{location}/floor-plan/layout', [FloorPlanController::class, 'saveLayout'])->name('locations.floor-plan.layout');
@@ -105,6 +109,11 @@ Route::middleware('auth')->group(function () {
     // Employees
     Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');
     Route::get('/employees/org-chart', [EmployeeController::class, 'orgChart'])->name('employees.org-chart');
+    Route::get('/employees/calendar', [PeopleCalendarController::class, 'index'])->name('employees.calendar');
+    Route::get('/employees/headcount', [HeadcountController::class, 'index'])->name('employees.headcount');
+    Route::get('/employees/{employee}/statement', [EmployeeController::class, 'statement'])->name('employees.statement');
+    Route::post('/employees/{employee}/seat', [EmployeeOnboardingController::class, 'seat'])->name('employees.seat');
+    Route::post('/employees/{employee}/onboarding/complete', [EmployeeOnboardingController::class, 'complete'])->name('employees.onboarding.complete');
     Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
     Route::get('/employees/bulk-edit-birthdays', [EmployeeController::class, 'bulkEditBirthdays'])->name('employees.bulk-edit-birthdays');
     Route::post('/employees/bulk-edit-birthdays', [EmployeeController::class, 'updateBirthdays'])->name('employees.update-birthdays');

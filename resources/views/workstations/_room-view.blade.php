@@ -21,6 +21,9 @@
                    class="block rounded-lg border p-3 no-underline transition hover:border-primary-400 hover:shadow-sm {{ $desk->assets->isEmpty() ? 'border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40' : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900' }}">
                     <div class="flex items-center justify-between gap-1">
                         <span class="font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $desk->desk_code }}</span>
+                        @if($warnings = $desk->warnings())
+                        <i class="bi bi-exclamation-triangle-fill me-auto text-orange-500" title="{{ implode("\n", $warnings) }}"></i>
+                        @endif
                         @if($desk->isAuditDue())
                         <i class="bi bi-clipboard-x text-amber-500" title="Due for audit"></i>
                         @elseif($desk->latestAudit?->hasDiscrepancies())

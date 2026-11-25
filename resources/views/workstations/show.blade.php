@@ -19,6 +19,20 @@
     </div>
 </div>
 
+@if($warnings = $workstation->warnings())
+<div class="mb-4 flex gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300">
+    <i class="bi bi-exclamation-triangle mt-0.5"></i>
+    <div class="flex-1">
+        <div class="font-semibold">This desk needs attention</div>
+        <ul class="mt-1 list-disc space-y-0.5 ps-4">
+            @foreach($warnings as $warning)
+            <li>{{ $warning }}</li>
+            @endforeach
+        </ul>
+    </div>
+</div>
+@endif
+
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
     <div class="space-y-4 lg:col-span-4">
         <div class="card">

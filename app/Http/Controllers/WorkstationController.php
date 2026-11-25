@@ -62,8 +62,9 @@ class WorkstationController extends Controller
             ->orderBy('room')
             ->pluck('room');
         $auditDueCount = Workstation::whereDoesntHave('audits', fn ($q) => $q->where('created_at', '>=', now()->subDays(Workstation::AUDIT_INTERVAL_DAYS)))->count();
+        $attentionCount = Workstation::needsAttention()->count();
 
-        return view('workstations.index', compact('view', 'workstations', 'floors', 'locations', 'rooms', 'auditDueCount'));
+        return view('workstations.index', compact('view', 'workstations', 'floors', 'locations', 'rooms', 'auditDueCount', 'attentionCount'));
     }
 
     /**
@@ -180,7 +181,7 @@ class WorkstationController extends Controller
     {
         $this->authorizeAdmin();
 
-        $workstation->load(['location', 'occupant', 'assets.category', 'latestAudit.user']);
+        $workstation->load(['location', 'occupant', 'assets.category', 'assets.assignedEmployee', 'latestAudit.user']);
 
         $movements = $workstation->movements()->with(['asset', 'user'])->paginate(15);
         $audits = $workstation->audits()->with('user')->limit(5)->get();
@@ -429,7 +430,7 @@ class WorkstationController extends Controller
      */
     private function filteredQuery(Request $request): Builder
     {
-        $query = Workstation::with(['location', 'occupant', 'assets', 'latestAudit'])
+        $query = Workstation::with(['location', 'occupant', 'assets.assignedEmployee', 'latestAudit'])
             ->select('workstations.*')
             ->join('locations', 'locations.id', '=', 'workstations.location_id');
 
@@ -458,6 +459,10 @@ class WorkstationController extends Controller
             $query->whereDoesntHave('audits', fn ($q) => $q->where('created_at', '>=', now()->subDays(Workstation::AUDIT_INTERVAL_DAYS)));
         } elseif ($request->audit === 'never') {
             $query->doesntHave('audits');
+        }
+
+        if ($request->boolean('attention')) {
+            $query->needsAttention();
         }
 
         return $query->orderBy('locations.name')

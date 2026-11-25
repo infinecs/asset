@@ -24,10 +24,25 @@
 </div>
 @endif
 
+@if(request()->boolean('attention'))
+<div class="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300">
+    <i class="bi bi-exclamation-triangle"></i>
+    <span class="flex-1">Showing only desks that need attention: someone who has left is still seated, a seated desk has no equipment recorded, or equipment is assigned to someone who doesn't sit there.</span>
+    <a href="{{ route('workstations.index', request()->except(['attention', 'page'])) }}" class="font-semibold hover:underline">Show all desks</a>
+</div>
+@elseif($attentionCount > 0)
+<div class="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300">
+    <i class="bi bi-exclamation-triangle"></i>
+    <span class="flex-1">{{ $attentionCount }} workstation(s) need attention, such as staff who have left still being seated, or equipment assigned to someone else.</span>
+    <a href="{{ route('workstations.index', ['attention' => 1, 'view' => $view]) }}" class="font-semibold hover:underline">Show them</a>
+</div>
+@endif
+
 <div class="card mb-6">
     <div class="card-body">
         <form method="GET" class="grid grid-cols-1 gap-3 md:grid-cols-12">
             <input type="hidden" name="view" value="{{ $view }}">
+            @if(request()->boolean('attention'))<input type="hidden" name="attention" value="1">@endif
             <div class="md:col-span-3">
                 <div class="relative">
                     <i class="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -92,6 +107,10 @@
                 <tr>
                     <td>
                         <a href="{{ route('workstations.show', $ws) }}" class="font-semibold text-slate-800 hover:text-primary-600 dark:text-slate-100 dark:hover:text-primary-400">{{ $ws->name }}</a>
+                        @if($warnings = $ws->warnings())
+                        <i class="bi bi-exclamation-triangle-fill ms-1 text-orange-500" title="{{ implode("\n", $warnings) }}"></i>
+                        <span class="sr-only">Needs attention: {{ implode(' ', $warnings) }}</span>
+                        @endif
                     </td>
                     <td class="text-slate-500 dark:text-slate-400">{{ $ws->location?->name ?? '-' }}</td>
                     <td class="text-slate-500 dark:text-slate-400">{{ $ws->room ?? '-' }}</td>

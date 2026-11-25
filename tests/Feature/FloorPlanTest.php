@@ -173,6 +173,155 @@ class FloorPlanTest extends TestCase
         $this->assertSame([12.5, 7.25], [$sized->fresh()->plan_w, $sized->fresh()->plan_h]);
     }
 
+    public function test_layout_saves_vertical_desks_and_turns_them_back(): void
+    {
+        $this->withPlan();
+        $turned = $this->desk(1);
+        $back = $this->desk(2, null, ['plan_x' => 40, 'plan_y' => 40, 'plan_rotation' => 90]);
+        $unplaced = $this->desk(3, null, ['plan_x' => 60, 'plan_y' => 60, 'plan_rotation' => 90]);
+
+        $this->putJson(route('locations.floor-plan.layout', $this->office), [
+            'positions' => [
+                ['id' => $turned->id, 'x' => 20, 'y' => 30, 'w' => 12.5, 'h' => 7.25, 'r' => 90],
+                // Left out = horizontal.
+                ['id' => $back->id, 'x' => 40, 'y' => 40],
+                // Off the plan: a stray rotation is dropped along with the position.
+                ['id' => $unplaced->id, 'x' => null, 'y' => null, 'r' => 90],
+            ],
+        ])->assertOk();
+
+        $this->assertSame([90, 12.5, 7.25], [$turned->fresh()->plan_rotation, $turned->fresh()->plan_w, $turned->fresh()->plan_h]);
+        $this->assertSame(0, $back->fresh()->plan_rotation);
+        $this->assertSame(0, $unplaced->fresh()->plan_rotation);
+        $this->assertSame(90, $this->planData()['desks'][0]['r']);
+
+        // Only horizontal or vertical.
+        $this->putJson(route('locations.floor-plan.layout', $this->office), [
+            'positions' => [['id' => $turned->id, 'x' => 20, 'y' => 30, 'r' => 45]],
+        ])->assertUnprocessable()->assertJsonValidationErrors('positions.0.r');
+        $this->assertSame(90, $turned->fresh()->plan_rotation);
+
+        // Removing the plan turns every desk back.
+        $this->delete(route('locations.floor-plan.destroy', $this->office))->assertRedirect();
+        $this->assertSame(0, $turned->fresh()->plan_rotation);
+    }
+
+    public function test_layout_creates_copied_desks_numbered_after_the_room(): void
+    {
+        $this->withPlan();
+        $source = $this->desk(1, null, ['plan_x' => 10, 'plan_y' => 20, 'plan_w' => 5, 'plan_h' => 3, 'plan_rotation' => 90]);
+        $this->desk(7); // the highest number in room RA
+        $this->desk(3, null, ['room' => 'RB']);
+
+        $response = $this->putJson(route('locations.floor-plan.layout', $this->office), [
+            'positions' => [['id' => $source->id, 'x' => 10, 'y' => 20, 'w' => 5, 'h' => 3, 'r' => 90]],
+            'new_desks' => [
+                ['key' => 'new-1', 'room' => 'RA', 'x' => 15, 'y' => 20, 'w' => 5, 'h' => 3, 'r' => 90],
+                ['key' => 'new-2', 'room' => 'RA', 'x' => 20, 'y' => 20, 'w' => 5, 'h' => 3, 'r' => 90],
+                ['key' => 'new-3', 'room' => 'RB', 'x' => 50, 'y' => 50],
+            ],
+        ])->assertOk()
+            ->assertJsonPath('created.new-1.code', 'INFP1ARAWS08')
+            ->assertJsonPath('created.new-2.code', 'INFP1ARAWS09')
+            ->assertJsonPath('created.new-3.code', 'INFP1ARBWS04')
+            ->assertJsonPath('created.new-1.r', 90);
+
+        $this->assertStringContainsString('Added 3 desk(s)', $response->json('message'));
+        $copy = Workstation::where('name', 'INFP1ARAWS09')->firstOrFail();
+        $this->assertSame([20.0, 20.0, 5.0, 3.0, 90, null], [$copy->plan_x, $copy->plan_y, $copy->plan_w, $copy->plan_h, $copy->plan_rotation, $copy->occupant_id]);
+        $this->assertSame(6, $this->office->workstations()->count());
+
+        // A copy must be placed on the plan.
+        $this->putJson(route('locations.floor-plan.layout', $this->office), [
+            'positions' => [],
+            'new_desks' => [['key' => 'new-4', 'room' => 'RA', 'x' => null, 'y' => 20]],
+        ])->assertUnprocessable()->assertJsonValidationErrors('new_desks.0.x');
+        $this->assertSame(6, $this->office->workstations()->count());
+    }
+
+    public function test_page_flags_desks_that_need_attention(): void
+    {
+        $this->withPlan();
+        $left = $this->employee('Gone Person', 'INF003', 'resigned');
+        $seated = $this->employee('Nur Aisyah', 'INF001');
+        $other = $this->employee('Ali Bakar', 'INF002');
+        $leftDesk = $this->desk(1, null, ['occupant_id' => $left->id]);
+        $bareDesk = $this->desk(2, null, ['occupant_id' => $seated->id]);
+        $mixedDesk = $this->desk(3);
+        $fineDesk = $this->desk(4, null, ['occupant_id' => $other->id]);
+        $this->assetAt($leftDesk);
+        $this->assetAt($mixedDesk, ['asset_tag' => 'ISSBM900', 'assigned_to' => $other->id]);
+        $this->assetAt($fineDesk, ['assigned_to' => $other->id]);
+
+        $warnings = collect($this->planData()['desks'])->pluck('warnings', 'code');
+
+        $this->assertSame(['Gone Person has left the company but is still seated here.'], $warnings['INFP1ARAWS01']);
+        $this->assertSame(['Nur Aisyah sits here, but no equipment is recorded at the desk.'], $warnings['INFP1ARAWS02']);
+        $this->assertSame(['ISSBM900 is assigned to Ali Bakar, who does not sit here.'], $warnings['INFP1ARAWS03']);
+        $this->assertSame([], $warnings['INFP1ARAWS04']);
+
+        // The list's "needs attention" filter finds the same desks.
+        $this->assertEqualsCanonicalizing(
+            [$leftDesk->id, $bareDesk->id, $mixedDesk->id],
+            Workstation::needsAttention()->pluck('id')->all(),
+        );
+        $this->get(route('workstations.index', ['attention' => 1]))
+            ->assertOk()
+            ->assertSee('INFP1ARAWS03')
+            ->assertDontSee('INFP1ARAWS04');
+        $this->get(route('workstations.show', $mixedDesk))->assertOk()->assertSee('This desk needs attention');
+    }
+
+    public function test_page_sends_how_long_since_each_desk_was_audited(): void
+    {
+        $this->withPlan();
+        $audited = $this->desk(1);
+        $this->desk(2);
+        $audit = \App\Models\WorkstationAudit::create(['workstation_id' => $audited->id, 'user_id' => auth()->id(), 'present_count' => 0, 'missing' => [], 'found' => []]);
+        $audit->forceFill(['created_at' => now()->subDays(80)])->save();
+
+        $data = $this->planData();
+
+        $this->assertSame([80, null], array_column($data['desks'], 'audit_age'));
+        $this->assertSame(['interval' => Workstation::AUDIT_INTERVAL_DAYS, 'soon' => Workstation::AUDIT_DUE_SOON_DAYS], $data['audit']);
+    }
+
+    public function test_print_page_shows_the_plan_with_labelled_desks(): void
+    {
+        $this->withPlan();
+        $employee = $this->employee('Nur Aisyah', 'INF001');
+        $this->desk(1, null, ['occupant_id' => $employee->id, 'plan_x' => 25, 'plan_y' => 40, 'plan_rotation' => 90]);
+        $this->desk(2);
+
+        $this->get(route('workstations.floor-plan.print', ['location' => $this->office->id, 'colour' => 'audit']))
+            ->assertOk()
+            ->assertSee('Infinecs P1 A: Floor Plan')
+            ->assertSee('storage/' . $this->office->floor_plan_path, false)
+            ->assertSee('class="by-audit', false)
+            ->assertSee('rotate(90deg)', false)
+            ->assertSee('Nur Aisyah')
+            ->assertSee('1 of 2 desk(s) on the plan');
+
+        $noPlan = Location::create(['name' => 'Infinecs P2', 'code' => 'P2']);
+        $this->get(route('workstations.floor-plan.print', ['location' => $noPlan->id]))
+            ->assertRedirect(route('workstations.floor-plan', ['location' => $noPlan->id]));
+    }
+
+    private function assetAt(Workstation $desk, array $attributes = []): \App\Models\Asset
+    {
+        static $n = 0;
+        $n++;
+
+        return \App\Models\Asset::create(array_merge([
+            'type' => 'monitor',
+            'asset_tag' => 'ISSBM' . str_pad((string) $n, 3, '0', STR_PAD_LEFT),
+            'name' => 'Monitor ' . $n,
+            'status' => 'in_use',
+            'workstation_id' => $desk->id,
+            'location_id' => $desk->location_id,
+        ], $attributes));
+    }
+
     public function test_layout_rejects_desks_from_another_location_and_bad_positions(): void
     {
         $this->withPlan();
@@ -330,6 +479,7 @@ class FloorPlanTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'staff']));
 
         $this->get(route('workstations.floor-plan'))->assertForbidden();
+        $this->get(route('workstations.floor-plan.print', ['location' => $this->office->id]))->assertForbidden();
         $this->post(route('locations.floor-plan.upload', $this->office), ['floor_plan' => UploadedFile::fake()->image('p.png')])->assertForbidden();
         $this->putJson(route('locations.floor-plan.layout', $this->office), ['positions' => [['id' => $desk->id, 'x' => 1, 'y' => 1]]])->assertForbidden();
         $this->delete(route('locations.floor-plan.destroy', $this->office))->assertForbidden();

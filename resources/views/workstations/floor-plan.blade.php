@@ -58,7 +58,15 @@
 </div>
 @else
 @php
-    $planData = ['desks' => $desks->values(), 'employees' => $employees->values(), 'selected' => $selectedDesk, 'saveUrl' => route('locations.floor-plan.layout', $location)];
+    $planData = [
+        'desks' => $desks->values(),
+        'employees' => $employees->values(),
+        'selected' => $selectedDesk,
+        'saveUrl' => route('locations.floor-plan.layout', $location),
+        'printUrl' => route('workstations.floor-plan.print', ['location' => $location->id]),
+        'audit' => $audit,
+        'maxCopies' => \App\Http\Controllers\FloorPlanController::MAX_COPIES,
+    ];
 @endphp
 <script type="application/json" id="floor-plan-data">@json($planData)</script>
 
@@ -80,10 +88,26 @@
                 <button type="button" class="btn btn-sm btn-icon rounded-l-none" @click="zoomIn()" :disabled="zoom >= zoomLevels[zoomLevels.length - 1]" title="Zoom in"><i class="bi bi-zoom-in"></i></button>
             </div>
 
+            {{-- What the desk colours show --}}
+            <div class="inline-flex items-center rounded-lg border border-slate-200 p-0.5 dark:border-slate-700" role="group" aria-label="Colour desks by">
+                <button type="button" class="btn btn-sm" :class="colourBy === 'occupancy' ? 'btn-primary' : 'text-slate-600 dark:text-slate-300'"
+                        @click="colourBy = 'occupancy'" :aria-pressed="colourBy === 'occupancy'" title="Colour desks by who sits there"><i class="bi bi-person"></i>Occupancy</button>
+                <button type="button" class="btn btn-sm" :class="colourBy === 'audit' ? 'btn-primary' : 'text-slate-600 dark:text-slate-300'"
+                        @click="colourBy = 'audit'" :aria-pressed="colourBy === 'audit'" title="Colour desks by how long since they were audited"><i class="bi bi-clipboard-check"></i>Audit</button>
+            </div>
+
+            <button type="button" x-show="attentionCount() || attentionOnly" x-cloak class="btn btn-sm"
+                    :class="attentionOnly ? 'border-orange-500 bg-orange-500 text-white hover:bg-orange-600' : 'btn-outline text-orange-600 dark:text-orange-400'"
+                    @click="attentionOnly = !attentionOnly" :aria-pressed="attentionOnly"
+                    title="Highlight only the desks that need attention">
+                <i class="bi bi-exclamation-triangle"></i><span x-text="'Needs attention (' + attentionCount() + ')'"></span>
+            </button>
+
             <div class="ms-auto flex flex-wrap items-center gap-2">
                 <template x-if="!editing">
                     <div class="flex flex-wrap items-center gap-2">
                         <button type="button" class="btn btn-primary btn-sm" @click="startEditing()"><i class="bi bi-arrows-move"></i>Edit Layout</button>
+                        <a :href="printHref()" target="_blank" class="btn btn-outline btn-sm" title="Open a print-ready copy of the plan; print it or save it as a PDF"><i class="bi bi-printer"></i>Print / PDF</a>
                         <form method="POST" action="{{ route('locations.floor-plan.upload', $location) }}" enctype="multipart/form-data">
                             @csrf
                             <label class="btn btn-outline btn-sm cursor-pointer" title="Upload a new image; desks keep their positions">
@@ -116,11 +140,24 @@
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-slate-200 px-5 py-2.5 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-300">
-            <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-primary-700 bg-primary-600"></span>Assigned</span>
-            <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-primary-500 bg-white dark:bg-slate-900"></span>Hot desk</span>
-            <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-dashed border-slate-400 bg-white dark:bg-slate-900"></span>Empty (no equipment)</span>
-            <span class="flex items-center gap-1.5"><span class="inline-block h-2.5 w-2.5 rounded-full bg-amber-500"></span>Audit due</span>
+            <template x-if="colourBy === 'occupancy'">
+                <div class="contents">
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-primary-700 bg-primary-600"></span>Assigned</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-primary-500 bg-white dark:bg-slate-900"></span>Hot desk</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-dashed border-slate-400 bg-white dark:bg-slate-900"></span>Empty (no equipment)</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-2.5 w-2.5 rounded-full bg-amber-500"></span>Audit due</span>
+                </div>
+            </template>
+            <template x-if="colourBy === 'audit'">
+                <div class="contents">
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-emerald-700 bg-emerald-600"></span>Audited in the last <span x-text="audit.interval - audit.soon"></span> days</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-amber-500 bg-amber-300"></span>Due within <span x-text="audit.soon"></span> days</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-red-700 bg-red-600"></span>Overdue (over <span x-text="audit.interval"></span> days)</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded border border-dashed border-red-500 bg-white dark:bg-slate-900"></span>Never audited</span>
+                </div>
+            </template>
             <span class="flex items-center gap-1.5"><span class="inline-block h-2.5 w-2.5 rounded-full bg-red-500"></span>Last audit found issues</span>
+            <span class="flex items-center gap-1.5"><span class="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-orange-500 text-[9px] font-bold text-white">!</span>Needs attention</span>
             <span class="ms-auto tabular-nums text-slate-500 dark:text-slate-400" x-text="placed().length + ' of ' + desks.length + ' desks on the plan'"></span>
         </div>
     </div>
@@ -155,13 +192,26 @@
                                     @click="select(desk.id)"
                                     @keydown="nudge($event, desk)">
                                 <span class="min-w-0 truncate" x-text="desk.label"></span>
+                                {{-- The handles and dots turn with a vertical desk, so they're placed on the corner that ends up where it is on a horizontal one --}}
+                                {{-- Rotate knob (edit mode): turn the desk between horizontal and vertical --}}
+                                <span x-show="editing" title="Rotate (R)"
+                                      class="absolute flex h-4 w-4 cursor-pointer touch-none items-center justify-center rounded-full border-2 border-white bg-sky-600 text-[8px] text-white shadow transition-opacity dark:border-slate-900"
+                                      :class="[desk.r === 90 ? '-bottom-2 -left-2' : '-left-2 -top-2', selectedId === desk.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100']"
+                                      @pointerdown.stop.prevent @click.stop="rotate(desk)"><i class="bi bi-arrow-clockwise"></i></span>
                                 {{-- Resize handle (edit mode): drag the corner to match the desk's size on the plan --}}
                                 <span x-show="editing" title="Drag to resize"
-                                      class="absolute -bottom-1.5 -right-1.5 h-3.5 w-3.5 cursor-se-resize touch-none rounded-sm border-2 border-white bg-amber-500 shadow transition-opacity dark:border-slate-900"
-                                      :class="selectedId === desk.id || (resizing && resizing.id === desk.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                                      class="absolute h-3.5 w-3.5 cursor-se-resize touch-none rounded-sm border-2 border-white bg-amber-500 shadow transition-opacity dark:border-slate-900"
+                                      :class="[desk.r === 90 ? '-right-1.5 -top-1.5' : '-bottom-1.5 -right-1.5', selectedId === desk.id || (resizing && resizing.id === desk.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100']"
                                       @pointerdown.stop="startResize($event, desk)"></span>
-                                <span x-show="desk.audit_issues" class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"></span>
-                                <span x-show="desk.audit_due && !desk.audit_issues" class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900"></span>
+                                <span x-show="desk.audit_issues" class="absolute h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"
+                                      :class="desk.r === 90 ? '-left-1 -top-1' : '-right-1 -top-1'"></span>
+                                {{-- In audit colours the desk itself shows that it's due --}}
+                                <span x-show="desk.audit_due && !desk.audit_issues && colourBy !== 'audit'" class="absolute h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900"
+                                      :class="desk.r === 90 ? '-left-1 -top-1' : '-right-1 -top-1'"></span>
+                                {{-- Needs attention: bottom-left on screen, kept upright on a vertical desk --}}
+                                <span x-show="desk.warnings.length" class="absolute flex h-3.5 w-3.5 items-center justify-center rounded-full bg-orange-500 text-[9px] font-bold leading-none text-white ring-2 ring-white dark:ring-slate-900"
+                                      :class="desk.r === 90 ? '-bottom-1.5 -right-1.5' : '-bottom-1.5 -left-1.5'"
+                                      :style="desk.r ? 'rotate:-' + desk.r + 'deg' : ''">!</span>
                             </button>
                         </template>
                     </div>
@@ -171,7 +221,10 @@
                 Drag desks onto the plan or to a new spot. Drag a desk back to the list to take it off the plan.
                 While dragging, let go over <strong>Drop here to cancel</strong> (or press Esc) to leave it where it was.
                 Drag the amber corner of a desk to resize it to the desk's real size<span x-show="matchSizes">; with <strong>Same size for all desks</strong> on, every desk follows</span>.
+                Click the blue <i class="bi bi-arrow-clockwise"></i> knob (or press R) to turn a desk between horizontal and vertical.
                 Arrow keys nudge the selected desk (hold Shift for bigger steps).
+                A vertical desk keeps its length and depth, just turned.
+                To lay out a row, select a desk and use <strong>Add copies</strong> in the side panel.
             </p>
         </div>
 
@@ -211,11 +264,18 @@
                             <span x-show="selected().audit_issues" class="badge badge-danger">Last audit found issues</span>
                             <span x-show="selected().audit_due && !selected().audit_issues" class="badge badge-warning">Audit due</span>
                             <span x-show="selected().x === null" class="badge badge-secondary">Not on the plan</span>
+                            <span x-show="selected().isNew" class="badge badge-primary">New: created when you save</span>
+                        </div>
+                        <div x-show="selected().warnings.length" class="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300">
+                            <div class="mb-0.5 font-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Needs attention</div>
+                            <ul class="list-disc space-y-0.5 ps-4">
+                                <template x-for="warning in selected().warnings" :key="warning"><li x-text="warning"></li></template>
+                            </ul>
                         </div>
                         <div>
                             <div class="flex items-center justify-between gap-2">
                                 <div class="text-xs text-slate-500 dark:text-slate-400">Occupant</div>
-                                <button type="button" x-show="!seating" class="text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400"
+                                <button type="button" x-show="!seating && !selected().isNew" class="text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400"
                                         @click="openSeating()" x-text="selected().occupant ? 'Change' : 'Assign someone'"></button>
                             </div>
                             <div x-show="!seating" class="font-semibold text-slate-800 dark:text-slate-100" x-text="selected().occupant || 'Nobody / hot desk'"></div>
@@ -269,15 +329,44 @@
                             <div class="text-xs text-slate-500 dark:text-slate-400">Last audit</div>
                             <div class="text-slate-700 dark:text-slate-200" x-text="selected().last_audit || 'Never audited'"></div>
                         </div>
-                        <div class="flex flex-wrap gap-2 pt-1">
+                        <div x-show="!selected().isNew" class="flex flex-wrap gap-2 pt-1">
                             <a :href="selected().url" class="btn btn-outline btn-sm flex-1"><i class="bi bi-box-arrow-up-right"></i>Open Desk</a>
                             <a :href="selected().audit_url" class="btn btn-outline-primary btn-sm flex-1"><i class="bi bi-clipboard-check"></i>Audit</a>
                         </div>
+
+                        {{-- Add copies (edit mode): a row of desks like this one, numbered on from the room's last desk --}}
+                        <div x-show="editing && selected().x !== null" class="space-y-2 rounded-lg border border-slate-200 p-2.5 dark:border-slate-700">
+                            <div class="text-xs font-semibold text-slate-700 dark:text-slate-200"><i class="bi bi-copy me-1 text-slate-400"></i>Add copies of this desk</div>
+                            <div class="flex items-center gap-2">
+                                <label for="copy-count" class="sr-only">How many copies</label>
+                                <input type="number" id="copy-count" min="1" :max="maxCopies" x-model.number="copyCount" class="field-input w-16 px-2 py-1 text-sm"
+                                       @keydown.enter.prevent="addCopies(selected())">
+                                <div class="inline-flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700" role="group" aria-label="Direction">
+                                    <template x-for="dir in [['left', 'arrow-left'], ['up', 'arrow-up'], ['down', 'arrow-down'], ['right', 'arrow-right']]" :key="dir[0]">
+                                        <button type="button" class="btn btn-sm btn-icon rounded-none"
+                                                :class="copyDirection === dir[0] ? 'btn-primary' : 'text-slate-600 dark:text-slate-300'"
+                                                :aria-pressed="copyDirection === dir[0]" :title="'Copies go ' + dir[0]"
+                                                @click="copyDirection = dir[0]"><i class="bi" :class="'bi-' + dir[1]"></i></button>
+                                    </template>
+                                </div>
+                            </div>
+                            <label class="flex cursor-pointer select-none items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                                <input type="checkbox" class="h-4 w-4 rounded border-slate-300 accent-primary-600" x-model="copyGap">
+                                Leave a gap between desks
+                            </label>
+                            <button type="button" class="btn btn-outline-primary btn-sm w-full" @click="addCopies(selected())">
+                                <i class="bi bi-plus-lg"></i><span x-text="'Add ' + copyLabel()"></span>
+                            </button>
+                            <p class="text-[11px] text-slate-400">Copies get the same size and direction, nobody seated and no equipment. They're created when you save the layout.</p>
+                        </div>
+                        <button type="button" x-show="editing && selected().x !== null" class="btn btn-outline btn-sm w-full" @click="rotate(selected())">
+                            <i class="bi bi-arrow-clockwise"></i><span x-text="selected().r === 90 ? 'Turn Horizontal' : 'Turn Vertical'"></span>
+                        </button>
                         <button type="button" x-show="editing && selected().w !== null" class="btn btn-outline btn-sm w-full" @click="resetSize(selected())">
                             <i class="bi bi-arrows-angle-contract"></i><span x-text="matchSizes ? 'Reset All Sizes' : 'Reset Size'"></span>
                         </button>
                         <button type="button" x-show="editing && selected().x !== null" class="btn btn-outline-danger btn-sm w-full" @click="unplace(selected())">
-                            <i class="bi bi-box-arrow-in-down"></i>Take Off the Plan
+                            <i class="bi" :class="selected().isNew ? 'bi-x-lg' : 'bi-box-arrow-in-down'"></i><span x-text="selected().isNew ? 'Discard New Desk' : 'Take Off the Plan'"></span>
                         </button>
                     </div>
                 </div>
@@ -292,7 +381,19 @@
                     <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Assigned</span><span class="font-semibold tabular-nums" x-text="count('assigned')"></span></div>
                     <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Hot desks</span><span class="font-semibold tabular-nums" x-text="count('hotdesk')"></span></div>
                     <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Empty</span><span class="font-semibold tabular-nums" x-text="count('empty')"></span></div>
-                    <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Audit due</span><span class="font-semibold tabular-nums text-amber-600 dark:text-amber-400" x-text="desks.filter(d => d.audit_due).length"></span></div>
+                    <div x-show="colourBy === 'occupancy'" class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Audit due</span><span class="font-semibold tabular-nums text-amber-600 dark:text-amber-400" x-text="desks.filter(d => d.audit_due).length"></span></div>
+                    <template x-if="colourBy === 'audit'">
+                        <div class="space-y-2 border-t border-slate-200 pt-2 dark:border-slate-800">
+                            <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Audited recently</span><span class="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400" x-text="auditCount('ok')"></span></div>
+                            <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Due soon</span><span class="font-semibold tabular-nums text-amber-600 dark:text-amber-400" x-text="auditCount('soon')"></span></div>
+                            <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Overdue</span><span class="font-semibold tabular-nums text-red-600 dark:text-red-400" x-text="auditCount('overdue')"></span></div>
+                            <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Never audited</span><span class="font-semibold tabular-nums text-red-600 dark:text-red-400" x-text="auditCount('never')"></span></div>
+                        </div>
+                    </template>
+                    <div x-show="attentionCount()" class="flex justify-between">
+                        <button type="button" class="text-orange-600 hover:underline dark:text-orange-400" @click="attentionOnly = true">Needs attention</button>
+                        <span class="font-semibold tabular-nums text-orange-600 dark:text-orange-400" x-text="attentionCount()"></span>
+                    </div>
                     <p class="border-t border-slate-200 pt-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">Click a desk on the plan to see who sits there and what equipment is on it.</p>
                     <p x-show="unplaced().length" class="text-xs text-slate-500 dark:text-slate-400">
                         <span x-text="unplaced().length"></span> desk(s) are not on the plan yet.
@@ -314,6 +415,9 @@
                       x-text="{ assigned: 'Assigned', hotdesk: 'Hot desk', empty: 'Empty' }[hoverDesk().status]"></span>
             </div>
             <div class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400" x-text="hoverDesk().occupant || 'Nobody / hot desk'"></div>
+            <template x-for="warning in hoverDesk().warnings" :key="warning">
+                <div class="mt-1 flex gap-1 text-[11px] leading-4 text-orange-700 dark:text-orange-300"><i class="bi bi-exclamation-triangle shrink-0"></i><span x-text="warning"></span></div>
+            </template>
 
             <div class="mt-2 border-t border-slate-100 pt-2 dark:border-slate-800">
                 <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400" x-text="'Equipment (' + hoverDesk().assets.length + ')'"></div>
@@ -338,7 +442,7 @@
 
     {{-- What follows the pointer while dragging --}}
     <div x-show="drag && drag.moved" x-cloak class="pointer-events-none fixed z-50 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-md border border-primary-700 bg-primary-600/90 px-1.5 py-0.5 font-mono text-[11px] font-semibold leading-4 text-white shadow-lg"
-         :style="drag ? 'left:' + drag.x + 'px; top:' + drag.y + 'px;' + (drag.width ? ' width:' + drag.width + 'px; height:' + drag.height + 'px;' : '') : ''">
+         :style="drag ? 'left:' + drag.x + 'px; top:' + drag.y + 'px;' + (drag.width ? ' width:' + drag.width + 'px; height:' + drag.height + 'px;' : '') + (drag.r ? ' rotate:' + drag.r + 'deg;' : '') : ''">
         <span class="min-w-0 truncate" x-text="drag ? drag.label : ''"></span>
     </div>
 </div>
@@ -373,13 +477,28 @@
             seatQuery: '',
             seatSaving: false,
             flashTimer: null,
+            printUrl: config.printUrl,
+            audit: config.audit,
+            colourBy: 'occupancy',
+            attentionOnly: false,
+            maxCopies: config.maxCopies,
+            copyCount: 3,
+            copyDirection: 'right',
+            copyGap: false,
+            newSeq: 0,
 
             init() {
                 this.$watch('selectedId', () => this.closeSeating());
-                // The switch is remembered per browser; it's only a convenience.
-                try { if (localStorage.getItem('floorPlan.matchSizes') === '0') this.matchSizes = false; } catch (e) {}
+                // These switches are remembered per browser; they're only a convenience.
+                try {
+                    if (localStorage.getItem('floorPlan.matchSizes') === '0') this.matchSizes = false;
+                    if (localStorage.getItem('floorPlan.colourBy') === 'audit') this.colourBy = 'audit';
+                } catch (e) {}
                 this.$watch('matchSizes', (value) => {
                     try { localStorage.setItem('floorPlan.matchSizes', value ? '1' : '0'); } catch (e) {}
+                });
+                this.$watch('colourBy', (value) => {
+                    try { localStorage.setItem('floorPlan.colourBy', value); } catch (e) {}
                 });
                 window.addEventListener('beforeunload', (e) => {
                     if (this.dirty) { e.preventDefault(); e.returnValue = ''; }
@@ -394,7 +513,24 @@
             count(status) { return this.desks.filter((d) => d.status === status).length; },
 
             query() { return this.search.trim().toLowerCase(); },
-            matches(desk) { const q = this.query(); return !q || desk.search.includes(q); },
+            matches(desk) {
+                const q = this.query();
+                return (!q || desk.search.includes(q)) && (!this.attentionOnly || desk.warnings.length > 0);
+            },
+            attentionCount() { return this.desks.filter((d) => d.warnings.length).length; },
+
+            /** ok, soon (due within audit.soon days), overdue or never; matches the server's "audit due". */
+            auditState(desk) {
+                if (desk.audit_age === null) return 'never';
+                if (desk.audit_due) return 'overdue';
+                return desk.audit_age >= this.audit.interval - this.audit.soon ? 'soon' : 'ok';
+            },
+            auditCount(state) { return this.desks.filter((d) => this.auditState(d) === state).length; },
+            printHref() {
+                const url = new URL(this.printUrl, window.location.href);
+                url.searchParams.set('colour', this.colourBy);
+                return url.toString();
+            },
             matchSummary() {
                 const all = this.desks.filter((d) => this.matches(d));
                 const off = all.filter((d) => d.x === null).length;
@@ -407,12 +543,20 @@
             },
 
             markerClass(desk) {
-                const classes = {
-                    assigned: 'border-primary-700 bg-primary-600 text-white',
-                    hotdesk: 'border-primary-500 bg-white text-primary-700 dark:bg-slate-900 dark:text-primary-300',
-                    empty: 'border-dashed border-slate-400 bg-white/90 text-slate-500 dark:bg-slate-900/90 dark:text-slate-400',
-                }[desk.status];
+                const classes = this.colourBy === 'audit'
+                    ? {
+                        ok: 'border-emerald-700 bg-emerald-600 text-white',
+                        soon: 'border-amber-500 bg-amber-300 text-amber-950',
+                        overdue: 'border-red-700 bg-red-600 text-white',
+                        never: 'border-dashed border-red-500 bg-white/90 text-red-600 dark:bg-slate-900/90 dark:text-red-400',
+                    }[this.auditState(desk)]
+                    : {
+                        assigned: 'border-primary-700 bg-primary-600 text-white',
+                        hotdesk: 'border-primary-500 bg-white text-primary-700 dark:bg-slate-900 dark:text-primary-300',
+                        empty: 'border-dashed border-slate-400 bg-white/90 text-slate-500 dark:bg-slate-900/90 dark:text-slate-400',
+                    }[desk.status];
                 const state = [];
+                if (desk.isNew) state.push('outline-2 outline-offset-2 outline-dashed outline-sky-500');
                 if (this.selectedId === desk.id) state.push('z-20 ring-2 ring-amber-400 ring-offset-1 dark:ring-offset-slate-900' + (this.isSized(desk) ? '' : ' scale-110'));
                 else state.push('z-10');
                 if (!this.matches(desk)) state.push('opacity-25');
@@ -442,6 +586,8 @@
             markerStyle(desk) {
                 let style = 'left:' + desk.x + '%; top:' + desk.y + '%;';
                 if (this.isSized(desk)) style += ' width:' + desk.w + '%; height:' + desk.h + '%;';
+                // w / h are the desk's own length and depth; a vertical desk is the same box turned around its centre.
+                if (desk.r) style += ' rotate:' + desk.r + 'deg;';
                 return style;
             },
 
@@ -461,7 +607,79 @@
             zoomIn() { const i = this.zoomLevels.indexOf(this.zoom); if (i < this.zoomLevels.length - 1) this.zoom = this.zoomLevels[i + 1]; this.hover = null; },
             zoomOut() { const i = this.zoomLevels.indexOf(this.zoom); if (i > 0) this.zoom = this.zoomLevels[i - 1]; this.hover = null; },
 
-            positions() { return this.desks.map((d) => ({ id: d.id, x: d.x, y: d.y, w: d.w, h: d.h })); },
+            /** Every saved desk's spot. Copies not saved yet go separately (newDesks). */
+            positions() { return this.desks.filter((d) => !d.isNew).map((d) => ({ id: d.id, x: d.x, y: d.y, w: d.w, h: d.h, r: d.r })); },
+            newDesks() { return this.desks.filter((d) => d.isNew).map((d) => ({ key: d.id, room: d.room, x: d.x, y: d.y, w: d.w, h: d.h, r: d.r })); },
+
+            copyLabel() {
+                const n = this.clampCopies();
+                return n === 1 ? '1 copy' : n + ' copies';
+            },
+            clampCopies() { return Math.min(this.maxCopies, Math.max(1, Math.round(Number(this.copyCount) || 1))); },
+            /**
+             * Lay copies of a desk out in a row from it, in copyDirection, each a desk's length (or
+             * depth) on from the last, plus a quarter of that with copyGap on. Copies that would be
+             * off the plan are left out. They're numbered on from the room's highest desk number,
+             * as the server will number them, and created when the layout is saved.
+             */
+            addCopies(source) {
+                if (!this.editing || source.x === null) return;
+                const count = this.clampCopies();
+                this.copyCount = count;
+                const marker = document.getElementById('desk-marker-' + source.id);
+                const plan = this.$refs.plan.getBoundingClientRect();
+                if (!marker || !plan.width) return;
+
+                // The desk's box on screen without the selected desk's zoom-in; turned on a vertical desk.
+                const [across, down] = source.r === 90 ? [marker.offsetHeight, marker.offsetWidth] : [marker.offsetWidth, marker.offsetHeight];
+                const spacing = this.copyGap ? 1.25 : 1;
+                const [dx, dy] = {
+                    right: [across * spacing / plan.width * 100, 0],
+                    left: [-across * spacing / plan.width * 100, 0],
+                    down: [0, down * spacing / plan.height * 100],
+                    up: [0, -down * spacing / plan.height * 100],
+                }[this.copyDirection];
+
+                const room = source.room || null;
+                let number = Math.max(0, ...this.desks.filter((d) => (d.room || null) === room).map((d) => d.number));
+                const codeMarker = source.desk.replace(/\d+$/, ''); // "WS"
+                const prefix = source.code.slice(0, source.code.length - source.desk.length);
+                const round = (v) => Math.round(v * 1000) / 1000;
+
+                const added = [];
+                for (let i = 1; i <= count; i++) {
+                    const x = round(source.x + dx * i);
+                    const y = round(source.y + dy * i);
+                    if (x < 0 || x > 100 || y < 0 || y > 100) break;
+                    number++;
+                    const deskCode = codeMarker + String(number).padStart(2, '0');
+                    const code = prefix + deskCode;
+                    const desk = {
+                        id: 'new-' + (++this.newSeq), isNew: true,
+                        code, desk: deskCode, number, room,
+                        label: (room ? room + ' ' : '') + deskCode,
+                        occupant: null, occupant_id: null, occupant_url: null,
+                        status: 'empty', audit_due: true, audit_issues: false, last_audit: null, audit_age: null,
+                        assets: [], warnings: [],
+                        search: [code, room, deskCode].filter(Boolean).join(' ').toLowerCase(),
+                        x, y, w: source.w, h: source.h, r: source.r,
+                        url: null, audit_url: null,
+                    };
+                    this.desks.push(desk);
+                    added.push(desk);
+                }
+
+                if (!added.length) {
+                    this.error = 'There is no room for a copy that way: it would be off the edge of the plan. Pick another direction.';
+                    return;
+                }
+                this.error = '';
+                this.dirty = true;
+                const what = added.length === 1 ? added[0].code : added[0].code + ' to ' + added[added.length - 1].code;
+                this.flash('Added ' + what + (added.length < count ? ' (only ' + added.length + ' of ' + count + ' fit before the edge of the plan)' : '') + '. Save the layout to create them.');
+                // Carry on from the last copy, so pressing Add again continues the row.
+                this.select(added[added.length - 1].id);
+            },
             startEditing() {
                 this.snapshot = this.positions();
                 this.editing = true;
@@ -469,15 +687,32 @@
                 this.error = '';
             },
             cancelEditing() {
+                // Copies that were never saved go away.
+                if (this.selected()?.isNew) this.selectedId = null;
+                this.desks = this.desks.filter((d) => !d.isNew);
                 const byId = Object.fromEntries(this.snapshot.map((p) => [p.id, p]));
-                this.desks.forEach((d) => Object.assign(d, { x: byId[d.id].x, y: byId[d.id].y, w: byId[d.id].w, h: byId[d.id].h }));
+                this.desks.forEach((d) => Object.assign(d, { x: byId[d.id].x, y: byId[d.id].y, w: byId[d.id].w, h: byId[d.id].h, r: byId[d.id].r }));
                 this.editing = false;
                 this.dirty = false;
                 this.error = '';
             },
             unplace(desk) {
-                Object.assign(desk, { x: null, y: null, w: null, h: null });
+                if (desk.isNew) {
+                    // A copy that isn't saved yet is simply dropped.
+                    if (this.selectedId === desk.id) this.selectedId = null;
+                    this.desks = this.desks.filter((d) => d !== desk);
+                } else {
+                    Object.assign(desk, { x: null, y: null, w: null, h: null, r: 0 });
+                }
                 this.dirty = true;
+            },
+            /** Turn a desk between horizontal and vertical, around its centre. */
+            rotate(desk) {
+                if (!this.editing || desk.x === null) return;
+                desk.r = desk.r === 90 ? 0 : 90;
+                this.dirty = true;
+                this.hover = null;
+                this.select(desk.id);
             },
             resetSize(desk) {
                 (this.matchSizes ? this.placed() : [desk]).forEach((d) => Object.assign(d, { w: null, h: null }));
@@ -521,15 +756,16 @@
                 if (!this.editing || event.button > 0) return;
                 event.preventDefault();
                 this.hover = null;
-                this.drag = { id: desk.id, label: desk.label, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false, overCancel: false, width: null, height: null };
+                this.drag = { id: desk.id, label: desk.label, r: desk.x !== null ? desk.r : 0, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false, overCancel: false, width: null, height: null };
 
-                // A resized desk keeps its on-screen size while it's being dragged.
+                // A resized desk keeps its on-screen size (and turn) while it's being dragged.
                 const marker = this.isSized(desk) && document.getElementById('desk-marker-' + desk.id);
                 const shared = !this.isSized(desk) && this.sharedSize(desk);
                 if (marker) {
+                    // The on-screen box of a vertical desk is its length and depth swapped.
                     const rect = marker.getBoundingClientRect();
-                    this.drag.width = rect.width;
-                    this.drag.height = rect.height;
+                    this.drag.width = desk.r === 90 ? rect.height : rect.width;
+                    this.drag.height = desk.r === 90 ? rect.width : rect.height;
                 } else if (shared) {
                     // A desk joining the plan takes the others' size, so show it at that size.
                     const plan = this.$refs.plan.getBoundingClientRect();
@@ -568,9 +804,11 @@
                 }
             },
             /**
-             * Drag the marker's bottom-right corner. The top-left corner stays put, so the centre
-             * (x, y) moves by half the change. With "Same size for all desks" on, every other desk on
-             * the plan takes the same size around its own centre. Esc puts them all back.
+             * Drag the marker's bottom-right corner (as seen on screen). The top-left corner stays
+             * put, so the centre (x, y) moves by half the change. On a vertical desk the length (w)
+             * runs down the screen and the depth (h) across it. With "Same size for all desks" on,
+             * every other desk on the plan takes the same length and depth around its own centre,
+             * each keeping its own turn. Esc puts them all back.
              */
             startResize(event, desk) {
                 if (!this.editing || event.button > 0) return;
@@ -586,16 +824,27 @@
                 const left = (marker.left - start.left) / start.width * 100;
                 const top = (marker.top - start.top) / start.height * 100;
                 const round = (v) => Math.round(v * 1000) / 1000;
+                const turned = desk.r === 90;
                 this.resizing = { id: desk.id };
 
                 this.track((e) => {
                     const plan = planRect();
-                    // At least about 28 x 18 px on screen, so the label stays readable.
-                    const minW = Math.max(0.5, 28 / plan.width * 100);
-                    const minH = Math.max(0.5, 18 / plan.height * 100);
-                    const w = Math.min(100 - left, Math.max(minW, (e.clientX - plan.left) / plan.width * 100 - left));
-                    const h = Math.min(100 - top, Math.max(minH, (e.clientY - plan.top) / plan.height * 100 - top));
-                    Object.assign(desk, { w: round(w), h: round(h), x: round(left + w / 2), y: round(top + h / 2) });
+                    // In screen pixels. At least about 28 x 18 px (length x depth), so the label stays
+                    // readable, and no further than the plan's right and bottom edges.
+                    const minLength = Math.max(28, plan.width / 200);
+                    const minDepth = Math.max(18, plan.height / 200);
+                    const [minAcross, minDown] = turned ? [minDepth, minLength] : [minLength, minDepth];
+                    let across = Math.min((100 - left) / 100 * plan.width, Math.max(minAcross, e.clientX - plan.left - left / 100 * plan.width));
+                    let down = Math.min((100 - top) / 100 * plan.height, Math.max(minDown, e.clientY - plan.top - top / 100 * plan.height));
+                    // Length and depth are stored as a share of the plan's width and height, so neither may pass 100%.
+                    if (turned) { down = Math.min(down, plan.width); across = Math.min(across, plan.height); }
+                    const [length, depth] = turned ? [down, across] : [across, down];
+                    Object.assign(desk, {
+                        w: round(length / plan.width * 100),
+                        h: round(depth / plan.height * 100),
+                        x: round(left + across / plan.width * 50),
+                        y: round(top + down / plan.height * 50),
+                    });
                     followers.forEach((d) => Object.assign(d, { w: desk.w, h: desk.h }));
                     this.dirty = true;
                 }, (e, cancelled) => {
@@ -609,6 +858,11 @@
 
             nudge(event, desk) {
                 if (!this.editing || desk.x === null) return;
+                if (event.key.toLowerCase() === 'r' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                    event.preventDefault();
+                    this.rotate(desk);
+                    return;
+                }
                 const step = event.shiftKey ? NUDGE_BIG : NUDGE;
                 const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[event.key];
                 if (!moves) return;
@@ -694,7 +948,7 @@
                     // Refresh the desks that changed, keeping any unsaved layout changes on them.
                     data.desks.forEach((fresh) => {
                         const local = this.desks.find((d) => d.id === fresh.id);
-                        if (local) Object.assign(local, fresh, { x: local.x, y: local.y, w: local.w, h: local.h });
+                        if (local) Object.assign(local, fresh, { x: local.x, y: local.y, w: local.w, h: local.h, r: local.r });
                     });
                     this.employees.forEach((e) => { e.desks = e.desks.filter((d) => d.id !== desk.id); });
                     if (person) person.desks = [{ id: desk.id, code: desk.code }];
@@ -713,8 +967,13 @@
                 this.saving = true;
                 this.error = '';
                 try {
-                    const data = await this.put(this.saveUrl, { positions: this.positions() },
+                    const data = await this.put(this.saveUrl, { positions: this.positions(), new_desks: this.newDesks() },
                         'The layout could not be saved. Check your connection and try again.');
+                    // Swap each copy for the desk the server created for it.
+                    const created = data.created || {};
+                    const selected = created[this.selectedId];
+                    this.desks = this.desks.map((d) => (d.isNew && created[d.id]) || d);
+                    if (selected) this.selectedId = selected.id;
                     this.dirty = false;
                     this.editing = false;
                     this.flash(data.message || 'Layout saved.');

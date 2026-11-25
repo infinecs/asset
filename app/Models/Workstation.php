@@ -25,7 +25,12 @@ class Workstation extends Model
      */
     public const AUDIT_INTERVAL_DAYS = 90;
 
-    protected $fillable = ['location_id', 'room', 'number', 'occupant_id', 'notes', 'plan_x', 'plan_y', 'plan_w', 'plan_h'];
+    /**
+     * A desk is "due soon" this many days before its audit falls due.
+     */
+    public const AUDIT_DUE_SOON_DAYS = 14;
+
+    protected $fillable = ['location_id', 'room', 'number', 'occupant_id', 'notes', 'plan_x', 'plan_y', 'plan_w', 'plan_h', 'plan_rotation'];
 
     protected $casts = [
         'number' => 'integer',
@@ -33,6 +38,7 @@ class Workstation extends Model
         'plan_y' => 'float',
         'plan_w' => 'float',
         'plan_h' => 'float',
+        'plan_rotation' => 'integer',
     ];
 
     protected static function booted(): void
@@ -44,10 +50,11 @@ class Workstation extends Model
                 $workstation->plan_y = null;
             }
 
-            // A desk that's off the plan has no size on it either.
+            // A desk that's off the plan has no size or rotation on it either.
             if ($workstation->plan_x === null || $workstation->plan_y === null) {
                 $workstation->plan_w = null;
                 $workstation->plan_h = null;
+                $workstation->plan_rotation = 0;
             }
 
             $workstation->room = $workstation->room !== null && $workstation->room !== '' ? strtoupper($workstation->room) : null;
@@ -101,6 +108,56 @@ class Workstation extends Model
         $last = $this->latestAudit?->created_at;
 
         return !$last || $last->lt(now()->subDays(self::AUDIT_INTERVAL_DAYS));
+    }
+
+    /**
+     * Whole days since the last audit, or null if never audited. Needs latestAudit loaded.
+     */
+    public function auditAgeInDays(): ?int
+    {
+        $last = $this->latestAudit?->created_at;
+
+        return $last ? (int) floor($last->diffInDays(now())) : null;
+    }
+
+    /**
+     * What looks wrong at this desk and needs someone to check it, as messages. Needs occupant
+     * and assets.assignedEmployee loaded. Keep in step with scopeNeedsAttention().
+     *
+     * @return list<string>
+     */
+    public function warnings(): array
+    {
+        $warnings = [];
+
+        if ($this->occupant && $this->occupant->status !== 'active') {
+            $warnings[] = "{$this->occupant->name} has left the company but is still seated here.";
+        }
+
+        if ($this->occupant && $this->assets->isEmpty()) {
+            $warnings[] = "{$this->occupant->name} sits here, but no equipment is recorded at the desk.";
+        }
+
+        foreach ($this->assets as $asset) {
+            if ($asset->assigned_to && (int) $asset->assigned_to !== (int) $this->occupant_id) {
+                $warnings[] = "{$asset->asset_tag} is assigned to " . ($asset->assignedEmployee?->name ?? 'someone else') . ', who does not sit here.';
+            }
+        }
+
+        return $warnings;
+    }
+
+    /**
+     * Desks with at least one of the warnings() above.
+     */
+    public function scopeNeedsAttention(Builder $query): void
+    {
+        $query->where(fn (Builder $q) => $q
+            ->whereHas('occupant', fn (Builder $o) => $o->where('status', '!=', 'active'))
+            ->orWhere(fn (Builder $seated) => $seated->whereNotNull('workstations.occupant_id')->doesntHave('assets'))
+            ->orWhereHas('assets', fn (Builder $a) => $a->whereNotNull('assets.assigned_to')
+                ->where(fn (Builder $other) => $other->whereNull('workstations.occupant_id')
+                    ->orWhereColumn('assets.assigned_to', '!=', 'workstations.occupant_id'))));
     }
 
     public function isPlaced(): bool
